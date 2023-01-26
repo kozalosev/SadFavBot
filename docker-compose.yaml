@@ -1,0 +1,58 @@
+version: "3.8"
+services:
+  sadFavBot:
+    build: .
+    image: kozalo/sadfavbot
+    container_name: sadfavbot
+    restart: unless-stopped
+    environment:
+      - API_TOKEN
+      - DEBUG
+      - COMMAND_STATE_TTL
+      - REDIS_ADDR
+      - REDIS_PASSWORD
+      - POSTGRES_HOST
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - sadfavbot-network
+  postgres:
+    image: postgres:14.5-alpine
+    container_name: postgresql
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    expose:
+      - 5432
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - ./data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sadfavbot -d sadfavbotdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - sadfavbot-network
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    restart: unless-stopped
+    expose:
+      - 6379
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:?error}
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - sadfavbot-network
+networks:
+  sadfavbot-network:
+    driver: bridge
