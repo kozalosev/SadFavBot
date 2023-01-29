@@ -35,8 +35,8 @@ type Field struct {
 	extractor FieldExtractor
 }
 
-func (f *Field) AskUser(api *base.BotAPI, msg *tgbotapi.Message) {
-	api.Reply(msg, f.PromptDescription)
+func (f *Field) askUser(reqenv *base.RequestEnv) {
+	reqenv.Reply(f.PromptDescription)
 }
 
 func (f *Field) validate(msg *tgbotapi.Message) error {

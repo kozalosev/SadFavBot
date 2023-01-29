@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
@@ -15,13 +16,13 @@ type StoredObject struct {
 	FileID string
 }
 
-type InlineHandler struct{}
+type GetFavoritesInlineHandler struct{}
 
-func (InlineHandler) CanHandle(_ *tgbotapi.InlineQuery) bool {
+func (GetFavoritesInlineHandler) CanHandle(_ *tgbotapi.InlineQuery) bool {
 	return true
 }
 
-func (InlineHandler) Handle(reqenv *base.RequestEnv) {
+func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv) {
 	objects := funk.Map(findObjects(reqenv), generateMapper(reqenv.Lang)).([]interface{})
 	answer := tgbotapi.InlineConfig{
 		InlineQueryID: reqenv.InlineQuery.ID,
@@ -39,18 +40,18 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 		case wizard.Image:
 			return tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, object.FileID)
 		case wizard.Sticker:
-			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, object.FileID, "хуй")
+			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, object.FileID, "")
 		case wizard.Video:
-			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.FileID, "хуй")
+			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.FileID, "")
 		case wizard.Audio:
 			return tgbotapi.NewInlineQueryResultCachedAudio(object.ID, object.FileID)
 		case wizard.Voice:
-			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, object.FileID, "войсы для пидоров")
+			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, object.FileID, "")
 		case wizard.Gif:
 			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, object.FileID)
 		default:
 			log.Warning("Unsupported type: ", object)
-			return tgbotapi.NewInlineQueryResultArticle(object.ID, "FU", lc.Tr("inline.errors.type.invalid"))
+			return tgbotapi.NewInlineQueryResultArticle(object.ID, "", lc.Tr("inline.errors.type.invalid"))
 		}
 	}
 }
@@ -58,7 +59,11 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 func findObjects(reqenv *base.RequestEnv) []*StoredObject {
 	rows, err := reqenv.Database.Query("SELECT id, type, file_id FROM item WHERE uid = $1 AND alias = $2",
 		reqenv.InlineQuery.From.ID, reqenv.InlineQuery.Query)
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		if err := rows.Close(); err != nil {
+			log.Error(err)
+		}
+	}(rows)
 
 	var result []*StoredObject
 	if err != nil {
@@ -69,7 +74,7 @@ func findObjects(reqenv *base.RequestEnv) []*StoredObject {
 		var row StoredObject
 		err = rows.Scan(&row.ID, &row.Type, &row.FileID)
 		if err != nil {
-			log.Error("error while fetching from database: ", err)
+			log.Error("Error occurred while fetching from database: ", err)
 			continue
 		}
 		result = append(result, &row)

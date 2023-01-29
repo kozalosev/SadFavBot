@@ -18,6 +18,8 @@ type InlineHandler interface {
 
 type BotAPI struct {
 	*tgbotapi.BotAPI
+
+	DummyMode bool // for testing purposes predominantly
 }
 
 type RequestEnv struct {

@@ -19,6 +19,7 @@ type RedisStateStorage struct {
 type StateStorage interface {
 	GetCurrentState(uid int64, dest Wizard) error
 	SaveState(uid int64, wizard Wizard) error
+	Close() error
 }
 
 var commandStateTTL time.Duration
@@ -30,6 +31,15 @@ func init() {
 	if err != nil {
 		log.Errorln(err)
 	}
+}
+
+func ConnectToRedis(options *redis.Options) RedisStateStorage {
+	rdb := redis.NewClient(options)
+	status := rdb.Ping(ctx)
+	if status.Err() != nil {
+		panic(status.Err())
+	}
+	return RedisStateStorage{RDB: rdb}
 }
 
 func (rss RedisStateStorage) GetCurrentState(uid int64, dest Wizard) error {
@@ -53,4 +63,8 @@ func (rss RedisStateStorage) SaveState(uid int64, wizard Wizard) error {
 	key := commandStatePrefix + strconv.FormatInt(uid, 10)
 	status := rss.RDB.Set(ctx, key, jsonPayload, commandStateTTL)
 	return status.Err()
+}
+
+func (rss RedisStateStorage) Close() error {
+	return rss.RDB.Close()
 }
