@@ -16,7 +16,7 @@ func (SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
 }
 
 func (handler SaveHandler) Handle(reqenv *base.RequestEnv) {
-	wizardForm := wizard.NewWizard("SaveWizard", 2, handler.StateStorage, SaveFormToDB)
+	wizardForm := wizard.NewWizard(handler, 2, handler.StateStorage)
 	title := strings.TrimSpace(strings.TrimPrefix(reqenv.Message.Text, "/"+reqenv.Message.Command()))
 	if len(title) > 0 {
 		wizardForm.AddPrefilledField("name", title)
@@ -25,10 +25,17 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv) {
 	}
 	wizardForm.AddEmptyField("object", reqenv.Lang.Tr("commands.save.fields.object"), wizard.Auto)
 	wizardForm.ProcessNextField(reqenv)
-
 }
 
-func SaveFormToDB(reqenv *base.RequestEnv, fields wizard.Fields) {
+func (handler SaveHandler) GetWizardName() string {
+	return "SaveWizard"
+}
+
+func (handler SaveHandler) GetWizardAction() wizard.FormAction {
+	return saveFormAction
+}
+
+func saveFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 	name := fields.FindField("name")
 	object := fields.FindField("object")
 	_, err := reqenv.Database.Exec("INSERT INTO item (uid, type, alias, file_id) VALUES ($1, $2, $3, $4)",

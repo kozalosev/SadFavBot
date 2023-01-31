@@ -3,6 +3,7 @@ package wizard
 import (
 	"github.com/kozalosev/SadFavBot/base"
 	log "github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type FormAction func(request *base.RequestEnv, fields Fields)
@@ -12,6 +13,15 @@ type Wizard interface {
 	AddPrefilledField(name string, value interface{})
 	ProcessNextField(reqenv *base.RequestEnv)
 	DoAction(reqenv *base.RequestEnv)
+	PopulateRestored(reqenv *base.RequestEnv, storage StateStorage)
+}
+
+//goland:noinspection GoNameStartsWithPackageName
+type WizardMessageHandler interface {
+	base.MessageHandler
+
+	GetWizardName() string
+	GetWizardAction() FormAction
 }
 
 var registeredWizardActions = make(map[string]FormAction)
@@ -46,20 +56,22 @@ start:
 		return
 	}
 
-	for form.Fields[form.Index].Data != nil {
+	for form.Fields[form.Index].Data != nil && form.Index < len(form.Fields) {
 		form.Index++
 	}
 
 	currentField := form.Fields[form.Index]
-	if currentField.Data == nil {
-		if currentField.WasRequested {
-			currentField.Data = currentField.extractor(reqenv.Message)
-			form.Index++
-			goto start
-		} else {
-			currentField.AskUser(reqenv.Bot, reqenv.Message)
-			currentField.WasRequested = true
-		}
+	if currentField.Data != nil {
+		goto start
+	}
+
+	if currentField.WasRequested {
+		currentField.Data = currentField.extractor(reqenv.Message)
+		form.Index++
+		goto start
+	} else {
+		currentField.askUser(reqenv)
+		currentField.WasRequested = true
 	}
 
 	err := form.storage.SaveState(reqenv.Message.From.ID, form)
@@ -82,24 +94,36 @@ func (form *Form) PopulateRestored(reqenv *base.RequestEnv, storage StateStorage
 	form.Fields[form.Index].restoreExtractor(reqenv.Message)
 }
 
-func NewWizard(name string, fields int, storage StateStorage, action FormAction) Wizard {
+func NewWizard(handler WizardMessageHandler, fields int, storage StateStorage) Wizard {
+	name := handler.GetWizardName()
 	if registeredWizardActions[name] == nil {
-		registeredWizardActions[name] = action
+		registeredWizardActions[name] = handler.GetWizardAction()
 	}
 	return &Form{
 		storage:    storage,
 		Fields:     make(Fields, 0, fields),
 		WizardType: name,
+		action:     handler.GetWizardAction(),
 	}
 }
 
-func PopulateWizardActions(actions map[string]FormAction) bool {
-	if len(registeredWizardActions) == 0 {
-		registeredWizardActions = actions
-		return true
-	} else {
+func PopulateWizardActions(handlers []base.MessageHandler) bool {
+	if len(registeredWizardActions) > 0 {
 		return false
 	}
+
+	filteredHandlers := funk.Filter(handlers, func(h base.MessageHandler) bool {
+		_, ok := h.(WizardMessageHandler)
+		return ok
+	}).([]base.MessageHandler)
+	wizardHandlers := funk.Map(filteredHandlers, func(wh base.MessageHandler) WizardMessageHandler { return wh.(WizardMessageHandler) })
+
+	actionsMap := funk.Map(wizardHandlers, func(wh WizardMessageHandler) (string, FormAction) {
+		return wh.GetWizardName(), wh.GetWizardAction()
+	}).(map[string]FormAction)
+
+	registeredWizardActions = actionsMap
+	return true
 }
 
 func restoreWizardAction(wizard *Form) FormAction {

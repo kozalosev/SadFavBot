@@ -6,6 +6,10 @@ import (
 )
 
 func (bot *BotAPI) Reply(msg *tgbotapi.Message, text string) {
+	if bot.DummyMode {
+		return
+	}
+
 	if len(text) == 0 {
 		log.Error("Empty reply for a message: " + msg.Text)
 		return

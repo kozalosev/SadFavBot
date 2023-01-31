@@ -18,17 +18,18 @@ var messageHandlers = []base.MessageHandler{
 	handlers.SaveHandler{StateStorage: stateStorage},
 }
 var inlineHandlers = []base.InlineHandler{
-	handlers.InlineHandler{},
+	handlers.GetFavoritesInlineHandler{},
 }
 
 var locpool = loc.NewPool("en")
-var stateStorage = wizard.RedisStateStorage{RDB: redis.NewClient(&redis.Options{
+var stateStorage = wizard.ConnectToRedis(&redis.Options{
 	Addr:     os.Getenv("REDIS_ADDR"),
 	Password: os.Getenv("REDIS_PASSWORD"),
 	DB:       0,
-})}
-var DatabaseConn = storage.ConnectToDatabase(
+})
+var databaseConn = storage.ConnectToDatabase(
 	os.Getenv("POSTGRES_HOST"),
+	os.Getenv("POSTGRES_PORT"),
 	os.Getenv("POSTGRES_USER"),
 	os.Getenv("POSTGRES_PASSWORD"),
 	os.Getenv("POSTGRES_DB"))
@@ -41,9 +42,9 @@ func main() {
 	debugMode := os.Getenv("DEBUG")
 	bot.Debug = strings.ToLower(debugMode) == "true" || debugMode == "1"
 
-	wizard.PopulateWizardActions(map[string]wizard.FormAction{
-		"SaveWizard": handlers.SaveFormToDB,
-	})
+	if wasPopulated := wizard.PopulateWizardActions(messageHandlers); !wasPopulated {
+		log.Warning("Wizard actions map already has been populated; skipping...")
+	}
 
 	updateConfig := tgbotapi.UpdateConfig{Offset: 0, Timeout: 30}
 	updates := bot.GetUpdatesChan(updateConfig)
@@ -61,6 +62,8 @@ func main() {
 			processMessage(api, upd.Message)
 		}
 	}
+
+	shutdown()
 }
 
 func processMessage(api *base.BotAPI, msg *tgbotapi.Message) {
@@ -69,7 +72,7 @@ func processMessage(api *base.BotAPI, msg *tgbotapi.Message) {
 		Bot:      api,
 		Message:  msg,
 		Lang:     lc,
-		Database: DatabaseConn,
+		Database: databaseConn,
 	}
 
 	for _, handler := range messageHandlers {
@@ -95,7 +98,7 @@ func processInline(api *base.BotAPI, query *tgbotapi.InlineQuery) {
 		Bot:         api,
 		InlineQuery: query,
 		Lang:        lc,
-		Database:    DatabaseConn,
+		Database:    databaseConn,
 	}
 
 	for _, handler := range inlineHandlers {
@@ -103,5 +106,14 @@ func processInline(api *base.BotAPI, query *tgbotapi.InlineQuery) {
 			go handler.Handle(reqenv)
 			return
 		}
+	}
+}
+
+func shutdown() {
+	if err := databaseConn.Close(); err != nil {
+		log.Errorln(err)
+	}
+	if err := stateStorage.Close(); err != nil {
+		log.Errorln(err)
 	}
 }
