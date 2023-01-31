@@ -19,7 +19,7 @@ const (
 func TestConnectToDatabase(t *testing.T) {
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
-		Name:         "SadFavBot-Postgres",
+		Name:         "SadFavBot-StorageTest-Postgres",
 		Image:        "postgres:latest",
 		ExposedPorts: []string{ExposedDBPort + "/tcp"},
 		WaitingFor:   wait.ForLog("database system is ready to accept connections").WithOccurrence(2),
