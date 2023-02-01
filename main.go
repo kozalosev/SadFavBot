@@ -24,7 +24,7 @@ var inlineHandlers = []base.InlineHandler{
 
 var locpool = loc.NewPool("en")
 var stateStorage = wizard.ConnectToRedis(&redis.Options{
-	Addr:     os.Getenv("REDIS_ADDR"),
+	Addr:     os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
 	Password: os.Getenv("REDIS_PASSWORD"),
 	DB:       0,
 })
