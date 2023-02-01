@@ -9,9 +9,11 @@ services:
       - API_TOKEN
       - DEBUG
       - COMMAND_STATE_TTL
-      - REDIS_ADDR
+      - REDIS_HOST
+      - REDIS_PORT
       - REDIS_PASSWORD
       - POSTGRES_HOST
+      - POSTGRES_PORT
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
@@ -24,12 +26,13 @@ services:
     image: postgres:14.5-alpine
     container_name: postgresql
     environment:
+      - POSTGRES_PORT
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - PGDATA=/var/lib/postgresql/data/pgdata
     expose:
-      - 5432
+      - ${POSTGRES_PORT}
     volumes:
       - ./db:/docker-entrypoint-initdb.d
       - ./data:/var/lib/postgresql/data
@@ -47,8 +50,8 @@ services:
     container_name: redis
     restart: unless-stopped
     expose:
-      - 6379
-    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:?error}
+      - ${REDIS_PORT}
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:?error} --port ${REDIS_PORT}
     volumes:
       - ./data/redis:/data
     networks:

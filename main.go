@@ -16,6 +16,7 @@ import (
 var messageHandlers = []base.MessageHandler{
 	handlers.HelpHandler{},
 	handlers.SaveHandler{StateStorage: stateStorage},
+	handlers.DeleteHandler{StateStorage: stateStorage},
 }
 var inlineHandlers = []base.InlineHandler{
 	handlers.GetFavoritesInlineHandler{},
@@ -23,7 +24,7 @@ var inlineHandlers = []base.InlineHandler{
 
 var locpool = loc.NewPool("en")
 var stateStorage = wizard.ConnectToRedis(&redis.Options{
-	Addr:     os.Getenv("REDIS_ADDR"),
+	Addr:     os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
 	Password: os.Getenv("REDIS_PASSWORD"),
 	DB:       0,
 })
@@ -54,7 +55,7 @@ func main() {
 			continue
 		}
 
-		api := &base.BotAPI{BotAPI: bot}
+		api := base.NewBotAPI(bot)
 
 		if upd.InlineQuery != nil {
 			processInline(api, upd.InlineQuery)

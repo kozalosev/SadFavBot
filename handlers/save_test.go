@@ -10,6 +10,8 @@ import (
 )
 
 func TestSaveFormAction(t *testing.T) {
+	insertTestData(dbConn)
+
 	reqenv := &base.RequestEnv{
 		Message: &tgbotapi.Message{
 			From: &tgbotapi.User{ID: TestUID3},
@@ -19,7 +21,7 @@ func TestSaveFormAction(t *testing.T) {
 		Lang:     loc.NewPool("en").GetContext("en"),
 	}
 	fields := wizard.Fields{
-		&wizard.Field{Name: "name", Data: TestAlias},
+		&wizard.Field{Name: "alias", Data: TestAlias},
 		&wizard.Field{Name: "object", Type: TestType, Data: TestFileID},
 	}
 

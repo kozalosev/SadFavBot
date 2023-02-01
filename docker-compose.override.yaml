@@ -2,7 +2,7 @@ version: "3.8"
 services:
   redis:
     ports:
-      - '6379:6379'
+      - "${REDIS_PORT}:${REDIS_PORT}"
   postgres:
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"

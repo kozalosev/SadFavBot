@@ -9,6 +9,8 @@ import (
 )
 
 func TestFindObjects(t *testing.T) {
+	insertTestData(dbConn)
+
 	reqenv := buildRequestEnv()
 	objects := findObjects(reqenv)
 
@@ -18,6 +20,8 @@ func TestFindObjects(t *testing.T) {
 }
 
 func TestMapper(t *testing.T) {
+	insertTestData(dbConn)
+
 	reqenv := buildRequestEnv()
 	objects := findObjects(reqenv)
 

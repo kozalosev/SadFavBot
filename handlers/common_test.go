@@ -75,7 +75,7 @@ func setup() {
 	port := strings.TrimSuffix(string(containerPort), "/tcp")
 
 	dbConn = storage.ConnectToDatabase(host, port, TestUser, TestPassword, TestDB)
-	insertTestData(dbConn)
+	createSchema(dbConn)
 }
 
 func shutDown() {
@@ -84,10 +84,16 @@ func shutDown() {
 	}
 }
 
-func insertTestData(dbConn *sql.DB) {
+func createSchema(dbConn *sql.DB) {
 	schemaFile, err := os.ReadFile("../db/0001_schema.sql")
 	check(err)
 	_, err = dbConn.Exec(string(schemaFile))
+	check(err)
+}
+
+func insertTestData(dbConn *sql.DB) {
+	//noinspection SqlWithoutWhere
+	_, err := dbConn.Exec("DELETE FROM item")
 	check(err)
 
 	_, err = dbConn.Exec("INSERT INTO item(uid, type, alias, file_id) VALUES"+

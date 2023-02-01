@@ -6,6 +6,7 @@ const (
 
 	TestName  = "test_name"
 	TestName2 = "test_name_2"
+	TestName3 = "test_name_3"
 
 	TestPromptDesc = "TestPromptDesc"
 	TestValue      = "TestValue"
