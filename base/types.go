@@ -8,7 +8,7 @@ import (
 
 type MessageHandler interface {
 	CanHandle(msg *tgbotapi.Message) bool
-	Handle(request *RequestEnv)
+	Handle(reqenv *RequestEnv)
 }
 
 type InlineHandler interface {
@@ -17,7 +17,7 @@ type InlineHandler interface {
 }
 
 type BotAPI struct {
-	*tgbotapi.BotAPI
+	internal *tgbotapi.BotAPI
 
 	DummyMode bool // for testing purposes predominantly
 }

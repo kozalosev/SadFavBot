@@ -16,6 +16,7 @@ import (
 var messageHandlers = []base.MessageHandler{
 	handlers.HelpHandler{},
 	handlers.SaveHandler{StateStorage: stateStorage},
+	handlers.DeleteHandler{StateStorage: stateStorage},
 }
 var inlineHandlers = []base.InlineHandler{
 	handlers.GetFavoritesInlineHandler{},
@@ -54,7 +55,7 @@ func main() {
 			continue
 		}
 
-		api := &base.BotAPI{BotAPI: bot}
+		api := base.NewBotAPI(bot)
 
 		if upd.InlineQuery != nil {
 			processInline(api, upd.InlineQuery)

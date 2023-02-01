@@ -18,7 +18,7 @@ type StoredObject struct {
 
 type GetFavoritesInlineHandler struct{}
 
-func (GetFavoritesInlineHandler) CanHandle(_ *tgbotapi.InlineQuery) bool {
+func (GetFavoritesInlineHandler) CanHandle(*tgbotapi.InlineQuery) bool {
 	return true
 }
 
@@ -29,7 +29,7 @@ func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv) {
 		Results:       objects,
 		IsPersonal:    true,
 	}
-	if _, err := reqenv.Bot.Request(answer); err != nil {
+	if err := reqenv.Bot.Request(answer); err != nil {
 		log.Error("error while processing inline query: ", err)
 	}
 }

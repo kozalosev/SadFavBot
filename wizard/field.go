@@ -25,25 +25,16 @@ const (
 )
 
 type Field struct {
-	Name              string
-	Data              interface{}
-	WasRequested      bool
-	Type              FieldType
-	PromptDescription string
+	Name                  string
+	Data                  interface{}
+	WasRequested          bool
+	Type                  FieldType
+	PromptDescription     string
+	InlineKeyboardAnswers []string
+	SkipIf                *SkipConditionContainer
 
 	validator FieldValidator
 	extractor FieldExtractor
-}
-
-func (f *Field) askUser(reqenv *base.RequestEnv) {
-	reqenv.Reply(f.PromptDescription)
-}
-
-func (f *Field) validate(msg *tgbotapi.Message) error {
-	if f.validator == nil {
-		return nil
-	}
-	return f.validator(msg)
 }
 
 func (fs Fields) FindField(name string) *Field {
@@ -55,4 +46,19 @@ func (fs Fields) FindField(name string) *Field {
 		log.Warning("More than needed: ", found)
 	}
 	return found[0]
+}
+
+func (f *Field) askUser(reqenv *base.RequestEnv) {
+	if len(f.InlineKeyboardAnswers) > 0 {
+		reqenv.ReplyWithKeyboard(f.PromptDescription, f.InlineKeyboardAnswers)
+	} else {
+		reqenv.Reply(f.PromptDescription)
+	}
+}
+
+func (f *Field) validate(msg *tgbotapi.Message) error {
+	if f.validator == nil {
+		return nil
+	}
+	return f.validator(msg)
 }
