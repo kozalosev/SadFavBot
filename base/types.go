@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"database/sql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/loctools/go-l10n/loc"
@@ -28,4 +29,5 @@ type RequestEnv struct {
 	InlineQuery *tgbotapi.InlineQuery
 	Lang        *loc.Context
 	Database    *sql.DB
+	Ctx         context.Context
 }

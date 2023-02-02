@@ -30,6 +30,7 @@ const (
 var (
 	container testcontainers.Container
 	dbConn    *sql.DB
+	ctx       = context.Background()
 )
 
 //TestMain controls main for the tests and allows for setup and shutdown of tests
@@ -59,7 +60,6 @@ func setup() {
 			"POSTGRES_DB":       TestDB,
 		},
 	}
-	ctx := context.Background()
 	var err error
 	container, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
@@ -79,7 +79,7 @@ func setup() {
 }
 
 func shutDown() {
-	if err := container.Terminate(context.Background()); err != nil {
+	if err := container.Terminate(ctx); err != nil {
 		panic(fmt.Sprintf("failed to terminate container: %s", err.Error()))
 	}
 }

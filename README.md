@@ -11,6 +11,7 @@ Commands
 
 * `/help` — prints help message
 * `/save` — starts a wizard that helps you store a meme associated with some textual alias
+* `/delete` — starts a wizard that helps you delete some memes you no longer needed
 
 Inline mode
 -----------

@@ -23,6 +23,7 @@ var formExample = Form{
 }
 
 var container testcontainers.Container
+var ctx = context.Background()
 
 func TestConnectToRedis(t *testing.T) {
 	stateStorage := buildStateStorage(t)
@@ -86,7 +87,7 @@ func setup() {
 		WaitingFor:   wait.ForLog("Ready to accept connections"),
 	}
 	var err error
-	container, err = testcontainers.GenericContainer(context.Background(), testcontainers.GenericContainerRequest{
+	container, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 		Reuse:            true,
@@ -97,15 +98,15 @@ func setup() {
 }
 
 func shutDown() {
-	if err := container.Terminate(context.Background()); err != nil {
+	if err := container.Terminate(ctx); err != nil {
 		panic(fmt.Sprintf("failed to terminate container: %s", err.Error()))
 	}
 }
 
 func buildStateStorage(t *testing.T) StateStorage {
-	endpoint, err := container.Endpoint(context.Background(), "")
+	endpoint, err := container.Endpoint(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return ConnectToRedis(&redis.Options{Addr: endpoint})
+	return ConnectToRedis(ctx, TestTTL, &redis.Options{Addr: endpoint})
 }

@@ -1,5 +1,7 @@
 package wizard
 
+import "time"
+
 const (
 	TestID     = 123456
 	TestFileID = "FileID"
@@ -12,4 +14,6 @@ const (
 	TestValue      = "TestValue"
 
 	TestWizardName = "TestWizardName"
+
+	TestTTL = 5 * time.Minute
 )
