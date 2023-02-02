@@ -58,7 +58,12 @@ func deleteFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 	uid := reqenv.Message.From.ID
 	alias := fields.FindField(FieldAlias).Data
 	deleteAll := fields.FindField(FieldDeleteAll).Data == Yes
-	fileId := fields.FindField(FieldObject).Data
+	object := fields.FindField(FieldObject).Data
+	file, ok := object.(wizard.File)
+	if !ok {
+		log.Errorf("Invalid type: File was expected but '%T %+v' is got", object, object)
+		reqenv.Reply(reqenv.Lang.Tr(DeleteStatusTrPrefix + StatusFailure))
+	}
 
 	var (
 		res sql.Result
@@ -69,9 +74,9 @@ func deleteFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 		res, err = reqenv.Database.Exec("DELETE FROM item WHERE uid = $1 AND alias = $2",
 			uid, alias)
 	} else {
-		log.Infof("Deletion of items with uid '%d', alias '%s' and file_id '%s'", uid, alias, fileId)
-		res, err = reqenv.Database.Exec("DELETE FROM item WHERE uid = $1 AND alias = $2 AND file_id = $3",
-			uid, alias, fileId)
+		log.Infof("Deletion of items with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.FileUniqueID)
+		res, err = reqenv.Database.Exec("DELETE FROM item WHERE uid = $1 AND alias = $2 AND file_unique_id = $3",
+			uid, alias, file.FileUniqueID)
 	}
 	if err != nil {
 		log.Errorln(err.Error())

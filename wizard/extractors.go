@@ -1,17 +1,41 @@
 package wizard
 
-import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "github.com/sirupsen/logrus"
+)
 
-type FieldExtractor func(msg *tgbotapi.Message) string
+type FieldExtractor func(msg *tgbotapi.Message) interface{}
 
-func textExtractor(m *tgbotapi.Message) string      { return m.Text }
-func stickerExtractor(m *tgbotapi.Message) string   { return m.Sticker.FileID }
-func imageExtractor(m *tgbotapi.Message) string     { return m.Photo[0].FileID }
-func voiceExtractor(m *tgbotapi.Message) string     { return m.Voice.FileID }
-func audioExtractor(m *tgbotapi.Message) string     { return m.Audio.FileID }
-func videoExtractor(m *tgbotapi.Message) string     { return m.Video.FileID }
-func videoNoteExtractor(m *tgbotapi.Message) string { return m.VideoNote.FileID }
-func gifExtractor(m *tgbotapi.Message) string       { return m.Animation.FileID }
+type File struct {
+	FileID       string
+	FileUniqueID string
+}
+
+func nilExtractor(*tgbotapi.Message) interface{}    { return nil }
+func textExtractor(m *tgbotapi.Message) interface{} { return m.Text }
+func stickerExtractor(m *tgbotapi.Message) interface{} {
+	return File{FileID: m.Sticker.FileID, FileUniqueID: m.Sticker.FileUniqueID}
+}
+func voiceExtractor(m *tgbotapi.Message) interface{} {
+	return File{FileID: m.Voice.FileID, FileUniqueID: m.Voice.FileUniqueID}
+}
+func audioExtractor(m *tgbotapi.Message) interface{} {
+	return File{FileID: m.Audio.FileID, FileUniqueID: m.Audio.FileUniqueID}
+}
+func videoExtractor(m *tgbotapi.Message) interface{} {
+	return File{FileID: m.Video.FileID, FileUniqueID: m.Video.FileUniqueID}
+}
+func videoNoteExtractor(m *tgbotapi.Message) interface{} {
+	return File{FileID: m.VideoNote.FileID, FileUniqueID: m.VideoNote.FileUniqueID}
+}
+func gifExtractor(m *tgbotapi.Message) interface{} {
+	return File{FileID: m.Animation.FileID, FileUniqueID: m.Animation.FileUniqueID}
+}
+func imageExtractor(m *tgbotapi.Message) interface{} {
+	photo := m.Photo[len(m.Photo)-1]
+	return File{FileID: photo.FileID, FileUniqueID: photo.FileUniqueID}
+}
 
 func determineMessageType(msg *tgbotapi.Message) FieldType {
 	if msg.Sticker != nil {
@@ -64,6 +88,7 @@ func (f *Field) restoreExtractor(msg *tgbotapi.Message) {
 	case Gif:
 		f.extractor = gifExtractor
 	default:
-		f.extractor = func(m *tgbotapi.Message) string { return "no action was found!" } // elaborate more elegant solution
+		log.Warningf("No action was found for %+v", msg)
+		f.extractor = nilExtractor
 	}
 }

@@ -22,7 +22,10 @@ func TestSaveFormAction(t *testing.T) {
 	}
 	fields := wizard.Fields{
 		&wizard.Field{Name: "alias", Data: TestAlias},
-		&wizard.Field{Name: "object", Type: TestType, Data: TestFileID},
+		&wizard.Field{Name: "object", Type: TestType, Data: wizard.File{
+			FileID:       TestFileID,
+			FileUniqueID: TestUniqueFileID,
+		}},
 	}
 
 	saveFormAction(reqenv, fields)
@@ -33,17 +36,19 @@ func TestSaveFormAction(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, count)
 
-	itemsRes := dbConn.QueryRow("SELECT alias, type, file_id FROM item WHERE uid = $1", TestUID3)
+	itemsRes := dbConn.QueryRow("SELECT alias, type, file_id, file_unique_id FROM item WHERE uid = $1", TestUID3)
 	var item queryResult
-	err = itemsRes.Scan(&item.Name, &item.Type, &item.FileID)
+	err = itemsRes.Scan(&item.Name, &item.Type, &item.FileID, &item.FileUniqueID)
 	assert.NoError(t, err)
 	assert.Equal(t, TestAlias, item.Name)
 	assert.Equal(t, TestType, item.Type)
 	assert.Equal(t, TestFileID, item.FileID)
+	assert.Equal(t, TestUniqueFileID, item.FileUniqueID)
 }
 
 type queryResult struct {
-	Name   string
-	Type   string
-	FileID string
+	Name         string
+	Type         string
+	FileID       string
+	FileUniqueID string
 }

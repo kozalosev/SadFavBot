@@ -42,12 +42,27 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv) {
 func saveFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 	name := fields.FindField(FieldAlias)
 	object := fields.FindField(FieldObject)
-	_, err := reqenv.Database.Exec("INSERT INTO item (uid, type, alias, file_id) VALUES ($1, $2, $3, $4)",
-		reqenv.Message.From.ID, object.Type, name.Data, object.Data)
+	file, ok := object.Data.(wizard.File)
+	if !ok {
+		log.Errorf("Invalid type: File was expected but '%T %+v' is got", object.Data, object.Data)
+		reqenv.Reply(reqenv.Lang.Tr(SaveStatusTrPrefix + StatusFailure))
+	}
+	res, err := reqenv.Database.Exec("INSERT INTO item (uid, type, alias, file_id, file_unique_id) VALUES ($1, $2, $3, $4, $5)",
+		reqenv.Message.From.ID, object.Type, name.Data, file.FileID, file.FileUniqueID)
 	if err != nil {
 		log.Errorln(err.Error())
 		reqenv.Reply(reqenv.Lang.Tr(SaveStatusTrPrefix + StatusFailure))
 	} else {
-		reqenv.Reply(reqenv.Lang.Tr(SaveStatusTrPrefix + StatusSuccess))
+		var rowsAffected int64
+		if rowsAffected, err = res.RowsAffected(); err != nil {
+			log.Errorln(err)
+			rowsAffected = -1 // logs but ignores
+		}
+		if rowsAffected == 0 {
+			log.Warning("No rows were affected!")
+			reqenv.Reply(reqenv.Lang.Tr(SaveStatusTrPrefix + StatusFailure))
+		} else {
+			reqenv.Reply(reqenv.Lang.Tr(SaveStatusTrPrefix + StatusSuccess))
+		}
 	}
 }

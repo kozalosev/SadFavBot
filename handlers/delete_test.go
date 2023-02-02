@@ -23,7 +23,7 @@ func TestDeleteFormAction(t *testing.T) {
 	fields := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: TestAlias},
 		&wizard.Field{Name: FieldDeleteAll, Data: No},
-		&wizard.Field{Name: FieldObject, Type: TestType, Data: TestFileID},
+		&wizard.Field{Name: FieldObject, Type: TestType, Data: wizard.File{FileUniqueID: TestUniqueFileID}},
 	}
 
 	deleteFormAction(reqenv, fields)

@@ -10,7 +10,7 @@ import (
 
 func TestRestoreExtractor(t *testing.T) {
 	audioMsg := &tgbotapi.Message{
-		Audio: &tgbotapi.Audio{FileID: TestFileID},
+		Audio: &tgbotapi.Audio{FileID: TestFileID, FileUniqueID: TestFileUniqueID},
 	}
 
 	f := Field{Type: Image}
@@ -20,7 +20,8 @@ func TestRestoreExtractor(t *testing.T) {
 	f = Field{Type: Auto}
 	f.restoreExtractor(audioMsg)
 	assert.Equal(t, getFuncPtr(audioExtractor), getFuncPtr(f.extractor))
-	assert.Equal(t, TestFileID, f.extractor(audioMsg))
+	expectedAudio := File{FileID: TestFileID, FileUniqueID: TestFileUniqueID}
+	assert.Equal(t, expectedAudio, f.extractor(audioMsg))
 }
 
 func getFuncPtr(f interface{}) uintptr {
