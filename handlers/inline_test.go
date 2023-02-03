@@ -9,32 +9,32 @@ import (
 )
 
 func TestFindObjects(t *testing.T) {
-	insertTestData(dbConn)
+	insertTestData(db)
 
-	reqenv := buildRequestEnv()
+	reqenv := buildRequestEnvInline()
 	objects := findObjects(reqenv)
 
 	assert.Len(t, objects, 2)
-	assert.Equal(t, TestFileID, objects[0].FileID)
-	assert.Equal(t, TestFileID2, objects[1].FileID)
+	assert.Equal(t, TestFileID, *objects[0].FileID)
+	assert.Equal(t, TestFileID2, *objects[1].FileID)
 }
 
 func TestMapper(t *testing.T) {
-	insertTestData(dbConn)
+	insertTestData(db)
 
-	reqenv := buildRequestEnv()
+	reqenv := buildRequestEnvInline()
 	objects := findObjects(reqenv)
 
 	inlineAnswer := generateMapper(nil)(objects[0])
 	assert.Equal(t, "InlineQueryResultCachedSticker", reflect.TypeOf(inlineAnswer).Name())
 }
 
-func buildRequestEnv() *base.RequestEnv {
+func buildRequestEnvInline() *base.RequestEnv {
 	return &base.RequestEnv{
 		InlineQuery: &tgbotapi.InlineQuery{
 			From:  &tgbotapi.User{ID: TestUID},
 			Query: TestAlias,
 		},
-		Database: dbConn,
+		Database: db,
 	}
 }

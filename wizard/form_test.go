@@ -16,7 +16,7 @@ func TestForm_AddEmptyField(t *testing.T) {
 
 	assert.Equal(t, TestName, resField.Name)
 	assert.Equal(t, TestPromptDesc, resField.PromptDescription)
-	assert.Equal(t, Text, string(resField.Type))
+	assert.Equal(t, Text, resField.Type)
 	assert.Nil(t, resField.Data)
 }
 

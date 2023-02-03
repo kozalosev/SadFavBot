@@ -13,7 +13,8 @@ import (
 type StoredObject struct {
 	ID     string
 	Type   wizard.FieldType
-	FileID string
+	FileID *string
+	Text   *string
 }
 
 type GetFavoritesInlineHandler struct{}
@@ -37,27 +38,30 @@ func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv) {
 func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 	return func(object *StoredObject) interface{} {
 		switch object.Type {
+		case wizard.Text:
+			return tgbotapi.NewInlineQueryResultArticle(object.ID, *object.Text, *object.Text)
 		case wizard.Image:
-			return tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, object.FileID)
+			return tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, *object.FileID)
 		case wizard.Sticker:
-			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, object.FileID, "")
+			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, *object.FileID, "")
 		case wizard.Video:
-			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.FileID, "")
+			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, *object.FileID, "")
 		case wizard.Audio:
-			return tgbotapi.NewInlineQueryResultCachedAudio(object.ID, object.FileID)
+			return tgbotapi.NewInlineQueryResultCachedAudio(object.ID, *object.FileID)
 		case wizard.Voice:
-			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, object.FileID, "")
+			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, *object.FileID, "")
 		case wizard.Gif:
-			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, object.FileID)
+			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, *object.FileID)
 		default:
 			log.Warning("Unsupported type: ", object)
-			return tgbotapi.NewInlineQueryResultArticle(object.ID, "", lc.Tr("inline.errors.type.invalid"))
+			errMsg := lc.Tr("inline.errors.type.invalid")
+			return tgbotapi.NewInlineQueryResultArticle(object.ID, errMsg, errMsg)
 		}
 	}
 }
 
 func findObjects(reqenv *base.RequestEnv) []*StoredObject {
-	rows, err := reqenv.Database.Query("SELECT id, type, file_id FROM item WHERE uid = $1 AND alias = $2",
+	rows, err := reqenv.Database.Query("SELECT id, type, file_id, text FROM items WHERE uid = $1 AND alias = $2",
 		reqenv.InlineQuery.From.ID, reqenv.InlineQuery.Query)
 	defer func(rows *sql.Rows) {
 		if err := rows.Close(); err != nil {
@@ -72,7 +76,7 @@ func findObjects(reqenv *base.RequestEnv) []*StoredObject {
 	}
 	for rows.Next() {
 		var row StoredObject
-		err = rows.Scan(&row.ID, &row.Type, &row.FileID)
+		err = rows.Scan(&row.ID, &row.Type, &row.FileID, &row.Text)
 		if err != nil {
 			log.Error("Error occurred while fetching from database: ", err)
 			continue

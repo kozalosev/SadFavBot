@@ -11,6 +11,10 @@ import (
 const (
 	DeleteFieldsTrPrefix = "commands.delete.fields."
 	DeleteStatusTrPrefix = "commands.delete.status."
+	DeleteStatusSuccess  = DeleteStatusTrPrefix + StatusSuccess
+	DeleteStatusFailure  = DeleteStatusTrPrefix + StatusFailure
+	DeleteStatusNoRows   = DeleteStatusTrPrefix + "no.rows"
+	UnknownError         = "errors.unknown"
 	Yes                  = "👍"
 	No                   = "👎"
 )
@@ -39,7 +43,7 @@ func (handler DeleteHandler) Handle(reqenv *base.RequestEnv) {
 	})
 	if err != nil {
 		log.Errorln(err)
-		reqenv.Reply(reqenv.Lang.Tr("errors.unknown"))
+		reqenv.Reply(reqenv.Lang.Tr(UnknownError))
 	}
 
 	if len(arg) > 0 {
@@ -56,13 +60,13 @@ func (handler DeleteHandler) Handle(reqenv *base.RequestEnv) {
 
 func deleteFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 	uid := reqenv.Message.From.ID
-	alias := fields.FindField(FieldAlias).Data
 	deleteAll := fields.FindField(FieldDeleteAll).Data == Yes
-	object := fields.FindField(FieldObject).Data
-	file, ok := object.(wizard.File)
+	itemValues, ok := extractItemValues(fields)
+
+	replyWith := replierFactory(reqenv)
 	if !ok {
-		log.Errorf("Invalid type: File was expected but '%T %+v' is got", object, object)
-		reqenv.Reply(reqenv.Lang.Tr(DeleteStatusTrPrefix + StatusFailure))
+		replyWith(DeleteStatusFailure)
+		return
 	}
 
 	var (
@@ -70,27 +74,35 @@ func deleteFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 		err error
 	)
 	if deleteAll {
-		log.Infof("Deletion of items with uid '%d' and alias '%s'", uid, alias)
-		res, err = reqenv.Database.Exec("DELETE FROM item WHERE uid = $1 AND alias = $2",
-			uid, alias)
+		res, err = deleteByAlias(reqenv.Database, uid, itemValues.Alias)
+	} else if itemValues.Type == wizard.Text {
+		res, err = deleteByText(reqenv.Database, uid, itemValues.Alias, itemValues.Text)
 	} else {
-		log.Infof("Deletion of items with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.FileUniqueID)
-		res, err = reqenv.Database.Exec("DELETE FROM item WHERE uid = $1 AND alias = $2 AND file_unique_id = $3",
-			uid, alias, file.FileUniqueID)
+		res, err = deleteByFileID(reqenv.Database, uid, itemValues.Alias, itemValues.File)
 	}
 	if err != nil {
 		log.Errorln(err.Error())
-		reqenv.Reply(reqenv.Lang.Tr(DeleteStatusTrPrefix + StatusFailure))
+		replyWith(DeleteStatusFailure)
 	} else {
-		var rowsAffected int64
-		if rowsAffected, err = res.RowsAffected(); err != nil {
-			log.Errorln(err)
-			rowsAffected = -1 // logs but ignores
-		}
-		if rowsAffected == 0 {
-			reqenv.Reply(reqenv.Lang.Tr(DeleteStatusTrPrefix + "no.rows"))
+		if checkRowsWereAffected(res) {
+			replyWith(DeleteStatusSuccess)
 		} else {
-			reqenv.Reply(reqenv.Lang.Tr(DeleteStatusTrPrefix + StatusSuccess))
+			replyWith(DeleteStatusNoRows)
 		}
 	}
+}
+
+func deleteByAlias(db *sql.DB, uid int64, alias string) (sql.Result, error) {
+	log.Infof("Deletion of items with uid '%d' and alias '%s'", uid, alias)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", uid, alias)
+}
+
+func deleteByFileID(db *sql.DB, uid int64, alias string, file wizard.File) (sql.Result, error) {
+	log.Infof("Deletion of items with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2 AND file_unique_id = $3", uid, alias, file.UniqueID)
+}
+
+func deleteByText(db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
+	log.Infof("Deletion of items with uid '%d', alias '%s' and text '%s'", uid, alias, text)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2 AND text = $3", uid, alias, text)
 }

@@ -5,50 +5,53 @@ import (
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestDeleteFormAction(t *testing.T) {
-	insertTestData(dbConn)
+	insertTestData(db)
 
-	reqenv := &base.RequestEnv{
-		Message: &tgbotapi.Message{
-			From: &tgbotapi.User{ID: TestUID},
-		},
-		Database: dbConn,
-		Bot:      &base.BotAPI{DummyMode: true},
-		Lang:     loc.NewPool("en").GetContext("en"),
-	}
+	reqenv := buildRequestEnvDelete(TestUID)
 	fields := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: TestAlias},
 		&wizard.Field{Name: FieldDeleteAll, Data: No},
-		&wizard.Field{Name: FieldObject, Type: TestType, Data: wizard.File{FileUniqueID: TestUniqueFileID}},
+		&wizard.Field{Name: FieldObject, Type: TestType, Data: wizard.File{UniqueID: TestUniqueFileID}},
 	}
 
 	deleteFormAction(reqenv, fields)
 
-	countRes := dbConn.QueryRow("SELECT count(id) FROM item WHERE uid = $1 AND alias = $2", TestUID, TestAlias)
-	var count int
-	err := countRes.Scan(&count)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, count) // row with FileID_2 is on its place
-
-	countRes = dbConn.QueryRow("SELECT count(id) FROM item WHERE uid = $1", TestUID)
-	err = countRes.Scan(&count)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, count) // rows with alias2 and alias+FileID_2
+	testAlias := TestAlias
+	checkRowsCount(t, 1, TestUID, &testAlias) // row with FileID_2 is on its place
+	checkRowsCount(t, 2, TestUID, nil)        // rows with alias2 and alias+FileID_2
 
 	fields.FindField(FieldDeleteAll).Data = Yes
 	deleteFormAction(reqenv, fields)
 
-	countRes = dbConn.QueryRow("SELECT count(id) FROM item WHERE uid = $1 AND alias = $2", TestUID, TestAlias)
-	err = countRes.Scan(&count)
-	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
+	checkRowsCount(t, 0, TestUID, &testAlias)
+}
 
-	countRes = dbConn.QueryRow("SELECT count(id) FROM item WHERE uid = $1", TestUID)
-	err = countRes.Scan(&count)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, count)
+func TestDeleteFormActionText(t *testing.T) {
+	insertTestData(db)
+
+	reqenv := buildRequestEnvDelete(TestUID3)
+	fields := wizard.Fields{
+		&wizard.Field{Name: FieldAlias, Data: TestAlias},
+		&wizard.Field{Name: FieldDeleteAll, Data: No},
+		&wizard.Field{Name: FieldObject, Type: TestType, Data: TestText},
+	}
+
+	deleteFormAction(reqenv, fields)
+
+	checkRowsCount(t, 0, TestUID3, nil) // row with TestFileID is on its place
+}
+
+func buildRequestEnvDelete(uid int64) *base.RequestEnv {
+	return &base.RequestEnv{
+		Message: &tgbotapi.Message{
+			From: &tgbotapi.User{ID: uid},
+		},
+		Database: db,
+		Bot:      &base.BotAPI{DummyMode: true},
+		Lang:     loc.NewPool("en").GetContext("en"),
+	}
 }

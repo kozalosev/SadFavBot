@@ -14,14 +14,14 @@ type FieldType string
 
 const (
 	Auto      FieldType = "<auto>"
-	Text                = "text"
-	Sticker             = "sticker"
-	Image               = "image"
-	Voice               = "voice"
-	Audio               = "audio"
-	Video               = "video"
-	VideoNote           = "video_note"
-	Gif                 = "gif"
+	Text      FieldType = "text"
+	Sticker   FieldType = "sticker"
+	Image     FieldType = "image"
+	Voice     FieldType = "voice"
+	Audio     FieldType = "audio"
+	Video     FieldType = "video"
+	VideoNote FieldType = "video_note"
+	Gif       FieldType = "gif"
 )
 
 type Field struct {

@@ -84,7 +84,7 @@ func main() {
 	shutdown(stateStorage, db)
 }
 
-func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, dbConn *sql.DB) {
+func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *sql.DB) {
 	commandStateTTL, err := time.ParseDuration(os.Getenv("COMMAND_STATE_TTL"))
 	if err != nil {
 		panic(err)
@@ -94,7 +94,7 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
-	dbConn = storage.ConnectToDatabase(
+	db = storage.ConnectToDatabase(
 		os.Getenv("POSTGRES_HOST"),
 		os.Getenv("POSTGRES_PORT"),
 		os.Getenv("POSTGRES_USER"),

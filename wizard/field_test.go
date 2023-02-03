@@ -61,7 +61,7 @@ func TestFieldMarshalling(t *testing.T) {
 	jsn := string(jsonBytes)
 
 	entities := []string{
-		TestName, TestName2, TestName3, TestValue, Text, TestPromptDesc,
+		TestName, TestName2, TestName3, TestValue, string(Text), TestPromptDesc,
 	}
 	for _, e := range entities {
 		assert.Contains(t, jsn, e)

@@ -20,7 +20,7 @@ func TestRestoreExtractor(t *testing.T) {
 	f = Field{Type: Auto}
 	f.restoreExtractor(audioMsg)
 	assert.Equal(t, getFuncPtr(audioExtractor), getFuncPtr(f.extractor))
-	expectedAudio := File{FileID: TestFileID, FileUniqueID: TestFileUniqueID}
+	expectedAudio := File{ID: TestFileID, UniqueID: TestFileUniqueID}
 	assert.Equal(t, expectedAudio, f.extractor(audioMsg))
 }
 

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/kozalosev/SadFavBot/storage"
+	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"os"
@@ -22,16 +24,18 @@ const (
 	TestUID2          = TestUID + 1
 	TestUID3          = TestUID + 2
 	TestAlias         = "alias"
-	TestType          = "sticker"
+	TestAlias2        = TestAlias + "2"
+	TestType          = wizard.Sticker
 	TestFileID        = "FileID"
 	TestFileID2       = "FileID_2"
 	TestUniqueFileID  = "FileUniqueID"
 	TestUniqueFileID2 = "FileUniqueID_2"
+	TestText          = "test_text"
 )
 
 var (
 	container testcontainers.Container
-	dbConn    *sql.DB
+	db        *sql.DB
 	ctx       = context.Background()
 )
 
@@ -76,8 +80,8 @@ func setup() {
 	containerPort, err := container.MappedPort(ctx, ExposedDBPort)
 	port := strings.TrimSuffix(string(containerPort), "/tcp")
 
-	dbConn = storage.ConnectToDatabase(host, port, TestUser, TestPassword, TestDB)
-	createSchema(dbConn)
+	db = storage.ConnectToDatabase(host, port, TestUser, TestPassword, TestDB)
+	createSchema(db)
 }
 
 func shutDown() {
@@ -86,24 +90,27 @@ func shutDown() {
 	}
 }
 
-func createSchema(dbConn *sql.DB) {
+func createSchema(db *sql.DB) {
 	schemaFile, err := os.ReadFile("../db/0001_schema.sql")
 	check(err)
-	_, err = dbConn.Exec(string(schemaFile))
+	_, err = db.Exec(string(schemaFile))
 	check(err)
 }
 
-func insertTestData(dbConn *sql.DB) {
+func insertTestData(db *sql.DB) {
 	//noinspection SqlWithoutWhere
-	_, err := dbConn.Exec("DELETE FROM item")
+	_, err := db.Exec("DELETE FROM items")
 	check(err)
 
-	_, err = dbConn.Exec("INSERT INTO item(uid, type, alias, file_id, file_unique_id) VALUES"+
+	_, err = db.Exec("INSERT INTO items(uid, type, alias, file_id, file_unique_id) VALUES"+
 		"($1, $3, $4, $6, $8),"+ // TestUID, TestAlias, TestFileID, TestUniqueFileID
 		"($1, $3, $4, $7, $9),"+ // TestUID, TestAlias, TestFileID2, TestUniqueFileID2
 		"($1, $3, $5, $6, $8),"+ // TestUID, TestAlias2, TestFileID, TestUniqueFileID
 		"($2, $3, $4, $6, $8)", // TestUID2, TestAlias, TestFileID, TestUniqueFileID
-		TestUID, TestUID2, TestType, TestAlias, TestAlias+"2", TestFileID, TestFileID2, TestUniqueFileID, TestUniqueFileID2)
+		TestUID, TestUID2, TestType, TestAlias, TestAlias2, TestFileID, TestFileID2, TestUniqueFileID, TestUniqueFileID2)
+	check(err)
+	_, err = db.Exec("INSERT INTO items(uid, type, alias, text) VALUES ($1, $2, $3, $4)",
+		TestUID2, wizard.Text, TestAlias2, TestText)
 	check(err)
 }
 
@@ -111,4 +118,17 @@ func check(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func checkRowsCount(t *testing.T, expected int, uid int64, alias *string) {
+	var countRes *sql.Row
+	if alias != nil {
+		countRes = db.QueryRow("SELECT count(id) FROM items WHERE uid = $1 AND alias = $2", uid, alias)
+	} else {
+		countRes = db.QueryRow("SELECT count(id) FROM items WHERE uid = $1", uid)
+	}
+	var count int
+	err := countRes.Scan(&count)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, count)
 }

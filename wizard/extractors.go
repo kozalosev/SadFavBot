@@ -8,33 +8,33 @@ import (
 type FieldExtractor func(msg *tgbotapi.Message) interface{}
 
 type File struct {
-	FileID       string
-	FileUniqueID string
+	ID       string
+	UniqueID string
 }
 
 func nilExtractor(*tgbotapi.Message) interface{}    { return nil }
 func textExtractor(m *tgbotapi.Message) interface{} { return m.Text }
 func stickerExtractor(m *tgbotapi.Message) interface{} {
-	return File{FileID: m.Sticker.FileID, FileUniqueID: m.Sticker.FileUniqueID}
+	return File{ID: m.Sticker.FileID, UniqueID: m.Sticker.FileUniqueID}
 }
 func voiceExtractor(m *tgbotapi.Message) interface{} {
-	return File{FileID: m.Voice.FileID, FileUniqueID: m.Voice.FileUniqueID}
+	return File{ID: m.Voice.FileID, UniqueID: m.Voice.FileUniqueID}
 }
 func audioExtractor(m *tgbotapi.Message) interface{} {
-	return File{FileID: m.Audio.FileID, FileUniqueID: m.Audio.FileUniqueID}
+	return File{ID: m.Audio.FileID, UniqueID: m.Audio.FileUniqueID}
 }
 func videoExtractor(m *tgbotapi.Message) interface{} {
-	return File{FileID: m.Video.FileID, FileUniqueID: m.Video.FileUniqueID}
+	return File{ID: m.Video.FileID, UniqueID: m.Video.FileUniqueID}
 }
 func videoNoteExtractor(m *tgbotapi.Message) interface{} {
-	return File{FileID: m.VideoNote.FileID, FileUniqueID: m.VideoNote.FileUniqueID}
+	return File{ID: m.VideoNote.FileID, UniqueID: m.VideoNote.FileUniqueID}
 }
 func gifExtractor(m *tgbotapi.Message) interface{} {
-	return File{FileID: m.Animation.FileID, FileUniqueID: m.Animation.FileUniqueID}
+	return File{ID: m.Animation.FileID, UniqueID: m.Animation.FileUniqueID}
 }
 func imageExtractor(m *tgbotapi.Message) interface{} {
 	photo := m.Photo[len(m.Photo)-1]
-	return File{FileID: photo.FileID, FileUniqueID: photo.FileUniqueID}
+	return File{ID: photo.FileID, UniqueID: photo.FileUniqueID}
 }
 
 func determineMessageType(msg *tgbotapi.Message) FieldType {
