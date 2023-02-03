@@ -52,9 +52,19 @@ func main() {
 	updateConfig := tgbotapi.UpdateConfig{Offset: 0, Timeout: 30}
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	var wg sync.WaitGroup
-
+	var (
+		wg         sync.WaitGroup
+		wasStopped bool
+	)
 	for upd := range updates {
+		select {
+		case <-ctx.Done():
+			if !wasStopped {
+				bot.StopReceivingUpdates()
+				wasStopped = true
+			}
+		default:
+		}
 		if upd.InlineQuery != nil {
 			wg.Add(1)
 			go func() {
