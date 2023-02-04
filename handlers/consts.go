@@ -7,4 +7,6 @@ const (
 
 	StatusSuccess = "success"
 	StatusFailure = "failure"
+
+	FieldValidationErrorTrSuffix = ".validation.error.length"
 )

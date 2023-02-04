@@ -10,6 +10,11 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const (
+	ErrorTitleTr  = "error"
+	UnknownTypeTr = "inline.errors.type.invalid"
+)
+
 type StoredObject struct {
 	ID     string
 	Type   wizard.FieldType
@@ -54,8 +59,7 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, *object.FileID)
 		default:
 			log.Warning("Unsupported type: ", object)
-			errMsg := lc.Tr("inline.errors.type.invalid")
-			return tgbotapi.NewInlineQueryResultArticle(object.ID, errMsg, errMsg)
+			return tgbotapi.NewInlineQueryResultArticle(object.ID, lc.Tr(ErrorTitleTr), lc.Tr(UnknownTypeTr))
 		}
 	}
 }

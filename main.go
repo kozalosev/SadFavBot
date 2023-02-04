@@ -45,7 +45,7 @@ func main() {
 		db:              db,
 	}
 
-	if wasPopulated := wizard.PopulateWizardActions(messageHandlers); !wasPopulated {
+	if wasPopulated := wizard.PopulateWizardDescriptors(messageHandlers); !wasPopulated {
 		log.Warning("Wizard actions map already has been populated; skipping...")
 	}
 

@@ -11,7 +11,7 @@ type itemValues struct {
 	Alias string
 	Type  wizard.FieldType
 	Text  string
-	File  wizard.File
+	File  *wizard.File
 }
 
 func extractItemValues(fields wizard.Fields) (*itemValues, bool) {
@@ -22,6 +22,10 @@ func extractItemValues(fields wizard.Fields) (*itemValues, bool) {
 	if !ok {
 		log.Errorf("Invalid type for alias: %T %+v", aliasField, aliasField)
 		return nil, false
+	}
+
+	if objectField.Data == nil {
+		return &itemValues{Alias: alias}, true
 	}
 
 	var (
@@ -46,7 +50,7 @@ func extractItemValues(fields wizard.Fields) (*itemValues, bool) {
 		Alias: alias,
 		Type:  objectField.Type,
 		Text:  text,
-		File:  file,
+		File:  &file,
 	}, true
 }
 

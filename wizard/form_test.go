@@ -1,21 +1,22 @@
 package wizard
 
 import (
+	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestForm_AddEmptyField(t *testing.T) {
 	wizard := NewWizard(testHandler{}, 1)
-	wizard.AddEmptyField(TestName, TestPromptDesc, Text)
+	wizard.AddEmptyField(TestName, Text)
 
 	form := wizard.(*Form)
 	resField := form.Fields[0]
 
 	assert.Equal(t, TestName, resField.Name)
-	assert.Equal(t, TestPromptDesc, resField.PromptDescription)
 	assert.Equal(t, Text, resField.Type)
 	assert.Nil(t, resField.Data)
 }
@@ -29,61 +30,42 @@ func TestForm_AddPrefilledField(t *testing.T) {
 
 	assert.Equal(t, TestName, resField.Name)
 	assert.Equal(t, TestValue, resField.Data)
-	assert.Equal(t, FieldType(""), resField.Type)
-}
-
-func TestPopulationOfWizardActions(t *testing.T) {
-	registeredWizardActions = make(map[string]FormAction)
-	assert.Len(t, registeredWizardActions, 0)
-
-	ok := PopulateWizardActions([]base.MessageHandler{testHandler{}})
-	assert.True(t, ok)
-
-	action := registeredWizardActions[TestWizardName]
-	assert.Equal(t, getFuncPtr(tAction), getFuncPtr(action))
-
-	assert.Len(t, registeredWizardActions, 1)
-	ok = PopulateWizardActions([]base.MessageHandler{testHandler2{}}) // doesn't add anything if the map is not empty
-	assert.False(t, ok)
-	assert.Len(t, registeredWizardActions, 1)
-
-	NewWizard(testHandler2{}, 0) // but NewWizard still registers new actions
-	assert.Len(t, registeredWizardActions, 2)
+	assert.Empty(t, resField.Type)
 }
 
 func TestRestorationOfFunctions(t *testing.T) {
 	wizard := NewWizard(testHandler{}, 1)
-	wizard.AddEmptyField(TestName, TestPromptDesc, Text)
+	wizard.AddEmptyField(TestName, Text)
 	reqenv := base.RequestEnv{Message: &tgbotapi.Message{}}
 	wizard.PopulateRestored(&reqenv, nil)
 
 	form := wizard.(*Form)
-	assert.Equal(t, getFuncPtr(tAction), getFuncPtr(form.action))
+	assert.Equal(t, getFuncPtr(tAction), getFuncPtr(form.descriptor.action))
 	assert.Equal(t, getFuncPtr(textExtractor), getFuncPtr(form.Fields[form.Index].extractor))
+	assert.Equal(t, TestPromptDesc, form.Fields[form.Index].descriptor.promptDescription)
 }
 
 func TestForm_ProcessNextField(t *testing.T) {
 	reqenv := &base.RequestEnv{
 		Bot: &base.BotAPI{DummyMode: true},
 		Message: &tgbotapi.Message{
-			Text:      TestValue,
+			Text:      "not" + TestValue,
 			Chat:      &tgbotapi.Chat{ID: TestID},
 			MessageID: TestID,
 			From:      &tgbotapi.User{ID: TestID},
 		},
+		Lang: loc.NewPool("en").GetContext("en"),
 	}
-	f3Cond, err := WrapCondition(&SkipOnFieldValue{
-		Name:  TestName2,
-		Value: TestValue,
-	})
-	assert.NoError(t, err)
 
 	actionFlagCont := &flagContainer{}
-	wizard := NewWizard(testHandlerWithAction{stateStorage: fakeStorage{}, actionWasRunFlag: actionFlagCont}, 2)
+	handler := testHandlerWithAction{stateStorage: fakeStorage{}, actionWasRunFlag: actionFlagCont}
+	clearRegisteredDescriptors()
+	PopulateWizardDescriptors([]base.MessageHandler{handler})
+
+	wizard := NewWizard(handler, 3)
 	wizard.AddPrefilledField(TestName, TestValue)
-	wizard.AddEmptyField(TestName2, TestPromptDesc, Text)
-	f3 := wizard.AddEmptyField(TestName3, TestPromptDesc, Text)
-	f3.SkipIf = f3Cond
+	wizard.AddEmptyField(TestName2, Text)
+	wizard.AddEmptyField(TestName3, Text)
 	form := wizard.(*Form)
 
 	assert.Equal(t, 0, form.Index)
@@ -101,6 +83,13 @@ func TestForm_ProcessNextField(t *testing.T) {
 	assert.False(t, actionFlagCont.flag)
 
 	form.Fields[1].extractor = textExtractor
+	form.ProcessNextField(reqenv) // validation must fail
+
+	assert.Equal(t, 1, form.Index)
+	assert.Nil(t, form.Fields[1].Data)
+	assert.False(t, actionFlagCont.flag)
+
+	reqenv.Message.Text = TestValue
 	form.ProcessNextField(reqenv)
 
 	assert.Equal(t, 3, form.Index)
@@ -123,6 +112,12 @@ func (testHandler) GetWizardName() string               { return TestWizardName 
 func (testHandler) GetWizardAction() FormAction         { return tAction }
 func (testHandler) GetWizardStateStorage() StateStorage { return nil }
 
+func (h testHandler) GetWizardDescriptor() *FormDescriptor {
+	desc := NewWizardDescriptor(tAction)
+	desc.AddField(TestName, TestPromptDesc)
+	return desc
+}
+
 type testHandler2 struct {
 	testHandler
 }
@@ -139,10 +134,24 @@ type testHandlerWithAction struct {
 	actionWasRunFlag *flagContainer
 }
 
-func (handler testHandlerWithAction) GetWizardAction() FormAction {
-	return func(request *base.RequestEnv, fields Fields) {
+func (handler testHandlerWithAction) GetWizardDescriptor() *FormDescriptor {
+	desc := NewWizardDescriptor(func(*base.RequestEnv, Fields) {
 		handler.actionWasRunFlag.flag = true
+	})
+	desc.AddField(TestName, TestPromptDesc)
+	f2 := desc.AddField(TestName2, TestPromptDesc)
+	f2.Validator = func(msg *tgbotapi.Message, _ *loc.Context) error {
+		if msg.Text != TestValue {
+			return errors.New("not " + TestValue)
+		}
+		return nil
 	}
+	f3 := desc.AddField(TestName3, TestPromptDesc)
+	f3.SkipIf = &SkipOnFieldValue{
+		Name:  TestName2,
+		Value: TestValue,
+	}
+	return desc
 }
 
 func (handler testHandlerWithAction) GetWizardStateStorage() StateStorage {

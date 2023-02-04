@@ -3,47 +3,37 @@ package wizard
 import (
 	"github.com/kozalosev/SadFavBot/base"
 	log "github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
-type FormAction func(request *base.RequestEnv, fields Fields)
-
-type Wizard interface {
-	AddEmptyField(name, promptDescription string, fieldType FieldType) *Field
-	AddPrefilledField(name string, value interface{})
-	ProcessNextField(reqenv *base.RequestEnv)
-	DoAction(reqenv *base.RequestEnv)
-	PopulateRestored(reqenv *base.RequestEnv, storage StateStorage)
-}
-
-//goland:noinspection GoNameStartsWithPackageName
-type WizardMessageHandler interface {
-	base.MessageHandler
-
-	GetWizardName() string
-	GetWizardAction() FormAction
-	GetWizardStateStorage() StateStorage
-}
-
-var registeredWizardActions = make(map[string]FormAction)
+const (
+	InvalidFieldValueErrorTr     = "wizard.errors.field.invalid.value"
+	InvalidFieldValueTypeErrorTr = "wizard.errors.field.invalid.type"
+	MissingStateErrorTr          = "wizard.errors.state.missing"
+)
 
 type Form struct {
 	Fields     Fields
 	Index      int
 	WizardType string
 
-	storage StateStorage
-	action  FormAction
+	storage    StateStorage
+	descriptor *FormDescriptor
 }
 
-func (form *Form) AddEmptyField(name, promptDescription string, fieldType FieldType) *Field {
+func (form *Form) AddEmptyField(name string, fieldType FieldType) {
+	if form.descriptor == nil {
+		panic("No descriptor was set for the form: " + form.WizardType)
+	}
+	fieldDesc := form.descriptor.findFieldDescriptor(name)
+	if fieldDesc == nil {
+		panic("No descriptor was set for the field: " + name)
+	}
 	field := &Field{
-		Name:              name,
-		Type:              fieldType,
-		PromptDescription: promptDescription,
+		Name:       name,
+		Type:       fieldType,
+		descriptor: fieldDesc,
 	}
 	form.Fields = append(form.Fields, field)
-	return field
 }
 
 func (form *Form) AddPrefilledField(name string, value interface{}) {
@@ -66,7 +56,15 @@ start:
 
 	currentField := form.Fields[form.Index]
 	if currentField.WasRequested {
-		currentField.Data = currentField.extractor(reqenv.Message)
+		value := currentField.extractor(reqenv.Message)
+		if value == nil {
+			reqenv.Reply(reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr) + reqenv.Lang.Tr(string(currentField.Type)))
+			return
+		} else if err := currentField.validate(reqenv.Message, reqenv.Lang); err != nil {
+			reqenv.Reply(reqenv.Lang.Tr(InvalidFieldValueErrorTr) + err.Error())
+			return
+		}
+		currentField.Data = value
 		form.Index++
 		goto start
 	} else {
@@ -81,60 +79,36 @@ start:
 }
 
 func (form *Form) DoAction(reqenv *base.RequestEnv) {
-	if form.action == nil {
-		reqenv.Reply(reqenv.Lang.Tr("wizard.errors.state.missing"))
+	if form.descriptor.action == nil {
+		reqenv.Reply(reqenv.Lang.Tr(MissingStateErrorTr))
 		return
 	}
-	form.action(reqenv, form.Fields)
+	form.descriptor.action(reqenv, form.Fields)
 }
 
 func (form *Form) PopulateRestored(reqenv *base.RequestEnv, storage StateStorage) {
 	form.storage = storage
-	form.action = restoreWizardAction(form)
 	form.Fields[form.Index].restoreExtractor(reqenv.Message)
+	form.descriptor = findFormDescriptor(form.WizardType)
+	for _, field := range form.Fields {
+		field.descriptor = form.descriptor.findFieldDescriptor(field.Name)
+	}
 }
 
 func NewWizard(handler WizardMessageHandler, fields int) Wizard {
-	name := handler.GetWizardName()
-	if registeredWizardActions[name] == nil {
-		registeredWizardActions[name] = handler.GetWizardAction()
-	}
 	return &Form{
 		storage:    handler.GetWizardStateStorage(),
 		Fields:     make(Fields, 0, fields),
-		WizardType: name,
-		action:     handler.GetWizardAction(),
+		WizardType: handler.GetWizardName(),
+		descriptor: findFormDescriptor(handler.GetWizardName()),
 	}
-}
-
-func PopulateWizardActions(handlers []base.MessageHandler) bool {
-	if len(registeredWizardActions) > 0 {
-		return false
-	}
-
-	filteredHandlers := funk.Filter(handlers, func(h base.MessageHandler) bool {
-		_, ok := h.(WizardMessageHandler)
-		return ok
-	}).([]base.MessageHandler)
-	wizardHandlers := funk.Map(filteredHandlers, func(wh base.MessageHandler) WizardMessageHandler { return wh.(WizardMessageHandler) })
-
-	actionsMap := funk.Map(wizardHandlers, func(wh WizardMessageHandler) (string, FormAction) {
-		return wh.GetWizardName(), wh.GetWizardAction()
-	}).(map[string]FormAction)
-
-	registeredWizardActions = actionsMap
-	return true
-}
-
-func restoreWizardAction(wizard *Form) FormAction {
-	return registeredWizardActions[wizard.WizardType]
 }
 
 func shouldBeSkipped(field *Field, form *Form) bool {
-	c, err := UnwrapCondition(field.SkipIf)
-	if err != nil {
-		log.Error(err)
+	skipPredicate := field.descriptor.SkipIf
+	if skipPredicate == nil {
 		return false
+	} else {
+		return skipPredicate.ShouldBeSkipped(form)
 	}
-	return c.ShouldBeSkipped(form)
 }

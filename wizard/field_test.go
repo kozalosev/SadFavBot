@@ -40,20 +40,11 @@ func TestFields_FindField_NotExistentField(t *testing.T) {
 }
 
 func TestFieldMarshalling(t *testing.T) {
-	condition, err := WrapCondition(&SkipOnFieldValue{
-		Name:  TestName2,
-		Value: TestValue,
-	})
-	assert.NoError(t, err)
-
 	field := Field{
-		Name:                  TestName,
-		Data:                  TestValue,
-		WasRequested:          true,
-		Type:                  Text,
-		PromptDescription:     TestPromptDesc,
-		InlineKeyboardAnswers: []string{TestName, TestName2, TestName3},
-		SkipIf:                condition,
+		Name:         TestName,
+		Data:         TestValue,
+		WasRequested: true,
+		Type:         Text,
 	}
 
 	jsonBytes, err := json.Marshal(field)
@@ -61,7 +52,7 @@ func TestFieldMarshalling(t *testing.T) {
 	jsn := string(jsonBytes)
 
 	entities := []string{
-		TestName, TestName2, TestName3, TestValue, string(Text), TestPromptDesc,
+		TestName, TestValue, "true", string(Text),
 	}
 	for _, e := range entities {
 		assert.Contains(t, jsn, e)

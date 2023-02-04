@@ -3,11 +3,14 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 const (
@@ -16,17 +19,45 @@ const (
 	SaveStatusSuccess   = SaveStatusTrPrefix + StatusSuccess
 	SaveStatusFailure   = SaveStatusTrPrefix + StatusFailure
 	SaveStatusDuplicate = SaveStatusTrPrefix + "duplicate"
+
+	MaxAliasLen = 1024
+	MaxTextLen  = 10000
+)
+
+var (
+	maxAliasLenStr = strconv.FormatInt(MaxAliasLen, 10)
+	maxTextLenStr  = strconv.FormatInt(MaxAliasLen, 10)
 )
 
 type SaveHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (SaveHandler) GetWizardName() string              { return "SaveWizard" }
-func (SaveHandler) GetWizardAction() wizard.FormAction { return saveFormAction }
+func (SaveHandler) GetWizardName() string                              { return "SaveWizard" }
+func (handler SaveHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
-func (handler SaveHandler) GetWizardStateStorage() wizard.StateStorage {
-	return handler.StateStorage
+func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	desc := wizard.NewWizardDescriptor(saveFormAction)
+
+	aliasDesc := desc.AddField(FieldAlias, SaveFieldsTrPrefix+FieldAlias)
+	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
+		if len(msg.Text) > MaxAliasLen {
+			template := lc.Tr(SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrSuffix)
+			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
+		}
+		return nil
+	}
+
+	objDesc := desc.AddField(FieldObject, SaveFieldsTrPrefix+FieldObject)
+	objDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
+		if len(msg.Text) > MaxTextLen {
+			template := lc.Tr(SaveFieldsTrPrefix + FieldObject + FieldValidationErrorTrSuffix)
+			return errors.New(fmt.Sprintf(template, maxTextLenStr))
+		}
+		return nil
+	}
+
+	return desc
 }
 
 func (SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
@@ -39,9 +70,9 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv) {
 	if len(title) > 0 {
 		wizardForm.AddPrefilledField(FieldAlias, title)
 	} else {
-		wizardForm.AddEmptyField(FieldAlias, reqenv.Lang.Tr(SaveFieldsTrPrefix+FieldAlias), wizard.Text)
+		wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 	}
-	wizardForm.AddEmptyField(FieldObject, reqenv.Lang.Tr(SaveFieldsTrPrefix+FieldObject), wizard.Auto)
+	wizardForm.AddEmptyField(FieldObject, wizard.Auto)
 	wizardForm.ProcessNextField(reqenv)
 }
 
@@ -62,7 +93,7 @@ func saveFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 	if itemValues.Type == wizard.Text {
 		res, err = saveText(reqenv.Database, uid, itemValues.Alias, itemValues.Text)
 	} else {
-		res, err = saveFile(reqenv.Database, uid, itemValues.Alias, itemValues.Type, itemValues.File)
+		res, err = saveFile(reqenv.Database, uid, itemValues.Alias, itemValues.Type, *itemValues.File)
 	}
 
 	if err != nil {

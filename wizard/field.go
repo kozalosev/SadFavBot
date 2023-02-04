@@ -3,11 +3,12 @@ package wizard
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
-type FieldValidator func(msg *tgbotapi.Message) error
+type FieldValidator func(msg *tgbotapi.Message, lc *loc.Context) error
 
 type Fields []*Field
 type FieldType string
@@ -25,16 +26,13 @@ const (
 )
 
 type Field struct {
-	Name                  string
-	Data                  interface{}
-	WasRequested          bool
-	Type                  FieldType
-	PromptDescription     string
-	InlineKeyboardAnswers []string
-	SkipIf                *SkipConditionContainer
+	Name         string
+	Data         interface{}
+	WasRequested bool
+	Type         FieldType
 
-	validator FieldValidator
-	extractor FieldExtractor
+	extractor  FieldExtractor
+	descriptor *FieldDescriptor
 }
 
 func (fs Fields) FindField(name string) *Field {
@@ -49,16 +47,17 @@ func (fs Fields) FindField(name string) *Field {
 }
 
 func (f *Field) askUser(reqenv *base.RequestEnv) {
-	if len(f.InlineKeyboardAnswers) > 0 {
-		reqenv.ReplyWithKeyboard(f.PromptDescription, f.InlineKeyboardAnswers)
+	promptDescription := reqenv.Lang.Tr(f.descriptor.promptDescription)
+	if len(f.descriptor.InlineKeyboardAnswers) > 0 {
+		reqenv.ReplyWithKeyboard(promptDescription, f.descriptor.InlineKeyboardAnswers)
 	} else {
-		reqenv.Reply(f.PromptDescription)
+		reqenv.Reply(promptDescription)
 	}
 }
 
-func (f *Field) validate(msg *tgbotapi.Message) error {
-	if f.validator == nil {
+func (f *Field) validate(msg *tgbotapi.Message, lc *loc.Context) error {
+	if f.descriptor.Validator == nil {
 		return nil
 	}
-	return f.validator(msg)
+	return f.descriptor.Validator(msg, lc)
 }

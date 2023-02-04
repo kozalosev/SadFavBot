@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +17,6 @@ const (
 	DeleteStatusSuccess  = DeleteStatusTrPrefix + StatusSuccess
 	DeleteStatusFailure  = DeleteStatusTrPrefix + StatusFailure
 	DeleteStatusNoRows   = DeleteStatusTrPrefix + "no.rows"
-	UnknownError         = "errors.unknown"
 	Yes                  = "👍"
 	No                   = "👎"
 )
@@ -23,11 +25,31 @@ type DeleteHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (DeleteHandler) GetWizardName() string              { return "DeleteWizard" }
-func (DeleteHandler) GetWizardAction() wizard.FormAction { return deleteFormAction }
+func (DeleteHandler) GetWizardName() string                              { return "DeleteWizard" }
+func (handler DeleteHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
-func (handler DeleteHandler) GetWizardStateStorage() wizard.StateStorage {
-	return handler.StateStorage
+func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	desc := wizard.NewWizardDescriptor(deleteFormAction)
+
+	aliasDesc := desc.AddField(FieldAlias, DeleteFieldsTrPrefix+FieldAlias)
+	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
+		if len(msg.Text) > MaxAliasLen {
+			template := lc.Tr(DeleteFieldsTrPrefix + FieldAlias + FieldValidationErrorTrSuffix)
+			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
+		}
+		return nil
+	}
+
+	delAllDesc := desc.AddField(FieldDeleteAll, DeleteFieldsTrPrefix+FieldDeleteAll)
+	delAllDesc.InlineKeyboardAnswers = []string{Yes, No}
+
+	objDesc := desc.AddField(FieldObject, DeleteFieldsTrPrefix+FieldObject)
+	objDesc.SkipIf = &wizard.SkipOnFieldValue{
+		Name:  FieldDeleteAll,
+		Value: Yes,
+	}
+
+	return desc
 }
 
 func (DeleteHandler) CanHandle(msg *tgbotapi.Message) bool {
@@ -37,24 +59,15 @@ func (DeleteHandler) CanHandle(msg *tgbotapi.Message) bool {
 func (handler DeleteHandler) Handle(reqenv *base.RequestEnv) {
 	w := wizard.NewWizard(handler, 3)
 	arg := base.GetCommandArgument(reqenv.Message)
-	skipCondition, err := wizard.WrapCondition(&wizard.SkipOnFieldValue{
-		Name:  "deleteAll",
-		Value: Yes,
-	})
-	if err != nil {
-		log.Errorln(err)
-		reqenv.Reply(reqenv.Lang.Tr(UnknownError))
-	}
 
 	if len(arg) > 0 {
 		w.AddPrefilledField(FieldAlias, arg)
 	} else {
-		w.AddEmptyField(FieldAlias, reqenv.Lang.Tr(DeleteFieldsTrPrefix+FieldAlias), wizard.Text)
+		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
-	deleteAllField := w.AddEmptyField(FieldDeleteAll, reqenv.Lang.Tr(DeleteFieldsTrPrefix+FieldDeleteAll), wizard.Text)
-	deleteAllField.InlineKeyboardAnswers = []string{Yes, No}
-	objectField := w.AddEmptyField(FieldObject, reqenv.Lang.Tr(DeleteFieldsTrPrefix+FieldObject), wizard.Auto)
-	objectField.SkipIf = skipCondition
+	w.AddEmptyField(FieldDeleteAll, wizard.Text)
+	w.AddEmptyField(FieldObject, wizard.Auto)
+
 	w.ProcessNextField(reqenv)
 }
 
@@ -78,7 +91,7 @@ func deleteFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
 	} else if itemValues.Type == wizard.Text {
 		res, err = deleteByText(reqenv.Database, uid, itemValues.Alias, itemValues.Text)
 	} else {
-		res, err = deleteByFileID(reqenv.Database, uid, itemValues.Alias, itemValues.File)
+		res, err = deleteByFileID(reqenv.Database, uid, itemValues.Alias, *itemValues.File)
 	}
 	if err != nil {
 		log.Errorln(err.Error())
