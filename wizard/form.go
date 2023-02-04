@@ -12,9 +12,9 @@ const (
 )
 
 type Form struct {
-	Fields     Fields
-	Index      int
-	WizardType string
+	Fields     Fields `json:"fields"`
+	Index      int    `json:"index"`
+	WizardType string `json:"wizardType"`
 
 	storage    StateStorage
 	descriptor *FormDescriptor

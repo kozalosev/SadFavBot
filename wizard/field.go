@@ -26,10 +26,10 @@ const (
 )
 
 type Field struct {
-	Name         string
-	Data         interface{}
-	WasRequested bool
-	Type         FieldType
+	Name         string      `json:"name"`
+	Data         interface{} `json:"data,omitempty"`
+	WasRequested bool        `json:"wasRequested"`
+	Type         FieldType   `json:"type"`
 
 	extractor  FieldExtractor
 	descriptor *FieldDescriptor
