@@ -29,11 +29,13 @@ func (GetFavoritesInlineHandler) CanHandle(*tgbotapi.InlineQuery) bool {
 }
 
 func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv) {
-	objects := funk.Map(findObjects(reqenv), generateMapper(reqenv.Lang)).([]interface{})
 	answer := tgbotapi.InlineConfig{
 		InlineQueryID: reqenv.InlineQuery.ID,
-		Results:       objects,
 		IsPersonal:    true,
+	}
+	if len(reqenv.InlineQuery.Query) > 0 {
+		objects := funk.Map(findObjects(reqenv), generateMapper(reqenv.Lang)).([]interface{})
+		answer.Results = objects
 	}
 	if err := reqenv.Bot.Request(answer); err != nil {
 		log.Error("error while processing inline query: ", err)
