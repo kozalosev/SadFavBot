@@ -3,6 +3,7 @@ package main
 func init() {
 	locpool.Resources["en"] = map[string]string{
 		"error":                       "Error",
+		"commands.default.message":    "No command was selected. Send /help to know about my skills",
 		"commands.save.fields.alias":  "enter a name for your fav",
 		"commands.save.fields.object": "send an object to me",
 		"commands.save.fields.alias.validation.error.length":  "the maximum length of the name must be less than %d characters",
@@ -26,6 +27,7 @@ func init() {
 
 	locpool.Resources["ru"] = map[string]string{
 		"error":                       "Ошибка",
+		"commands.default.message":    "Ни одна команда не была выбрана. Отправьте /help, чтобы узнать о моих возможностях",
 		"commands.save.fields.alias":  "введите имя для закладки",
 		"commands.save.fields.object": "отправьте объект",
 		"commands.save.fields.alias.validation.error.length":  "имя не может быть длиннее %d символов",
