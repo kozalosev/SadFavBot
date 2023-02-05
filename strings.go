@@ -3,6 +3,7 @@ package main
 func init() {
 	locpool.Resources["en"] = map[string]string{
 		"error":                       "Error",
+		"success":                     "👍👌",
 		"commands.default.message":    "No command was selected. Send /help to know about my skills",
 		"commands.save.fields.alias":  "enter a name for your fav",
 		"commands.save.fields.object": "send an object to me",
@@ -17,6 +18,7 @@ func init() {
 		"commands.delete.status.success":                      "deleted successfully",
 		"commands.delete.status.failure":                      "an error occurred while deletion; please, try again later or contact @kozalo",
 		"commands.delete.status.no.rows":                      "such object wasn't found",
+		"wizard.active.not.set":                               "There is nothing to cancel ☹",
 		"wizard.errors.field.invalid.value":                   "validation error: ",
 		"wizard.errors.field.invalid.type":                    "the following type was expected: ",
 		"wizard.errors.state.missing":                         "the state of your operation is missing; probably, the bot was restarted; please, try again from the beginning",
@@ -27,6 +29,7 @@ func init() {
 
 	locpool.Resources["ru"] = map[string]string{
 		"error":                       "Ошибка",
+		"success":                     "👍👌",
 		"commands.default.message":    "Ни одна команда не была выбрана. Отправьте /help, чтобы узнать о моих возможностях",
 		"commands.save.fields.alias":  "введите имя для закладки",
 		"commands.save.fields.object": "отправьте объект",
@@ -41,6 +44,7 @@ func init() {
 		"commands.delete.status.success":                      "успешно удалено",
 		"commands.delete.status.failure":                      "при удалении произошла ошибка, пожалуйста, попробуйте позже или напишите @kozalo",
 		"commands.delete.status.no.rows":                      "такой объект не был найден",
+		"wizard.active.not.set":                               "Нечего отменять ☹",
 		"wizard.errors.field.invalid.value":                   "ошибка валидации: ",
 		"wizard.errors.field.invalid.type":                    "ожидался следующий тип: ",
 		"wizard.errors.state.missing":                         "состояние операции потеряно; возможно, бот был перезапущен; пожалуйста, попробуйте повторить операцию с самого начала",

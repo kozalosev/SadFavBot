@@ -110,6 +110,7 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 		handlers.HelpHandler{},
 		handlers.SaveHandler{StateStorage: stateStorage},
 		handlers.DeleteHandler{StateStorage: stateStorage},
+		handlers.CancelHandler{StateStorage: stateStorage},
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.GetFavoritesInlineHandler{},

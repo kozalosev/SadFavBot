@@ -160,6 +160,7 @@ func (handler testHandlerWithAction) GetWizardStateStorage() StateStorage {
 
 type fakeStorage struct{}
 
-func (f fakeStorage) GetCurrentState(int64, Wizard) error { return nil }
-func (f fakeStorage) SaveState(int64, Wizard) error       { return nil }
-func (f fakeStorage) Close() error                        { return nil }
+func (fakeStorage) GetCurrentState(int64, Wizard) error { return nil }
+func (fakeStorage) SaveState(int64, Wizard) error       { return nil }
+func (fakeStorage) DeleteState(int64) error             { return nil }
+func (fakeStorage) Close() error                        { return nil }
