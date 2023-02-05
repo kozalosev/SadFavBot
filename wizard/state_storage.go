@@ -3,12 +3,16 @@ package wizard
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-redis/redis/v8"
 	"strconv"
 	"time"
 )
 
-const commandStatePrefix = "command.state.user."
+const (
+	commandStatePrefix = "command.state.user."
+	noActiveWizardTr   = "wizard.active.not.set"
+)
 
 type RedisStateStorage struct {
 	rdb *redis.Client
@@ -19,6 +23,7 @@ type RedisStateStorage struct {
 type StateStorage interface {
 	GetCurrentState(uid int64, dest Wizard) error
 	SaveState(uid int64, wizard Wizard) error
+	DeleteState(uid int64) error
 	Close() error
 }
 
@@ -36,7 +41,7 @@ func ConnectToRedis(ctx context.Context, ttl time.Duration, options *redis.Optio
 }
 
 func (rss RedisStateStorage) GetCurrentState(uid int64, dest Wizard) error {
-	cmd := rss.rdb.Get(rss.ctx, commandStatePrefix+strconv.FormatInt(uid, 10))
+	cmd := rss.rdb.Get(rss.ctx, getRedisStateKey(uid))
 	if cmd.Err() != nil {
 		return cmd.Err()
 	}
@@ -53,11 +58,25 @@ func (rss RedisStateStorage) SaveState(uid int64, wizard Wizard) error {
 	}
 
 	jsonPayload := string(payload)
-	key := commandStatePrefix + strconv.FormatInt(uid, 10)
-	status := rss.rdb.Set(rss.ctx, key, jsonPayload, rss.ttl)
+	status := rss.rdb.Set(rss.ctx, getRedisStateKey(uid), jsonPayload, rss.ttl)
 	return status.Err()
+}
+
+func (rss RedisStateStorage) DeleteState(uid int64) error {
+	cmd := rss.rdb.Del(rss.ctx, getRedisStateKey(uid))
+	if cmd.Err() != nil {
+		return cmd.Err()
+	} else if cmd.Val() == 0 {
+		return errors.New(noActiveWizardTr)
+	} else {
+		return nil
+	}
 }
 
 func (rss RedisStateStorage) Close() error {
 	return rss.rdb.Close()
+}
+
+func getRedisStateKey(uid int64) string {
+	return commandStatePrefix + strconv.FormatInt(uid, 10)
 }

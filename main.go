@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+const DefaultMessageTr = "commands.default.message"
+
 var locpool = loc.NewPool("en")
 
 func main() {
@@ -108,6 +110,7 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 		handlers.HelpHandler{},
 		handlers.SaveHandler{StateStorage: stateStorage},
 		handlers.DeleteHandler{StateStorage: stateStorage},
+		handlers.CancelHandler{StateStorage: stateStorage},
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.GetFavoritesInlineHandler{},
@@ -137,9 +140,14 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	if err == nil {
 		form.PopulateRestored(reqenv, appParams.stateStorage)
 		form.ProcessNextField(reqenv)
-	} else {
-		log.Errorln("nil form was restored: ", err)
+		return
 	}
+	if err != redis.Nil {
+		log.Errorln("error occurred while getting current state: ", err)
+		return
+	}
+
+	reqenv.Reply(reqenv.Lang.Tr(DefaultMessageTr))
 }
 
 func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {

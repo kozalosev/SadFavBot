@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"os"
-	"reflect"
 	"testing"
 )
 
@@ -26,41 +26,37 @@ var ctx = context.Background()
 
 func TestConnectToRedis(t *testing.T) {
 	stateStorage := buildStateStorage(t)
-	if err := stateStorage.Close(); err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, stateStorage.Close())
 }
 
 func TestRedisStateStorage_SaveState(t *testing.T) {
 	stateStorage := buildStateStorage(t)
 	defer func() {
-		if err := stateStorage.Close(); err != nil {
-			t.Error(err)
-		}
+		assert.NoError(t, stateStorage.Close())
 	}()
 
 	copyOfForm := formExample
-	err := stateStorage.SaveState(TestID, &copyOfForm)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, stateStorage.SaveState(TestID, &copyOfForm))
 }
 
 func TestRedisStateStorage_GetCurrentState(t *testing.T) {
 	stateStorage := buildStateStorage(t)
 	defer func() {
-		if err := stateStorage.Close(); err != nil {
-			t.Error(err)
-		}
+		assert.NoError(t, stateStorage.Close())
 	}()
 
 	var f Form
-	if err := stateStorage.GetCurrentState(TestID, &f); err != nil {
-		t.Error(err)
-	}
-	if !reflect.DeepEqual(f, formExample) {
-		t.Error("Forms are not equal!", f, formExample)
-	}
+	assert.NoError(t, stateStorage.GetCurrentState(TestID, &f))
+	assert.Equal(t, formExample, f)
+}
+
+func TestRedisStateStorage_DeleteState(t *testing.T) {
+	stateStorage := buildStateStorage(t)
+	defer func() {
+		assert.NoError(t, stateStorage.Close())
+	}()
+
+	assert.NoError(t, stateStorage.DeleteState(TestID))
 }
 
 //TestMain controls main for the tests and allows for setup and shutdown of tests
