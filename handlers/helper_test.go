@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -51,4 +54,15 @@ func TestExtractItemValues_MismatchError(t *testing.T) {
 
 	assert.False(t, ok)
 	assert.Nil(t, res)
+}
+
+func buildRequestEnvWithMessage(uid int64) *base.RequestEnv {
+	return &base.RequestEnv{
+		Message: &tgbotapi.Message{
+			From: &tgbotapi.User{ID: uid},
+		},
+		Database: db,
+		Bot:      &base.BotAPI{DummyMode: true},
+		Lang:     loc.NewPool("en").GetContext("en"),
+	}
 }

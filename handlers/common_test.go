@@ -91,18 +91,26 @@ func shutDown() {
 }
 
 func createSchema(db *sql.DB) {
-	schemaFile, err := os.ReadFile("../db/0001_schema.sql")
-	check(err)
-	_, err = db.Exec(string(schemaFile))
-	check(err)
+	schemaFiles := []string{
+		"../db/0001_schema_items.sql",
+		"../db/0002_schema_users.sql",
+	}
+	for _, path := range schemaFiles {
+		schemaFile, err := os.ReadFile(path)
+		check(err)
+		_, err = db.Exec(string(schemaFile))
+		check(err)
+	}
 }
 
 func insertTestData(db *sql.DB) {
 	//noinspection SqlWithoutWhere
-	_, err := db.Exec("DELETE FROM items")
-	check(err)
+	for _, table := range []string{"items", "users"} {
+		_, err := db.Exec("DELETE FROM " + table)
+		check(err)
+	}
 
-	_, err = db.Exec("INSERT INTO items(uid, type, alias, file_id, file_unique_id) VALUES"+
+	_, err := db.Exec("INSERT INTO items(uid, type, alias, file_id, file_unique_id) VALUES"+
 		"($1, $3, $4, $6, $8),"+ // TestUID, TestAlias, TestFileID, TestUniqueFileID
 		"($1, $3, $4, $7, $9),"+ // TestUID, TestAlias, TestFileID2, TestUniqueFileID2
 		"($1, $3, $5, $6, $8),"+ // TestUID, TestAlias2, TestFileID, TestUniqueFileID
@@ -112,6 +120,8 @@ func insertTestData(db *sql.DB) {
 	_, err = db.Exec("INSERT INTO items(uid, type, alias, text) VALUES ($1, $2, $3, $4)",
 		TestUID2, wizard.Text, TestAlias2, TestText)
 	check(err)
+
+	_, err = db.Exec("INSERT INTO users(uid, language) VALUES ($1, 'ru')", TestUID)
 }
 
 func check(err error) {

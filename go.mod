@@ -11,6 +11,7 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/testcontainers/testcontainers-go v0.17.0
 	github.com/thoas/go-funk v0.9.3
+	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9
 )
 
 require (

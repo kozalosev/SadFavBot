@@ -19,7 +19,10 @@ import (
 	"time"
 )
 
-const DefaultMessageTr = "commands.default.message"
+const (
+	DefaultMessageTr          = "commands.default.message"
+	DefaultMessageOnCommandTr = "commands.default.message.on.command"
+)
 
 var locpool = loc.NewPool("en")
 
@@ -107,10 +110,12 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 
 func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler) {
 	messageHandlers = []base.MessageHandler{
-		handlers.HelpHandler{},
 		handlers.SaveHandler{StateStorage: stateStorage},
 		handlers.DeleteHandler{StateStorage: stateStorage},
+		handlers.StartHandler{StateStorage: stateStorage},
+		handlers.HelpHandler{},
 		handlers.CancelHandler{StateStorage: stateStorage},
+		handlers.LanguageHandler{StateStorage: stateStorage},
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.GetFavoritesInlineHandler{},
@@ -119,7 +124,8 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 }
 
 func processMessage(appParams *appParams, msg *tgbotapi.Message) {
-	lc := locpool.GetContext(msg.From.LanguageCode)
+	langCode := fetchLanguage(appParams.db, msg.From.ID, msg.From.LanguageCode)
+	lc := locpool.GetContext(langCode)
 	reqenv := &base.RequestEnv{
 		Bot:      appParams.api,
 		Message:  msg,
@@ -147,11 +153,18 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 		return
 	}
 
-	reqenv.Reply(reqenv.Lang.Tr(DefaultMessageTr))
+	var defaultMessageTr string
+	if msg.IsCommand() {
+		defaultMessageTr = DefaultMessageOnCommandTr
+	} else {
+		defaultMessageTr = DefaultMessageTr
+	}
+	reqenv.Reply(reqenv.Lang.Tr(defaultMessageTr))
 }
 
 func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
-	lc := locpool.GetContext(query.From.LanguageCode)
+	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
+	lc := locpool.GetContext(langCode)
 	reqenv := &base.RequestEnv{
 		Bot:         appParams.api,
 		InlineQuery: query,

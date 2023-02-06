@@ -1,12 +1,16 @@
 package wizard
 
 import (
+	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"golang.org/x/exp/slices"
 )
+
+const ValidErrNotInListTr = "errors.validation.option.not.in.list"
 
 type FieldValidator func(msg *tgbotapi.Message, lc *loc.Context) error
 
@@ -56,6 +60,9 @@ func (f *Field) askUser(reqenv *base.RequestEnv) {
 }
 
 func (f *Field) validate(msg *tgbotapi.Message, lc *loc.Context) error {
+	if len(f.descriptor.InlineKeyboardAnswers) > 0 && !slices.Contains(f.descriptor.InlineKeyboardAnswers, msg.Text) {
+		return errors.New(ValidErrNotInListTr)
+	}
 	if f.descriptor.Validator == nil {
 		return nil
 	}

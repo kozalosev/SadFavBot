@@ -61,7 +61,7 @@ start:
 			reqenv.Reply(reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr) + reqenv.Lang.Tr(string(currentField.Type)))
 			return
 		} else if err := currentField.validate(reqenv.Message, reqenv.Lang); err != nil {
-			reqenv.Reply(reqenv.Lang.Tr(InvalidFieldValueErrorTr) + err.Error())
+			reqenv.Reply(reqenv.Lang.Tr(InvalidFieldValueErrorTr) + reqenv.Lang.Tr(err.Error()))
 			return
 		}
 		currentField.Data = value
