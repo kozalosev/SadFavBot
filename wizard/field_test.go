@@ -89,7 +89,7 @@ func TestField_validate(t *testing.T) {
 
 	fInlineKeyboard := Field{
 		descriptor: &FieldDescriptor{
-			InlineKeyboardAnswers: []string{TestValue},
+			ReplyKeyboardAnswers: []string{TestValue},
 		},
 	}
 

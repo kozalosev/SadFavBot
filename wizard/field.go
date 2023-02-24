@@ -52,15 +52,15 @@ func (fs Fields) FindField(name string) *Field {
 
 func (f *Field) askUser(reqenv *base.RequestEnv) {
 	promptDescription := reqenv.Lang.Tr(f.descriptor.promptDescription)
-	if len(f.descriptor.InlineKeyboardAnswers) > 0 {
-		reqenv.ReplyWithKeyboard(promptDescription, f.descriptor.InlineKeyboardAnswers)
+	if len(f.descriptor.ReplyKeyboardAnswers) > 0 {
+		reqenv.ReplyWithKeyboard(promptDescription, f.descriptor.ReplyKeyboardAnswers)
 	} else {
 		reqenv.Reply(promptDescription)
 	}
 }
 
 func (f *Field) validate(msg *tgbotapi.Message, lc *loc.Context) error {
-	if len(f.descriptor.InlineKeyboardAnswers) > 0 && !slices.Contains(f.descriptor.InlineKeyboardAnswers, msg.Text) {
+	if len(f.descriptor.ReplyKeyboardAnswers) > 0 && !slices.Contains(f.descriptor.ReplyKeyboardAnswers, msg.Text) {
 		return errors.New(ValidErrNotInListTr)
 	}
 	if f.descriptor.Validator == nil {

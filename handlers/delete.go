@@ -41,7 +41,7 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	}
 
 	delAllDesc := desc.AddField(FieldDeleteAll, DeleteFieldsTrPrefix+FieldDeleteAll)
-	delAllDesc.InlineKeyboardAnswers = []string{Yes, No}
+	delAllDesc.ReplyKeyboardAnswers = []string{Yes, No}
 
 	objDesc := desc.AddField(FieldObject, DeleteFieldsTrPrefix+FieldObject)
 	objDesc.SkipIf = &wizard.SkipOnFieldValue{

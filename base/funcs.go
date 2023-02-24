@@ -56,6 +56,7 @@ func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(buttons...),
 	)
+	keyboard.OneTimeKeyboard = true
 
 	bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
 		msgConfig.ReplyMarkup = keyboard
