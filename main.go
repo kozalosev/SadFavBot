@@ -11,6 +11,7 @@ import (
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -30,6 +31,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	metricsServer := startMetricsServer(os.Getenv("METRICS_PORT"))
 	stateStorage, db := establishConnections(ctx)
 	messageHandlers, inlineHandlers := initHandlers(stateStorage)
 
@@ -82,11 +84,13 @@ func main() {
 				defer wg.Done()
 				processMessage(appParams, upd.Message)
 			}()
+		} else if upd.ChosenInlineResult != nil {
+			inc(chosenInlineResultCounter)
 		}
 	}
 
 	wg.Wait()
-	shutdown(stateStorage, db)
+	shutdown(stateStorage, db, metricsServer)
 }
 
 func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *sql.DB) {
@@ -120,6 +124,8 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 	inlineHandlers = []base.InlineHandler{
 		handlers.GetFavoritesInlineHandler{},
 	}
+	registerMessageHandlerCounters(messageHandlers...)
+	registerInlineHandlerCounters(inlineHandlers...)
 	return
 }
 
@@ -136,6 +142,7 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 
 	for _, handler := range appParams.messageHandlers {
 		if handler.CanHandle(msg) {
+			incMessageHandlerCounter(handler)
 			handler.Handle(reqenv)
 			return
 		}
@@ -175,17 +182,19 @@ func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 
 	for _, handler := range appParams.inlineHandlers {
 		if handler.CanHandle(query) {
+			incInlineHandlerCounter(handler)
 			handler.Handle(reqenv)
 			return
 		}
 	}
 }
 
-func shutdown(stateStorage wizard.StateStorage, db *sql.DB) {
+func shutdown(stateStorage wizard.StateStorage, db *sql.DB, metricsServer *http.Server) {
 	if err := db.Close(); err != nil {
 		log.Errorln(err)
 	}
 	if err := stateStorage.Close(); err != nil {
 		log.Errorln(err)
 	}
+	shutdownMetricsServer(metricsServer)
 }

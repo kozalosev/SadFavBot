@@ -9,6 +9,7 @@ services:
       - API_TOKEN
       - DEBUG
       - COMMAND_STATE_TTL
+      - METRICS_PORT
       - REDIS_HOST
       - REDIS_PORT
       - REDIS_PASSWORD
