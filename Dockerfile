@@ -17,3 +17,7 @@ RUN go build -o /sadFavBot github.com/kozalosev/SadFavBot
 FROM alpine:3
 COPY --from=builder sadFavBot /bin/sadFavBot
 ENTRYPOINT [ "/bin/sadFavBot" ]
+
+LABEL org.opencontainers.image.source=https://github.com/kozalosev/SadFavBot
+LABEL org.opencontainers.image.description="Favorites bot for Telegram"
+LABEL org.opencontainers.image.licenses=MIT
