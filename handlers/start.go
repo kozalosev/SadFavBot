@@ -19,7 +19,7 @@ func (handler StartHandler) GetWizardStateStorage() wizard.StateStorage { return
 func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(func(reqenv *base.RequestEnv, fields wizard.Fields) {
 		languageFormAction(reqenv, fields)
-		newLang := fields.FindField(FieldLanguage).Data.(string)
+		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(string))
 		reqenv.Lang = reqenv.Lang.GetContext(newLang)
 		sendHelpMessage(reqenv)
 	})

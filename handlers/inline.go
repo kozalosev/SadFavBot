@@ -8,6 +8,8 @@ import (
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -43,6 +45,7 @@ func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv) {
 }
 
 func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
+	caser := cases.Title(language.Make(lc.GetLanguage()))
 	return func(object *StoredObject) interface{} {
 		switch object.Type {
 		case wizard.Text:
@@ -50,13 +53,13 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 		case wizard.Image:
 			return tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, *object.FileID)
 		case wizard.Sticker:
-			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, *object.FileID, "")
+			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, *object.FileID, caser.String(lc.Tr("sticker")))
 		case wizard.Video:
-			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, *object.FileID, "")
+			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, *object.FileID, caser.String(lc.Tr("video")))
 		case wizard.Audio:
 			return tgbotapi.NewInlineQueryResultCachedAudio(object.ID, *object.FileID)
 		case wizard.Voice:
-			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, *object.FileID, "")
+			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, *object.FileID, caser.String(lc.Tr("voice")))
 		case wizard.Gif:
 			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, *object.FileID)
 		default:

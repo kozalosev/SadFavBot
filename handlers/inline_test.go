@@ -3,6 +3,7 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
@@ -25,7 +26,7 @@ func TestMapper(t *testing.T) {
 	reqenv := buildRequestEnvInline()
 	objects := findObjects(reqenv)
 
-	inlineAnswer := generateMapper(nil)(objects[0])
+	inlineAnswer := generateMapper(loc.NewPool("en").GetContext("en"))(objects[0])
 	assert.Equal(t, "InlineQueryResultCachedSticker", reflect.TypeOf(inlineAnswer).Name())
 }
 
