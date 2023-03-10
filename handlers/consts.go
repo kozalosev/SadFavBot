@@ -8,6 +8,7 @@ const (
 
 	StatusSuccess = "success"
 	StatusFailure = "failure"
+	StatusNoRows  = "no.rows"
 
 	FieldValidationErrorTrSuffix = ".validation.error.length"
 )

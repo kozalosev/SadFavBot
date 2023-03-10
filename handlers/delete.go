@@ -16,7 +16,7 @@ const (
 	DeleteStatusTrPrefix = "commands.delete.status."
 	DeleteStatusSuccess  = DeleteStatusTrPrefix + StatusSuccess
 	DeleteStatusFailure  = DeleteStatusTrPrefix + StatusFailure
-	DeleteStatusNoRows   = DeleteStatusTrPrefix + "no.rows"
+	DeleteStatusNoRows   = DeleteStatusTrPrefix + StatusNoRows
 	Yes                  = "👍"
 	No                   = "👎"
 )

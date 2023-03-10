@@ -115,6 +115,7 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler) {
 	messageHandlers = []base.MessageHandler{
 		handlers.SaveHandler{StateStorage: stateStorage},
+		handlers.ListHandler{},
 		handlers.DeleteHandler{StateStorage: stateStorage},
 		handlers.StartHandler{StateStorage: stateStorage},
 		handlers.HelpHandler{},
