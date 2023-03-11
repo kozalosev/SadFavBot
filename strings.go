@@ -31,7 +31,6 @@ func init() {
 		"wizard.errors.state.missing":                         "the state of your operation is missing; probably, the bot was restarted; please, try again from the beginning",
 		"inline.errors.type.invalid":                          "unknown type; contact me if you want it to be supported: @kozalo",
 		"errors.validation.option.not.in.list":                "option is not from suggested variants",
-		"callbacks.no.handler":                                "the state of this button is missing; probably, the bot was restarted; please, try again from the beginning",
 		"callbacks.error":                                     "an unknown error has been occurred, try again later or contact @kozalo",
 		"callbacks.was.set":                                   "the field was set successfully to ",
 
@@ -68,7 +67,6 @@ func init() {
 		"wizard.errors.state.missing":                         "состояние операции потеряно; возможно, бот был перезапущен; пожалуйста, попробуйте повторить операцию с самого начала",
 		"inline.errors.type.invalid":                          "неизвестный тип; свяжитесь со мной, если хотите, чтобы он поддерживался: @kozalo",
 		"errors.validation.option.not.in.list":                "введённого варианта нет в предложенном списке",
-		"callbacks.no.handler":                                "состояние кнопки потеряно; возможно, бот был перезапущен; пожалуйста, попробуйте повторить операцию с самого начала",
 		"callbacks.error":                                     "произошла неизвестная ошибка, попробуйте позже или напишите @kozalo",
 		"callbacks.was.set":                                   "поле было успешно установлено в ",
 

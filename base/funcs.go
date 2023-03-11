@@ -24,38 +24,32 @@ var (
 	}
 )
 
-func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string, customizer MessageCustomizer) *tgbotapi.Message {
+func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string, customizer MessageCustomizer) {
 	if bot.DummyMode {
-		return nil
+		return
 	}
 	if len(text) == 0 {
 		log.Error("Empty reply for the message: " + msg.Text)
-		return nil
+		return
 	}
 
 	reply := tgbotapi.NewMessage(msg.Chat.ID, text)
 	reply.ReplyToMessageID = msg.MessageID
 	customizer(&reply)
-	var (
-		sentMessage tgbotapi.Message
-		err         error
-	)
-	if sentMessage, err = bot.internal.Send(reply); err != nil {
+	if _, err := bot.internal.Send(reply); err != nil {
 		log.Errorln(err)
-		return nil
 	}
-	return &sentMessage
 }
 
-func (bot *BotAPI) Reply(msg *tgbotapi.Message, text string) *tgbotapi.Message {
-	return bot.ReplyWithMessageCustomizer(msg, text, noOpCustomizer)
+func (bot *BotAPI) Reply(msg *tgbotapi.Message, text string) {
+	bot.ReplyWithMessageCustomizer(msg, text, noOpCustomizer)
 }
 
-func (bot *BotAPI) ReplyWithMarkdown(msg *tgbotapi.Message, text string) *tgbotapi.Message {
-	return bot.ReplyWithMessageCustomizer(msg, text, markdownCustomizer)
+func (bot *BotAPI) ReplyWithMarkdown(msg *tgbotapi.Message, text string) {
+	bot.ReplyWithMessageCustomizer(msg, text, markdownCustomizer)
 }
 
-func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options []string) *tgbotapi.Message {
+func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options []string) {
 	buttons := funk.Map(options, func(s string) tgbotapi.KeyboardButton {
 		return tgbotapi.NewKeyboardButton(s)
 	}).([]tgbotapi.KeyboardButton)
@@ -64,12 +58,12 @@ func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options
 	)
 	keyboard.OneTimeKeyboard = true
 
-	return bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
+	bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
 		msgConfig.ReplyMarkup = keyboard
 	})
 }
 
-func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, buttons []InlineButton) *tgbotapi.Message {
+func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, buttons []InlineButton) {
 	tgButtons := funk.Map(buttons, func(btn InlineButton) tgbotapi.InlineKeyboardButton {
 		return tgbotapi.NewInlineKeyboardButtonData(btn.Text, btn.Data)
 	}).([]tgbotapi.InlineKeyboardButton)
@@ -77,7 +71,7 @@ func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, b
 		tgbotapi.NewInlineKeyboardRow(tgButtons...),
 	)
 
-	return bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
+	bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
 		msgConfig.ReplyMarkup = keyboard
 	})
 }
@@ -87,18 +81,18 @@ func (bot *BotAPI) Request(c tgbotapi.Chattable) error {
 	return err
 }
 
-func (reqenv *RequestEnv) Reply(text string) *tgbotapi.Message {
-	return reqenv.Bot.Reply(reqenv.Message, text)
+func (reqenv *RequestEnv) Reply(text string) {
+	reqenv.Bot.Reply(reqenv.Message, text)
 }
 
-func (reqenv *RequestEnv) ReplyWithMarkdown(text string) *tgbotapi.Message {
-	return reqenv.Bot.ReplyWithMarkdown(reqenv.Message, text)
+func (reqenv *RequestEnv) ReplyWithMarkdown(text string) {
+	reqenv.Bot.ReplyWithMarkdown(reqenv.Message, text)
 }
 
-func (reqenv *RequestEnv) ReplyWithKeyboard(text string, options []string) *tgbotapi.Message {
-	return reqenv.Bot.ReplyWithKeyboard(reqenv.Message, text, options)
+func (reqenv *RequestEnv) ReplyWithKeyboard(text string, options []string) {
+	reqenv.Bot.ReplyWithKeyboard(reqenv.Message, text, options)
 }
 
-func (reqenv *RequestEnv) ReplyWithInlineKeyboard(text string, buttons []InlineButton) *tgbotapi.Message {
-	return reqenv.Bot.ReplyWithInlineKeyboard(reqenv.Message, text, buttons)
+func (reqenv *RequestEnv) ReplyWithInlineKeyboard(text string, buttons []InlineButton) {
+	reqenv.Bot.ReplyWithInlineKeyboard(reqenv.Message, text, buttons)
 }

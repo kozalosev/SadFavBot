@@ -2,14 +2,12 @@ package wizard
 
 import (
 	"errors"
-	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"golang.org/x/exp/slices"
-	"strings"
 )
 
 const ValidErrNotInListTr = "errors.validation.option.not.in.list"
@@ -29,9 +27,6 @@ const (
 	Video     FieldType = "video"
 	VideoNote FieldType = "video_note"
 	Gif       FieldType = "gif"
-
-	callbackDataSep         = ":"
-	callbackDataFieldPrefix = "field" + callbackDataSep
 )
 
 type Field struct {
@@ -64,54 +59,11 @@ func (f *Field) askUser(reqenv *base.RequestEnv) {
 				Data: callbackDataFieldPrefix + f.Name + callbackDataSep + s,
 			}
 		}).([]base.InlineButton)
-		sendMessage := reqenv.ReplyWithInlineKeyboard(promptDescription, inlineAnswers)
-		if sendMessage != nil {
-			AddCallbackHandler(sendMessage, callbackQueryHandler)
-		}
+		reqenv.ReplyWithInlineKeyboard(promptDescription, inlineAnswers)
 	} else if len(f.descriptor.ReplyKeyboardAnswers) > 0 {
 		reqenv.ReplyWithKeyboard(promptDescription, f.descriptor.ReplyKeyboardAnswers)
 	} else {
 		reqenv.Reply(promptDescription)
-	}
-}
-
-func callbackQueryHandler(reqenv *base.RequestEnv, stateStorage StateStorage) {
-	id := reqenv.CallbackQuery.From.ID
-	var (
-		form       Form
-		err        error
-		fieldValue string
-	)
-	if err = stateStorage.GetCurrentState(id, &form); err == nil {
-		data := strings.TrimPrefix(reqenv.CallbackQuery.Data, callbackDataFieldPrefix)
-		dataArr := strings.Split(data, callbackDataSep)
-		dataArrLen := len(dataArr)
-		if dataArrLen == 2 {
-			fieldName := dataArr[0]
-			fieldValue = dataArr[1]
-			field := form.Fields.FindField(fieldName)
-			field.Data = fieldValue
-			err = stateStorage.SaveState(id, &form)
-		} else {
-			err = errors.New(fmt.Sprintf("CallbackQuery data has %d fields unexpectedly!", dataArrLen))
-		}
-	}
-	var c tgbotapi.Chattable
-	if err != nil {
-		c = tgbotapi.NewCallbackWithAlert(reqenv.CallbackQuery.ID, reqenv.Lang.Tr("callbacks.error"))
-		if err = reqenv.Bot.Request(c); err != nil {
-			log.Error(err)
-		}
-	} else {
-		msg := reqenv.CallbackQuery.Message
-		c = tgbotapi.NewEditMessageText(msg.Chat.ID, msg.MessageID, reqenv.Lang.Tr("callbacks.was.set")+fieldValue)
-
-		reqenv.Message = msg.ReplyToMessage
-		form.PopulateRestored(reqenv, stateStorage)
-		form.ProcessNextField(reqenv)
-	}
-	if err := reqenv.Bot.Request(c); err != nil {
-		log.Error(err)
 	}
 }
 

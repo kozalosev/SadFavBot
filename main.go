@@ -23,7 +23,6 @@ import (
 const (
 	DefaultMessageTr          = "commands.default.message"
 	DefaultMessageOnCommandTr = "commands.default.message.on.command"
-	NoCallbackHandlerTr       = "callbacks.no.handler"
 )
 
 var locpool = loc.NewPool("en")
@@ -198,26 +197,16 @@ func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 }
 
 func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
-	handler, handlerWasFound := wizard.GetCallbackHandler(query.Message)
 	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(langCode)
-
-	if handlerWasFound {
-		reqenv := &base.RequestEnv{
-			Bot:           appParams.api,
-			CallbackQuery: query,
-			Lang:          lc,
-			Database:      appParams.db,
-			Ctx:           appParams.ctx,
-		}
-		handler(reqenv, appParams.stateStorage)
-		wizard.DeleteCallbackHandler(query.Message)
-	} else {
-		c := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, lc.Tr(NoCallbackHandlerTr))
-		if err := appParams.api.Request(c); err != nil {
-			log.Error(err)
-		}
+	reqenv := &base.RequestEnv{
+		Bot:           appParams.api,
+		CallbackQuery: query,
+		Lang:          lc,
+		Database:      appParams.db,
+		Ctx:           appParams.ctx,
 	}
+	wizard.CallbackQueryHandler(reqenv, appParams.stateStorage)
 }
 
 func shutdown(stateStorage wizard.StateStorage, db *sql.DB, metricsServer *http.Server) {
