@@ -29,7 +29,7 @@ func (handler LanguageHandler) GetWizardStateStorage() wizard.StateStorage {
 func (LanguageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(languageFormAction)
 	f := desc.AddField(FieldLanguage, LangParamPrompt)
-	f.ReplyKeyboardAnswers = []string{EnFlag, RuFlag}
+	f.InlineKeyboardAnswers = []string{EnFlag, RuFlag}
 	return desc
 }
 

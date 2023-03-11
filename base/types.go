@@ -24,10 +24,16 @@ type BotAPI struct {
 }
 
 type RequestEnv struct {
-	Bot         *BotAPI
-	Message     *tgbotapi.Message
-	InlineQuery *tgbotapi.InlineQuery
-	Lang        *loc.Context
-	Database    *sql.DB
-	Ctx         context.Context
+	Bot           *BotAPI
+	Message       *tgbotapi.Message
+	InlineQuery   *tgbotapi.InlineQuery
+	CallbackQuery *tgbotapi.CallbackQuery
+	Lang          *loc.Context
+	Database      *sql.DB
+	Ctx           context.Context
+}
+
+type InlineButton struct {
+	Text string
+	Data string
 }

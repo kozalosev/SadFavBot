@@ -12,9 +12,10 @@ type FormDescriptor struct {
 }
 
 type FieldDescriptor struct {
-	Validator            FieldValidator
-	SkipIf               SkipCondition
-	ReplyKeyboardAnswers []string
+	Validator             FieldValidator
+	SkipIf                SkipCondition
+	ReplyKeyboardAnswers  []string
+	InlineKeyboardAnswers []string
 
 	promptDescription string
 	formDescriptor    *FormDescriptor

@@ -24,7 +24,7 @@ func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		sendHelpMessage(reqenv)
 	})
 	f := desc.AddField(FieldLanguage, LangParamPrompt)
-	f.ReplyKeyboardAnswers = []string{EnFlag, RuFlag}
+	f.InlineKeyboardAnswers = []string{EnFlag, RuFlag}
 	return desc
 }
 
