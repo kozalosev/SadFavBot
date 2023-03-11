@@ -16,15 +16,15 @@ const (
 	callbackDataSuccessTr   = "callbacks.was.set"
 )
 
-func CallbackQueryHandler(reqenv *base.RequestEnv, stateStorage StateStorage) {
-	id := reqenv.CallbackQuery.From.ID
+func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery, stateStorage StateStorage) {
+	id := query.From.ID
 	var (
 		form       Form
 		err        error
 		fieldValue string
 	)
 	if err = stateStorage.GetCurrentState(id, &form); err == nil {
-		data := strings.TrimPrefix(reqenv.CallbackQuery.Data, callbackDataFieldPrefix)
+		data := strings.TrimPrefix(query.Data, callbackDataFieldPrefix)
 		dataArr := strings.Split(data, callbackDataSep)
 		dataArrLen := len(dataArr)
 		if dataArrLen == 2 {
@@ -39,17 +39,16 @@ func CallbackQueryHandler(reqenv *base.RequestEnv, stateStorage StateStorage) {
 	}
 	var c tgbotapi.Chattable
 	if err != nil {
-		c = tgbotapi.NewCallbackWithAlert(reqenv.CallbackQuery.ID, reqenv.Lang.Tr(callbackDataErrorTr))
+		c = tgbotapi.NewCallbackWithAlert(query.ID, reqenv.Lang.Tr(callbackDataErrorTr))
 		if err = reqenv.Bot.Request(c); err != nil {
 			log.Error(err)
 		}
 	} else {
-		msg := reqenv.CallbackQuery.Message
-		c = tgbotapi.NewEditMessageText(msg.Chat.ID, msg.MessageID, reqenv.Lang.Tr(callbackDataSuccessTr)+fieldValue)
+		c = tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, reqenv.Lang.Tr(callbackDataSuccessTr)+fieldValue)
 
-		reqenv.Message = msg.ReplyToMessage
-		form.PopulateRestored(reqenv, stateStorage)
-		form.ProcessNextField(reqenv)
+		msg := query.Message.ReplyToMessage
+		form.PopulateRestored(msg, stateStorage)
+		form.ProcessNextField(reqenv, msg)
 	}
 	if err := reqenv.Bot.Request(c); err != nil {
 		log.Error(err)

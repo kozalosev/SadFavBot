@@ -56,11 +56,14 @@ func TestExtractItemValues_MismatchError(t *testing.T) {
 	assert.Nil(t, res)
 }
 
-func buildRequestEnvWithMessage(uid int64) *base.RequestEnv {
+func buildMessage(uid int64) *tgbotapi.Message {
+	return &tgbotapi.Message{
+		From: &tgbotapi.User{ID: uid},
+	}
+}
+
+func buildRequestEnv() *base.RequestEnv {
 	return &base.RequestEnv{
-		Message: &tgbotapi.Message{
-			From: &tgbotapi.User{ID: uid},
-		},
 		Database: db,
 		Bot:      &base.BotAPI{DummyMode: true},
 		Lang:     loc.NewPool("en").GetContext("en"),

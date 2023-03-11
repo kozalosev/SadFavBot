@@ -9,12 +9,12 @@ import (
 
 type MessageHandler interface {
 	CanHandle(msg *tgbotapi.Message) bool
-	Handle(reqenv *RequestEnv)
+	Handle(reqenv *RequestEnv, msg *tgbotapi.Message)
 }
 
 type InlineHandler interface {
 	CanHandle(query *tgbotapi.InlineQuery) bool
-	Handle(reqenv *RequestEnv)
+	Handle(reqenv *RequestEnv, query *tgbotapi.InlineQuery)
 }
 
 type BotAPI struct {
@@ -24,13 +24,10 @@ type BotAPI struct {
 }
 
 type RequestEnv struct {
-	Bot           *BotAPI
-	Message       *tgbotapi.Message
-	InlineQuery   *tgbotapi.InlineQuery
-	CallbackQuery *tgbotapi.CallbackQuery
-	Lang          *loc.Context
-	Database      *sql.DB
-	Ctx           context.Context
+	Bot      *BotAPI
+	Lang     *loc.Context
+	Database *sql.DB
+	Ctx      context.Context
 }
 
 type InlineButton struct {

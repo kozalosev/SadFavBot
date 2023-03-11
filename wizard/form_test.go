@@ -36,8 +36,7 @@ func TestForm_AddPrefilledField(t *testing.T) {
 func TestRestorationOfFunctions(t *testing.T) {
 	wizard := NewWizard(testHandler{}, 1)
 	wizard.AddEmptyField(TestName, Text)
-	reqenv := base.RequestEnv{Message: &tgbotapi.Message{}}
-	wizard.PopulateRestored(&reqenv, nil)
+	wizard.PopulateRestored(&tgbotapi.Message{}, nil)
 
 	form := wizard.(*Form)
 	assert.Equal(t, getFuncPtr(tAction), getFuncPtr(form.descriptor.action))
@@ -46,14 +45,14 @@ func TestRestorationOfFunctions(t *testing.T) {
 }
 
 func TestForm_ProcessNextField(t *testing.T) {
+	msg := &tgbotapi.Message{
+		Text:      "not" + TestValue,
+		Chat:      &tgbotapi.Chat{ID: TestID},
+		MessageID: TestID,
+		From:      &tgbotapi.User{ID: TestID},
+	}
 	reqenv := &base.RequestEnv{
-		Bot: &base.BotAPI{DummyMode: true},
-		Message: &tgbotapi.Message{
-			Text:      "not" + TestValue,
-			Chat:      &tgbotapi.Chat{ID: TestID},
-			MessageID: TestID,
-			From:      &tgbotapi.User{ID: TestID},
-		},
+		Bot:  &base.BotAPI{DummyMode: true},
 		Lang: loc.NewPool("en").GetContext("en"),
 	}
 
@@ -74,7 +73,7 @@ func TestForm_ProcessNextField(t *testing.T) {
 	assert.False(t, form.Fields[1].WasRequested)
 	assert.False(t, actionFlagCont.flag)
 
-	form.ProcessNextField(reqenv)
+	form.ProcessNextField(reqenv, msg)
 
 	assert.Equal(t, 1, form.Index)
 	assert.False(t, form.Fields[0].WasRequested)
@@ -83,21 +82,21 @@ func TestForm_ProcessNextField(t *testing.T) {
 	assert.False(t, actionFlagCont.flag)
 
 	form.Fields[1].extractor = textExtractor
-	form.ProcessNextField(reqenv) // validation must fail
+	form.ProcessNextField(reqenv, msg) // validation must fail
 
 	assert.Equal(t, 1, form.Index)
 	assert.Nil(t, form.Fields[1].Data)
 	assert.False(t, actionFlagCont.flag)
 
-	reqenv.Message.Text = TestValue
-	form.ProcessNextField(reqenv)
+	msg.Text = TestValue
+	form.ProcessNextField(reqenv, msg)
 
 	assert.Equal(t, 3, form.Index)
 	assert.Equal(t, TestValue, form.Fields[1].Data)
 	assert.True(t, actionFlagCont.flag)
 }
 
-func tAction(_ *base.RequestEnv, fields Fields) {
+func tAction(_ *base.RequestEnv, _ *tgbotapi.Message, fields Fields) {
 	f3 := fields.FindField(TestName3)
 	if f3.Data != nil {
 		panic(TestName3 + " must be skipped and equals to nil!") // assertion without access to `t *testing.T`
@@ -106,11 +105,11 @@ func tAction(_ *base.RequestEnv, fields Fields) {
 
 type testHandler struct{}
 
-func (testHandler) CanHandle(*tgbotapi.Message) bool    { return false }
-func (testHandler) Handle(*base.RequestEnv)             {}
-func (testHandler) GetWizardName() string               { return TestWizardName }
-func (testHandler) GetWizardAction() FormAction         { return tAction }
-func (testHandler) GetWizardStateStorage() StateStorage { return nil }
+func (testHandler) CanHandle(*tgbotapi.Message) bool           { return false }
+func (testHandler) Handle(*base.RequestEnv, *tgbotapi.Message) {}
+func (testHandler) GetWizardName() string                      { return TestWizardName }
+func (testHandler) GetWizardAction() FormAction                { return tAction }
+func (testHandler) GetWizardStateStorage() StateStorage        { return nil }
 
 func (h testHandler) GetWizardDescriptor() *FormDescriptor {
 	desc := NewWizardDescriptor(tAction)
@@ -135,7 +134,7 @@ type testHandlerWithAction struct {
 }
 
 func (handler testHandlerWithAction) GetWizardDescriptor() *FormDescriptor {
-	desc := NewWizardDescriptor(func(*base.RequestEnv, Fields) {
+	desc := NewWizardDescriptor(func(*base.RequestEnv, *tgbotapi.Message, Fields) {
 		handler.actionWasRunFlag.flag = true
 	})
 	desc.AddField(TestName, TestPromptDesc)

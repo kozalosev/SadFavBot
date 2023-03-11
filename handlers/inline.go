@@ -30,13 +30,13 @@ func (GetFavoritesInlineHandler) CanHandle(*tgbotapi.InlineQuery) bool {
 	return true
 }
 
-func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv) {
+func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) {
 	answer := tgbotapi.InlineConfig{
-		InlineQueryID: reqenv.InlineQuery.ID,
+		InlineQueryID: query.ID,
 		IsPersonal:    true,
 	}
-	if len(reqenv.InlineQuery.Query) > 0 {
-		objects := funk.Map(findObjects(reqenv), generateMapper(reqenv.Lang)).([]interface{})
+	if len(query.Query) > 0 {
+		objects := funk.Map(findObjects(reqenv, query), generateMapper(reqenv.Lang)).([]interface{})
 		answer.Results = objects
 	}
 	if err := reqenv.Bot.Request(answer); err != nil {
@@ -69,9 +69,9 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 	}
 }
 
-func findObjects(reqenv *base.RequestEnv) []*StoredObject {
+func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*StoredObject {
 	rows, err := reqenv.Database.Query("SELECT id, type, file_id, text FROM items WHERE uid = $1 AND alias = $2",
-		reqenv.InlineQuery.From.ID, reqenv.InlineQuery.Query)
+		query.From.ID, query.Query)
 	defer func(rows *sql.Rows) {
 		if err := rows.Close(); err != nil {
 			log.Error(err)

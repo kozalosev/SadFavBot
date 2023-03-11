@@ -22,9 +22,9 @@ func (ListHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "list"
 }
 
-func (handler ListHandler) Handle(reqenv *base.RequestEnv) {
-	aliases, err := fetchAliases(reqenv.Database, reqenv.Message.From.ID)
-	replyWith := replierFactory(reqenv)
+func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	aliases, err := fetchAliases(reqenv.Database, msg.From.ID)
+	replyWith := replierFactory(reqenv, msg)
 	if err != nil {
 		log.Errorln(err)
 		replyWith(ListStatusFailure)
@@ -32,7 +32,7 @@ func (handler ListHandler) Handle(reqenv *base.RequestEnv) {
 		replyWith(ListStatusNoRows)
 	} else {
 		title := reqenv.Lang.Tr(ListStatusSuccess)
-		reqenv.Reply(title + "\n\n• " + strings.Join(aliases, "\n• "))
+		reqenv.Bot.Reply(msg, title+"\n\n• "+strings.Join(aliases, "\n• "))
 	}
 }
 

@@ -16,13 +16,13 @@ func (CancelHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "cancel"
 }
 
-func (c CancelHandler) Handle(reqenv *base.RequestEnv) {
-	err := c.StateStorage.DeleteState(reqenv.Message.From.ID)
+func (c CancelHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	err := c.StateStorage.DeleteState(msg.From.ID)
 	var answer string
 	if err != nil {
 		answer = reqenv.Lang.Tr(err.Error())
 	} else {
 		answer = reqenv.Lang.Tr(SuccessTr)
 	}
-	reqenv.Reply(answer)
+	reqenv.Bot.Reply(msg, answer)
 }

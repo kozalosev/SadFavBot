@@ -56,9 +56,9 @@ func (DeleteHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "delete" || msg.Command() == "del"
 }
 
-func (handler DeleteHandler) Handle(reqenv *base.RequestEnv) {
+func (handler DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 3)
-	arg := base.GetCommandArgument(reqenv.Message)
+	arg := base.GetCommandArgument(msg)
 
 	if len(arg) > 0 {
 		w.AddPrefilledField(FieldAlias, arg)
@@ -68,15 +68,15 @@ func (handler DeleteHandler) Handle(reqenv *base.RequestEnv) {
 	w.AddEmptyField(FieldDeleteAll, wizard.Text)
 	w.AddEmptyField(FieldObject, wizard.Auto)
 
-	w.ProcessNextField(reqenv)
+	w.ProcessNextField(reqenv, msg)
 }
 
-func deleteFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
-	uid := reqenv.Message.From.ID
+func deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+	uid := msg.From.ID
 	deleteAll := fields.FindField(FieldDeleteAll).Data == Yes
 	itemValues, ok := extractItemValues(fields)
 
-	replyWith := replierFactory(reqenv)
+	replyWith := replierFactory(reqenv, msg)
 	if !ok {
 		replyWith(DeleteStatusFailure)
 		return

@@ -1,10 +1,7 @@
 package handlers
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
-	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -12,14 +9,8 @@ import (
 func TestSaveFormAction(t *testing.T) {
 	insertTestData(db)
 
-	reqenv := &base.RequestEnv{
-		Message: &tgbotapi.Message{
-			From: &tgbotapi.User{ID: TestUID3},
-		},
-		Database: db,
-		Bot:      &base.BotAPI{DummyMode: true},
-		Lang:     loc.NewPool("en").GetContext("en"),
-	}
+	msg := buildMessage(TestUID3)
+	reqenv := buildRequestEnv()
 	fieldsFile := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: TestAlias},
 		&wizard.Field{Name: FieldObject, Type: TestType, Data: wizard.File{
@@ -28,7 +19,7 @@ func TestSaveFormAction(t *testing.T) {
 		}},
 	}
 
-	saveFormAction(reqenv, fieldsFile)
+	saveFormAction(reqenv, msg, fieldsFile)
 
 	checkRowsCount(t, 1, TestUID3, nil)
 	itemFile := fetchItem(t, TestType)
@@ -41,7 +32,7 @@ func TestSaveFormAction(t *testing.T) {
 	objField.Type = wizard.Text
 	objField.Data = TestText
 
-	saveFormAction(reqenv, fieldsText)
+	saveFormAction(reqenv, msg, fieldsText)
 
 	checkRowsCount(t, 2, TestUID3, nil)
 	itemText := fetchItem(t, wizard.Text)

@@ -37,28 +37,28 @@ func (LanguageHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "language" || msg.Command() == "lang"
 }
 
-func (handler LanguageHandler) Handle(reqenv *base.RequestEnv) {
-	lang := base.GetCommandArgument(reqenv.Message)
+func (handler LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	lang := base.GetCommandArgument(msg)
 	if len(lang) > 0 {
-		saveLangConfig(reqenv, lang)
+		saveLangConfig(reqenv, msg, lang)
 	} else {
 		w := wizard.NewWizard(handler, 1)
 		w.AddEmptyField(FieldLanguage, wizard.Text)
-		w.ProcessNextField(reqenv)
+		w.ProcessNextField(reqenv, msg)
 	}
 }
 
-func languageFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
-	saveLangConfig(reqenv, fields.FindField(FieldLanguage).Data.(string))
+func languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+	saveLangConfig(reqenv, msg, fields.FindField(FieldLanguage).Data.(string))
 }
 
-func saveLangConfig(reqenv *base.RequestEnv, language string) {
-	_, err := reqenv.Database.Exec("UPDATE users SET language = $1 WHERE uid = $2", langFlagToCode(language), reqenv.Message.From.ID)
+func saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
+	_, err := reqenv.Database.Exec("UPDATE users SET language = $1 WHERE uid = $2", langFlagToCode(language), msg.From.ID)
 	if err != nil {
 		log.Errorln(err)
-		reqenv.Reply(reqenv.Lang.Tr(LanguageStatusFailure))
+		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(LanguageStatusFailure))
 	} else {
-		reqenv.Reply(reqenv.Lang.Tr(SuccessTr))
+		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(SuccessTr))
 	}
 }
 

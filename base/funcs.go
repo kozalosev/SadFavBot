@@ -80,19 +80,3 @@ func (bot *BotAPI) Request(c tgbotapi.Chattable) error {
 	_, err := bot.internal.Request(c)
 	return err
 }
-
-func (reqenv *RequestEnv) Reply(text string) {
-	reqenv.Bot.Reply(reqenv.Message, text)
-}
-
-func (reqenv *RequestEnv) ReplyWithMarkdown(text string) {
-	reqenv.Bot.ReplyWithMarkdown(reqenv.Message, text)
-}
-
-func (reqenv *RequestEnv) ReplyWithKeyboard(text string, options []string) {
-	reqenv.Bot.ReplyWithKeyboard(reqenv.Message, text, options)
-}
-
-func (reqenv *RequestEnv) ReplyWithInlineKeyboard(text string, buttons []InlineButton) {
-	reqenv.Bot.ReplyWithInlineKeyboard(reqenv.Message, text, buttons)
-}

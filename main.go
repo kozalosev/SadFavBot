@@ -139,18 +139,12 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	langCode := fetchLanguage(appParams.db, msg.From.ID, msg.From.LanguageCode)
 	lc := locpool.GetContext(langCode)
-	reqenv := &base.RequestEnv{
-		Bot:      appParams.api,
-		Message:  msg,
-		Lang:     lc,
-		Database: appParams.db,
-		Ctx:      appParams.ctx,
-	}
+	reqenv := newRequestEnv(appParams, lc)
 
 	for _, handler := range appParams.messageHandlers {
 		if handler.CanHandle(msg) {
 			incMessageHandlerCounter(handler)
-			handler.Handle(reqenv)
+			handler.Handle(reqenv, msg)
 			return
 		}
 	}
@@ -158,8 +152,8 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	var form wizard.Form
 	err := appParams.stateStorage.GetCurrentState(msg.From.ID, &form)
 	if err == nil {
-		form.PopulateRestored(reqenv, appParams.stateStorage)
-		form.ProcessNextField(reqenv)
+		form.PopulateRestored(msg, appParams.stateStorage)
+		form.ProcessNextField(reqenv, msg)
 		return
 	}
 	if err != redis.Nil {
@@ -173,24 +167,18 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	} else {
 		defaultMessageTr = DefaultMessageTr
 	}
-	reqenv.Reply(reqenv.Lang.Tr(defaultMessageTr))
+	reqenv.Bot.Reply(msg, reqenv.Lang.Tr(defaultMessageTr))
 }
 
 func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(langCode)
-	reqenv := &base.RequestEnv{
-		Bot:         appParams.api,
-		InlineQuery: query,
-		Lang:        lc,
-		Database:    appParams.db,
-		Ctx:         appParams.ctx,
-	}
+	reqenv := newRequestEnv(appParams, lc)
 
 	for _, handler := range appParams.inlineHandlers {
 		if handler.CanHandle(query) {
 			incInlineHandlerCounter(handler)
-			handler.Handle(reqenv)
+			handler.Handle(reqenv, query)
 			return
 		}
 	}
@@ -199,14 +187,8 @@ func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
 	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(langCode)
-	reqenv := &base.RequestEnv{
-		Bot:           appParams.api,
-		CallbackQuery: query,
-		Lang:          lc,
-		Database:      appParams.db,
-		Ctx:           appParams.ctx,
-	}
-	wizard.CallbackQueryHandler(reqenv, appParams.stateStorage)
+	reqenv := newRequestEnv(appParams, lc)
+	wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)
 }
 
 func shutdown(stateStorage wizard.StateStorage, db *sql.DB, metricsServer *http.Server) {
