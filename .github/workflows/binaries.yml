@@ -1,10 +1,12 @@
-name: Publish release
+name: Attach binaries to release
 on:
   release:
     types: [created]
 jobs:
-  Publish-release:
+  Publish-binaries:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
         # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
