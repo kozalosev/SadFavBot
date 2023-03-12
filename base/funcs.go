@@ -77,6 +77,9 @@ func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, b
 }
 
 func (bot *BotAPI) Request(c tgbotapi.Chattable) error {
+	if bot.DummyMode {
+		return nil
+	}
 	_, err := bot.internal.Request(c)
 	return err
 }
