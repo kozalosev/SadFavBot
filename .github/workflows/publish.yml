@@ -7,7 +7,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 jobs:
-  Publish:
+  Publish-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -50,3 +50,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
+
+  Create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ncipollo/release-action@v1
+        with:
+          generateReleaseNotes: true
+          token: ${{ secrets.GH_KEY_2_RELEASE }}

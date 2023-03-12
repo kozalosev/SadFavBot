@@ -18,12 +18,18 @@ services:
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
+    expose:
+      - ${METRICS_PORT}
     depends_on:
       - postgres
       - redis
     networks:
       - postgres-network
       - redis-network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    logging:
+      driver: local
   postgres:
     image: postgres:14.5-alpine
     container_name: sadfavbot-postgresql
@@ -47,6 +53,8 @@ services:
     restart: unless-stopped
     networks:
       - postgres-network
+    logging:
+      driver: local
   redis:
     image: redis:6.2-alpine
     container_name: sadfavbot-redis
@@ -58,6 +66,8 @@ services:
       - ./data/redis:/data
     networks:
       - redis-network
+    logging:
+      driver: local
 networks:
   postgres-network:
     driver: bridge
