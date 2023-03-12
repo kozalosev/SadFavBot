@@ -19,11 +19,11 @@ func (HelpHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "help"
 }
 
-func (HelpHandler) Handle(reqenv *base.RequestEnv) {
-	sendHelpMessage(reqenv)
+func (HelpHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	sendHelpMessage(reqenv, msg)
 }
 
-func sendHelpMessage(reqenv *base.RequestEnv) {
+func sendHelpMessage(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	var helpMessage *string
 	switch reqenv.Lang.GetLanguage() {
 	case RuCode:
@@ -31,6 +31,6 @@ func sendHelpMessage(reqenv *base.RequestEnv) {
 	default:
 		helpMessage = &helpMessageEn
 	}
-	substitutedHelpText := strings.Replace(*helpMessage, "{{username}}", reqenv.Message.From.FirstName, 1)
-	reqenv.ReplyWithMarkdown(substitutedHelpText)
+	substitutedHelpText := strings.Replace(*helpMessage, "{{username}}", msg.From.FirstName, 1)
+	reqenv.Bot.ReplyWithMarkdown(msg, substitutedHelpText)
 }

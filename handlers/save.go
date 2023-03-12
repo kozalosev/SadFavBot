@@ -64,23 +64,23 @@ func (SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "save"
 }
 
-func (handler SaveHandler) Handle(reqenv *base.RequestEnv) {
+func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	wizardForm := wizard.NewWizard(handler, 2)
-	title := base.GetCommandArgument(reqenv.Message)
+	title := base.GetCommandArgument(msg)
 	if len(title) > 0 {
 		wizardForm.AddPrefilledField(FieldAlias, title)
 	} else {
 		wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 	}
 	wizardForm.AddEmptyField(FieldObject, wizard.Auto)
-	wizardForm.ProcessNextField(reqenv)
+	wizardForm.ProcessNextField(reqenv, msg)
 }
 
-func saveFormAction(reqenv *base.RequestEnv, fields wizard.Fields) {
-	uid := reqenv.Message.From.ID
+func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+	uid := msg.From.ID
 	itemValues, ok := extractItemValues(fields)
 
-	replyWith := replierFactory(reqenv)
+	replyWith := replierFactory(reqenv, msg)
 	if !ok {
 		replyWith(SaveStatusFailure)
 		return

@@ -63,19 +63,23 @@ func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options
 	})
 }
 
+func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, buttons []InlineButton) {
+	tgButtons := funk.Map(buttons, func(btn InlineButton) tgbotapi.InlineKeyboardButton {
+		return tgbotapi.NewInlineKeyboardButtonData(btn.Text, btn.Data)
+	}).([]tgbotapi.InlineKeyboardButton)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgButtons...),
+	)
+
+	bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
+		msgConfig.ReplyMarkup = keyboard
+	})
+}
+
 func (bot *BotAPI) Request(c tgbotapi.Chattable) error {
+	if bot.DummyMode {
+		return nil
+	}
 	_, err := bot.internal.Request(c)
 	return err
-}
-
-func (reqenv *RequestEnv) Reply(text string) {
-	reqenv.Bot.Reply(reqenv.Message, text)
-}
-
-func (reqenv *RequestEnv) ReplyWithMarkdown(text string) {
-	reqenv.Bot.ReplyWithMarkdown(reqenv.Message, text)
-}
-
-func (reqenv *RequestEnv) ReplyWithKeyboard(text string, options []string) {
-	reqenv.Bot.ReplyWithKeyboard(reqenv.Message, text, options)
 }

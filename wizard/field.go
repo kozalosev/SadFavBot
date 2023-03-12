@@ -50,12 +50,20 @@ func (fs Fields) FindField(name string) *Field {
 	return found[0]
 }
 
-func (f *Field) askUser(reqenv *base.RequestEnv) {
+func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	promptDescription := reqenv.Lang.Tr(f.descriptor.promptDescription)
-	if len(f.descriptor.ReplyKeyboardAnswers) > 0 {
-		reqenv.ReplyWithKeyboard(promptDescription, f.descriptor.ReplyKeyboardAnswers)
+	if len(f.descriptor.InlineKeyboardAnswers) > 0 {
+		inlineAnswers := funk.Map(f.descriptor.InlineKeyboardAnswers, func(s string) base.InlineButton {
+			return base.InlineButton{
+				Text: s,
+				Data: callbackDataFieldPrefix + f.Name + callbackDataSep + s,
+			}
+		}).([]base.InlineButton)
+		reqenv.Bot.ReplyWithInlineKeyboard(msg, promptDescription, inlineAnswers)
+	} else if len(f.descriptor.ReplyKeyboardAnswers) > 0 {
+		reqenv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardAnswers)
 	} else {
-		reqenv.Reply(promptDescription)
+		reqenv.Bot.Reply(msg, promptDescription)
 	}
 }
 

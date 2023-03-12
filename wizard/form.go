@@ -1,6 +1,7 @@
 package wizard
 
 import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,11 +42,11 @@ func (form *Form) AddPrefilledField(name string, value interface{}) {
 	form.Fields = append(form.Fields, field)
 }
 
-func (form *Form) ProcessNextField(reqenv *base.RequestEnv) {
+func (form *Form) ProcessNextField(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	maxIndex := len(form.Fields) - 1
 start:
 	if form.Index > maxIndex {
-		form.DoAction(reqenv)
+		form.DoAction(reqenv, msg)
 		return
 	}
 
@@ -56,39 +57,39 @@ start:
 
 	currentField := form.Fields[form.Index]
 	if currentField.WasRequested {
-		value := currentField.extractor(reqenv.Message)
+		value := currentField.extractor(msg)
 		if value == nil {
-			reqenv.Reply(reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr) + reqenv.Lang.Tr(string(currentField.Type)))
+			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr)+reqenv.Lang.Tr(string(currentField.Type)))
 			return
-		} else if err := currentField.validate(reqenv.Message, reqenv.Lang); err != nil {
-			reqenv.Reply(reqenv.Lang.Tr(InvalidFieldValueErrorTr) + reqenv.Lang.Tr(err.Error()))
+		} else if err := currentField.validate(msg, reqenv.Lang); err != nil {
+			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueErrorTr)+reqenv.Lang.Tr(err.Error()))
 			return
 		}
 		currentField.Data = value
 		form.Index++
 		goto start
 	} else {
-		currentField.askUser(reqenv)
+		currentField.askUser(reqenv, msg)
 		currentField.WasRequested = true
 	}
 
-	err := form.storage.SaveState(reqenv.Message.From.ID, form)
+	err := form.storage.SaveState(msg.From.ID, form)
 	if err != nil {
 		log.Error(err)
 	}
 }
 
-func (form *Form) DoAction(reqenv *base.RequestEnv) {
+func (form *Form) DoAction(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	if form.descriptor.action == nil {
-		reqenv.Reply(reqenv.Lang.Tr(MissingStateErrorTr))
+		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(MissingStateErrorTr))
 		return
 	}
-	form.descriptor.action(reqenv, form.Fields)
+	form.descriptor.action(reqenv, msg, form.Fields)
 }
 
-func (form *Form) PopulateRestored(reqenv *base.RequestEnv, storage StateStorage) {
+func (form *Form) PopulateRestored(msg *tgbotapi.Message, storage StateStorage) {
 	form.storage = storage
-	form.Fields[form.Index].restoreExtractor(reqenv.Message)
+	form.Fields[form.Index].restoreExtractor(msg)
 	form.descriptor = findFormDescriptor(form.WizardType)
 	for _, field := range form.Fields {
 		field.descriptor = form.descriptor.findFieldDescriptor(field.Name)
