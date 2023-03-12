@@ -14,6 +14,9 @@ func init() {
 		"commands.save.status.success":                        "saved successfully",
 		"commands.save.status.failure":                        "an error occurred while saving; please, try again later or contact @kozalo",
 		"commands.save.status.duplicate":                      "this item is already present in the collection",
+		"commands.list.status.success":                        "Saved aliases (with the count of associated objects):",
+		"commands.list.status.failure":                        "an error occurred while executing the query; please, try again later or contact @kozalo",
+		"commands.list.status.no.rows":                        "You have no saved aliases. It's time to make use of the /save command!",
 		"commands.delete.fields.alias":                        "enter an alias",
 		"commands.delete.fields.deleteAll":                    "Do you want to delete all objects associated with this alias?",
 		"commands.delete.fields.object":                       "send me an an object",
@@ -28,6 +31,8 @@ func init() {
 		"wizard.errors.state.missing":                         "the state of your operation is missing; probably, the bot was restarted; please, try again from the beginning",
 		"inline.errors.type.invalid":                          "unknown type; contact me if you want it to be supported: @kozalo",
 		"errors.validation.option.not.in.list":                "option is not from suggested variants",
+		"callbacks.error":                                     "an unknown error has been occurred, try again later or contact @kozalo",
+		"callbacks.was.set":                                   "the field was set successfully to ",
 
 		"video_note": "video note",
 	}
@@ -45,6 +50,9 @@ func init() {
 		"commands.save.status.success":                        "успешно сохранено",
 		"commands.save.status.failure":                        "при сохранении произошла ошибка, попробуйте позже или напишите @kozalo",
 		"commands.save.status.duplicate":                      "данный объект уже присутствует в коллекции",
+		"commands.list.status.success":                        "Сохранённые закладки (с количеством ассоциированных объектов):",
+		"commands.list.status.failure":                        "при выполнении запроса произошла ошибка, попробуйте позже или напишите @kozalo",
+		"commands.list.status.no.rows":                        "У вас нет никаких закладок. Самое время воспользоваться командой /save!",
 		"commands.delete.fields.alias":                        "введите имя",
 		"commands.delete.fields.deleteAll":                    "Вы хотите удалить все объекты под этим именем?",
 		"commands.delete.fields.object":                       "отправьте удаляемый объект",
@@ -59,6 +67,8 @@ func init() {
 		"wizard.errors.state.missing":                         "состояние операции потеряно; возможно, бот был перезапущен; пожалуйста, попробуйте повторить операцию с самого начала",
 		"inline.errors.type.invalid":                          "неизвестный тип; свяжитесь со мной, если хотите, чтобы он поддерживался: @kozalo",
 		"errors.validation.option.not.in.list":                "введённого варианта нет в предложенном списке",
+		"callbacks.error":                                     "произошла неизвестная ошибка, попробуйте позже или напишите @kozalo",
+		"callbacks.was.set":                                   "поле было успешно установлено в ",
 
 		"text":       "текстовое сообщение",
 		"image":      "изображение",

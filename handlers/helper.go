@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
@@ -70,8 +71,8 @@ func checkRowsWereAffected(res sql.Result) bool {
 	}
 }
 
-func replierFactory(reqenv *base.RequestEnv) func(string) {
+func replierFactory(reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
 	return func(statusKey string) {
-		reqenv.Reply(reqenv.Lang.Tr(statusKey))
+		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(statusKey))
 	}
 }

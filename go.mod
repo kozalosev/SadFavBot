@@ -6,10 +6,11 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/jackc/pgx/v5 v5.2.0
+	github.com/jinzhu/copier v0.3.5
 	github.com/loctools/go-l10n v0.0.0-20191031185225-4f8f121cf651
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/testcontainers/testcontainers-go v0.17.0
 	github.com/thoas/go-funk v0.9.3
 	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9
