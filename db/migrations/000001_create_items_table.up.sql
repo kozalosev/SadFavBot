@@ -1,15 +1,20 @@
-CREATE TYPE item_type AS ENUM (
-    'text',
-    'image',
-    'gif',
-    'video',
-    'video_note',
-    'sticker',
-    'voice',
-    'audio'
-);
+DO $$ BEGIN
+    CREATE TYPE item_type AS ENUM (
+        'text',
+        'image',
+        'gif',
+        'video',
+        'video_note',
+        'sticker',
+        'voice',
+        'audio'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TABLE items (
+
+CREATE TABLE IF NOT EXISTS items (
     id serial PRIMARY KEY,
     uid bigint NOT NULL,
     type item_type NOT NULL,
@@ -24,4 +29,4 @@ CREATE TABLE items (
     CONSTRAINT ck_item_data CHECK ( file_id IS NOT NULL AND file_unique_id IS NOT NULL OR text IS NOT NULL )
 );
 
-CREATE INDEX IF NOT EXISTS idx_text_items ON items(uid, alias);
+CREATE INDEX IF NOT EXISTS idx_text_items ON Items(uid, alias);

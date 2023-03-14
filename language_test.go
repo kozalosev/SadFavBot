@@ -80,26 +80,14 @@ func setup() {
 	containerPort, err := container.MappedPort(ctx, ExposedDBPort)
 	port := strings.TrimSuffix(string(containerPort), "/tcp")
 
-	db = storage.ConnectToDatabase(host, port, TestUser, TestPassword, TestDB)
-	createSchema(db)
+	dbConfig := storage.NewDatabaseConfig(host, port, TestUser, TestPassword, TestDB)
+	db = storage.ConnectToDatabase(dbConfig)
+	storage.RunMigrations(dbConfig, "")
 }
 
 func shutDown() {
 	if err := container.Terminate(ctx); err != nil {
 		panic(fmt.Sprintf("failed to terminate container: %s", err.Error()))
-	}
-}
-
-func createSchema(db *sql.DB) {
-	schemaFile, err := os.ReadFile("../db/0002_schema_users.sql")
-	check(err)
-	_, err = db.Exec(string(schemaFile))
-	check(err)
-}
-
-func check(err error) {
-	if err != nil {
-		panic(err)
 	}
 }
 

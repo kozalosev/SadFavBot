@@ -50,7 +50,7 @@ type queryResult struct {
 }
 
 func fetchItem(t *testing.T, fieldType wizard.FieldType) *queryResult {
-	itemsRes := db.QueryRow("SELECT alias, type, file_id, file_unique_id, text FROM items WHERE uid = $1 AND type = $2", TestUID3, fieldType)
+	itemsRes := db.QueryRow("SELECT a.name, type, file_id, file_unique_id, text FROM items i JOIN aliases a ON i.alias = a.id WHERE uid = $1 AND type = $2", TestUID3, fieldType)
 	var item queryResult
 	err := itemsRes.Scan(&item.Name, &item.Type, &item.FileID, &item.FileUniqueID, &item.Text)
 	assert.NoError(t, err)

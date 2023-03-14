@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -91,9 +92,9 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 		err error
 	)
 	if itemValues.Type == wizard.Text {
-		res, err = saveText(reqenv.Database, uid, itemValues.Alias, itemValues.Text)
+		res, err = saveText(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, itemValues.Text)
 	} else {
-		res, err = saveFile(reqenv.Database, uid, itemValues.Alias, itemValues.Type, *itemValues.File)
+		res, err = saveFile(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, itemValues.Type, *itemValues.File)
 	}
 
 	if err != nil {
@@ -114,12 +115,47 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 	}
 }
 
-func saveText(db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
-	return db.Exec("INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, $3, $4)",
-		uid, wizard.Text, alias, text)
+func saveText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	id, err := saveAlias(tx, alias)
+	if err != nil {
+		return nil, err
+	}
+	res, err := tx.Exec("INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5)",
+		uid, wizard.Text, id, alias, text)
+	if err != nil {
+		return nil, err
+	}
+	return res, tx.Commit()
 }
 
-func saveFile(db *sql.DB, uid int64, alias string, fileType wizard.FieldType, file wizard.File) (sql.Result, error) {
-	return db.Exec("INSERT INTO items (uid, type, alias, file_id, file_unique_id) VALUES ($1, $2, $3, $4, $5)",
-		uid, fileType, alias, file.ID, file.UniqueID)
+func saveFile(ctx context.Context, db *sql.DB, uid int64, alias string, fileType wizard.FieldType, file wizard.File) (sql.Result, error) {
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	id, err := saveAlias(tx, alias)
+	if err != nil {
+		return nil, err
+	}
+	res, err := tx.Exec("INSERT INTO items (uid, type, alias, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
+		uid, fileType, id, alias, file.ID, file.UniqueID)
+	if err != nil {
+		return nil, err
+	}
+	return res, tx.Commit()
+}
+
+func saveAlias(tx *sql.Tx, alias string) (int64, error) {
+	var id int64
+	if err := tx.QueryRow("INSERT INTO aliases(name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", alias).Scan(&id); err == nil {
+		return id, nil
+	} else if err == sql.ErrNoRows {
+		return 0, nil
+	} else {
+		return 0, err
+	}
 }

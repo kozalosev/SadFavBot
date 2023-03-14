@@ -43,6 +43,7 @@ func TestConnectToDatabase(t *testing.T) {
 	assert.Nil(t, err)
 	port := strings.TrimSuffix(string(containerPort), "/tcp")
 
-	db := ConnectToDatabase(host, port, TestUser, TestPassword, TestDB)
+	dbConfig := NewDatabaseConfig(host, port, TestUser, TestPassword, TestDB)
+	db := ConnectToDatabase(dbConfig)
 	assert.Nil(t, db.Close())
 }

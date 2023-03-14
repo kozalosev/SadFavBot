@@ -67,5 +67,6 @@ func buildRequestEnv() *base.RequestEnv {
 		Database: db,
 		Bot:      &base.BotAPI{DummyMode: true},
 		Lang:     loc.NewPool("en").GetContext("en"),
+		Ctx: 	  ctx,
 	}
 }
