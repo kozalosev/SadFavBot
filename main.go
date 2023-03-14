@@ -31,7 +31,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	metricsServer := startMetricsServer(os.Getenv("METRICS_PORT"))
+	addHttpHandlerForMetrics()
+	srv := startServer(os.Getenv("APP_PORT"))
+
 	stateStorage, db := establishConnections(ctx)
 	messageHandlers, inlineHandlers := initHandlers(stateStorage)
 
@@ -56,47 +58,36 @@ func main() {
 		log.Warning("Wizard actions map already has been populated; skipping...")
 	}
 
-	updateConfig := tgbotapi.UpdateConfig{Offset: 0, Timeout: 30}
-	updates := bot.GetUpdatesChan(updateConfig)
-
 	var (
 		wg         sync.WaitGroup
 		wasStopped bool
 	)
-	for upd := range updates {
-		select {
-		case <-ctx.Done():
-			if !wasStopped {
-				bot.StopReceivingUpdates()
-				wasStopped = true
+	if bot.Debug {
+		if _, err := bot.Request(tgbotapi.DeleteWebhookConfig{}); err != nil {
+			panic(err)
+		}
+
+		updateConfig := tgbotapi.UpdateConfig{Offset: 0, Timeout: 30}
+		updates := bot.GetUpdatesChan(updateConfig)
+
+		for upd := range updates {
+			select {
+			case <-ctx.Done():
+				if !wasStopped {
+					bot.StopReceivingUpdates()
+					wasStopped = true
+				}
+			default:
 			}
-		default:
+			handleUpdate(appParams, &wg, &upd)
 		}
-		if upd.InlineQuery != nil {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				processInline(appParams, upd.InlineQuery)
-			}()
-		} else if upd.ChosenInlineResult != nil {
-			inc(chosenInlineResultCounter)
-		} else if upd.Message != nil {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				processMessage(appParams, upd.Message)
-			}()
-		} else if upd.CallbackQuery != nil {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				processCallbackQuery(appParams, upd.CallbackQuery)
-			}()
-		}
+	} else {
+		addHttpHandlerForWebhook(bot, appParams, &wg)
+		<-ctx.Done()
 	}
 
 	wg.Wait()
-	shutdown(stateStorage, db, metricsServer)
+	shutdown(stateStorage, db, srv)
 }
 
 func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *sql.DB) {
@@ -136,67 +127,27 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 	return
 }
 
-func processMessage(appParams *appParams, msg *tgbotapi.Message) {
-	langCode := fetchLanguage(appParams.db, msg.From.ID, msg.From.LanguageCode)
-	lc := locpool.GetContext(langCode)
-	reqenv := newRequestEnv(appParams, lc)
-
-	for _, handler := range appParams.messageHandlers {
-		if handler.CanHandle(msg) {
-			incMessageHandlerCounter(handler)
-			handler.Handle(reqenv, msg)
-			return
+func startServer(port string) *http.Server {
+	srv := &http.Server{Addr: ":" + port}
+	go func() {
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalln(err)
 		}
-	}
-
-	var form wizard.Form
-	err := appParams.stateStorage.GetCurrentState(msg.From.ID, &form)
-	if err == nil {
-		form.PopulateRestored(msg, appParams.stateStorage)
-		form.ProcessNextField(reqenv, msg)
-		return
-	}
-	if err != redis.Nil {
-		log.Errorln("error occurred while getting current state: ", err)
-		return
-	}
-
-	var defaultMessageTr string
-	if msg.IsCommand() {
-		defaultMessageTr = DefaultMessageOnCommandTr
-	} else {
-		defaultMessageTr = DefaultMessageTr
-	}
-	reqenv.Bot.Reply(msg, reqenv.Lang.Tr(defaultMessageTr))
+	}()
+	return srv
 }
 
-func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
-	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
-	lc := locpool.GetContext(langCode)
-	reqenv := newRequestEnv(appParams, lc)
-
-	for _, handler := range appParams.inlineHandlers {
-		if handler.CanHandle(query) {
-			incInlineHandlerCounter(handler)
-			handler.Handle(reqenv, query)
-			return
-		}
-	}
-}
-
-func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
-	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
-	lc := locpool.GetContext(langCode)
-	reqenv := newRequestEnv(appParams, lc)
-	wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)
-}
-
-func shutdown(stateStorage wizard.StateStorage, db *sql.DB, metricsServer *http.Server) {
+func shutdown(stateStorage wizard.StateStorage, db *sql.DB, srv *http.Server) {
 	if err := db.Close(); err != nil {
 		log.Errorln(err)
 	}
 	if err := stateStorage.Close(); err != nil {
 		log.Errorln(err)
 	}
-	shutdownMetricsServer(metricsServer)
+
+	ctx, c := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer c()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Errorln(err)
+	}
 }
