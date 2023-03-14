@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS Items;
+DROP TYPE IF EXISTS item_type;

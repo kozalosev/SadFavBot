@@ -37,7 +37,7 @@ func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 }
 
 func fetchAliases(db *sql.DB, uid int64) ([]string, error) {
-	rows, err := db.Query("SELECT alias, count(alias) FROM items WHERE uid = $1 GROUP BY alias ORDER BY alias", uid)
+	rows, err := db.Query("SELECT a.name, count(a.name) FROM items i JOIN aliases a ON i.alias = a.id WHERE uid = $1 GROUP BY a.name ORDER BY a.name", uid)
 	defer func(rows *sql.Rows) {
 		if err := rows.Close(); err != nil {
 			log.Error(err)

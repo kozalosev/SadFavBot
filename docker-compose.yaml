@@ -19,6 +19,7 @@ services:
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
+      - MIGRATIONS_REPO
       - WEBHOOK_HOST
       - WEBHOOK_PORT
       - WEBHOOK_PATH

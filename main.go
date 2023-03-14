@@ -100,12 +100,14 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
-	db = storage.ConnectToDatabase(
+	dbConfig := storage.NewDatabaseConfig(
 		os.Getenv("POSTGRES_HOST"),
 		os.Getenv("POSTGRES_PORT"),
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
 		os.Getenv("POSTGRES_DB"))
+	db = storage.ConnectToDatabase(dbConfig)
+	storage.RunMigrations(dbConfig, os.Getenv("MIGRATIONS_REPO"))
 	return
 }
 

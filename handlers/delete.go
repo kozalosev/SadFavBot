@@ -107,15 +107,15 @@ func deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wiz
 
 func deleteByAlias(db *sql.DB, uid int64, alias string) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d' and alias '%s'", uid, alias)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", uid, alias)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
 }
 
 func deleteByFileID(db *sql.DB, uid int64, alias string, file wizard.File) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2 AND file_unique_id = $3", uid, alias, file.UniqueID)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3", uid, alias, file.UniqueID)
 }
 
 func deleteByText(db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d', alias '%s' and text '%s'", uid, alias, text)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2 AND text = $3", uid, alias, text)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = $3", uid, alias, text)
 }

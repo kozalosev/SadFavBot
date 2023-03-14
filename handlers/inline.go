@@ -70,7 +70,7 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 }
 
 func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*StoredObject {
-	rows, err := reqenv.Database.Query("SELECT id, type, file_id, text FROM items WHERE uid = $1 AND alias = $2",
+	rows, err := reqenv.Database.Query("SELECT id, type, file_id, text FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)",
 		query.From.ID, query.Query)
 	defer func(rows *sql.Rows) {
 		if err := rows.Close(); err != nil {
