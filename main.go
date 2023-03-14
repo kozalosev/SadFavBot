@@ -31,7 +31,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	metricsServer := startMetricsServer(os.Getenv("METRICS_PORT"))
+	addHttpHandlerForMetrics()
+	srv := startServer(os.Getenv("APP_PORT"))
+
 	stateStorage, db := establishConnections(ctx)
 	messageHandlers, inlineHandlers := initHandlers(stateStorage)
 
@@ -80,13 +82,12 @@ func main() {
 			handleUpdate(appParams, &wg, &upd)
 		}
 	} else {
-		srv := setAndListenForWebhook(bot, appParams, &wg)
+		addHttpHandlerForWebhook(bot, appParams, &wg)
 		<-ctx.Done()
-		shutdownWebhookServer(srv)
 	}
 
 	wg.Wait()
-	shutdown(stateStorage, db, metricsServer)
+	shutdown(stateStorage, db, srv)
 }
 
 func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *sql.DB) {
@@ -126,12 +127,27 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 	return
 }
 
-func shutdown(stateStorage wizard.StateStorage, db *sql.DB, metricsServer *http.Server) {
+func startServer(port string) *http.Server {
+	srv := &http.Server{Addr: ":" + port}
+	go func() {
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalln(err)
+		}
+	}()
+	return srv
+}
+
+func shutdown(stateStorage wizard.StateStorage, db *sql.DB, srv *http.Server) {
 	if err := db.Close(); err != nil {
 		log.Errorln(err)
 	}
 	if err := stateStorage.Close(); err != nil {
 		log.Errorln(err)
 	}
-	shutdownMetricsServer(metricsServer)
+
+	ctx, c := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer c()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Errorln(err)
+	}
 }

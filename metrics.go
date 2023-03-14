@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -9,7 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"reflect"
-	"time"
 )
 
 const chosenInlineResultCounter = "inline_result_was_chosen"
@@ -58,23 +56,6 @@ func inc(name string) {
 	}
 }
 
-func startMetricsServer(port string) *http.Server {
-	srv := &http.Server{Addr: ":" + port}
+func addHttpHandlerForMetrics() {
 	http.Handle("/metrics", promhttp.Handler())
-
-	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalln(err)
-		}
-	}()
-
-	return srv
-}
-
-func shutdownMetricsServer(metricsServer *http.Server) {
-	ctx, c := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer c()
-	if err := metricsServer.Shutdown(ctx); err != nil {
-		log.Errorln(err)
-	}
 }
