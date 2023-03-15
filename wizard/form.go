@@ -62,7 +62,7 @@ start:
 		if value == nil {
 			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr)+reqenv.Lang.Tr(string(currentField.Type)))
 			return
-		} else if err := currentField.validate(msg, reqenv.Lang); err != nil {
+		} else if err := currentField.validate(reqenv, msg); err != nil {
 			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueErrorTr)+reqenv.Lang.Tr(err.Error()))
 			return
 		}
@@ -93,6 +93,7 @@ func (form *Form) PopulateRestored(msg *tgbotapi.Message, storage StateStorage) 
 	form.Fields[form.Index].restoreExtractor(msg)
 	form.descriptor = findFormDescriptor(form.WizardType)
 	for _, field := range form.Fields {
+		field.Form = form
 		field.descriptor = form.descriptor.findFieldDescriptor(field.Name)
 	}
 }

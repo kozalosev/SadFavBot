@@ -8,6 +8,7 @@ import (
 )
 
 type InlineButtonCustomizer func(btn *tgbotapi.InlineKeyboardButton, f *Field)
+type ReplyKeyboardBuilder func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string
 
 type FormDescriptor struct {
 	action FormAction
@@ -17,7 +18,7 @@ type FormDescriptor struct {
 type FieldDescriptor struct {
 	Validator             FieldValidator
 	SkipIf                SkipCondition
-	ReplyKeyboardAnswers  []string
+	ReplyKeyboardBuilder  ReplyKeyboardBuilder
 	InlineKeyboardAnswers []string
 
 	promptDescription 		string

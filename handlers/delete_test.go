@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -42,4 +43,10 @@ func TestDeleteFormActionText(t *testing.T) {
 	deleteFormAction(reqenv, msg, fields)
 
 	checkRowsCount(t, 0, TestUID3, nil) // row with TestFileID is on its place
+}
+
+func TestTrimCountSuffix(t *testing.T) {
+	assert.Equal(t, TestAlias, trimCountSuffix(TestAlias + " (1)"))
+	assert.Equal(t, TestAlias, trimCountSuffix(TestAlias))
+	assert.Equal(t, TestAlias + " (test)", trimCountSuffix(TestAlias + " (test)"))
 }

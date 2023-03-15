@@ -66,19 +66,19 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 			return btn
 		}).([]tgbotapi.InlineKeyboardButton)
 		reqenv.Bot.ReplyWithInlineKeyboard(msg, promptDescription, inlineAnswers)
-	} else if len(f.descriptor.ReplyKeyboardAnswers) > 0 {
-		reqenv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardAnswers)
+	} else if f.descriptor.ReplyKeyboardBuilder != nil {
+		reqenv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardBuilder(reqenv, msg))
 	} else {
 		reqenv.Bot.Reply(msg, promptDescription)
 	}
 }
 
-func (f *Field) validate(msg *tgbotapi.Message, lc *loc.Context) error {
-	if len(f.descriptor.ReplyKeyboardAnswers) > 0 && !slices.Contains(f.descriptor.ReplyKeyboardAnswers, msg.Text) {
+func (f *Field) validate(reqenv *base.RequestEnv, msg *tgbotapi.Message) error {
+	if f.descriptor.ReplyKeyboardBuilder != nil && !slices.Contains(f.descriptor.ReplyKeyboardBuilder(reqenv, msg), msg.Text) {
 		return errors.New(ValidErrNotInListTr)
 	}
 	if f.descriptor.Validator == nil {
 		return nil
 	}
-	return f.descriptor.Validator(msg, lc)
+	return f.descriptor.Validator(msg, reqenv.Lang)
 }
