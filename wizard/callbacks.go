@@ -13,7 +13,6 @@ const (
 	callbackDataSep         = ":"
 	callbackDataFieldPrefix = "field" + callbackDataSep
 	callbackDataErrorTr     = "callbacks.error"
-	callbackDataSuccessTr   = "callbacks.was.set"
 )
 
 func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery, stateStorage StateStorage) {
@@ -44,7 +43,7 @@ func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery
 			log.Error(err)
 		}
 	} else {
-		c = tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, reqenv.Lang.Tr(callbackDataSuccessTr)+fieldValue)
+		c = tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, query.Message.Text+" "+fieldValue)
 
 		msg := query.Message.ReplyToMessage
 		form.PopulateRestored(msg, stateStorage)
