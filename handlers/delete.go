@@ -22,6 +22,7 @@ const (
 	DeleteStatusNoRows   = DeleteStatusTrPrefix + StatusNoRows
 	Yes                  = "👍"
 	No                   = "👎"
+	SelectObjectBtnTr	 = "commands.delete.button.select.object"
 )
 
 var trimCountRegex = regexp.MustCompile("\\(\\d+\\)$")
@@ -57,16 +58,17 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	delAllDesc := desc.AddField(FieldDeleteAll, DeleteFieldsTrPrefix+FieldDeleteAll)
 	delAllDesc.InlineKeyboardAnswers = []string{Yes, No}
-	delAllDesc.InlineButtonCustomizer(No, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
-		query := f.Form.Fields.FindField(FieldAlias).Data.(string)
-		btn.SwitchInlineQueryCurrentChat = &query
-	})
 
 	objDesc := desc.AddField(FieldObject, DeleteFieldsTrPrefix+FieldObject)
 	objDesc.SkipIf = &wizard.SkipOnFieldValue{
 		Name:  FieldDeleteAll,
 		Value: Yes,
 	}
+	objDesc.InlineKeyboardAnswers = []string{SelectObjectBtnTr}
+	objDesc.InlineButtonCustomizer(SelectObjectBtnTr, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
+		query := f.Form.Fields.FindField(FieldAlias).Data.(string)
+		btn.SwitchInlineQueryCurrentChat = &query
+	})
 
 	return desc
 }
@@ -136,7 +138,7 @@ func deleteByFileID(db *sql.DB, uid int64, alias string, file wizard.File) (sql.
 
 func deleteByText(db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d', alias '%s' and text '%s'", uid, alias, text)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = $3", uid, alias, text)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = (SELECT id FROM texts WHERE text = $3)", uid, alias, text)
 }
 
 func trimCountSuffix(s string) string {

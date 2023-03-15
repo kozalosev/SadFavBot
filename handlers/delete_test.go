@@ -32,17 +32,18 @@ func TestDeleteFormAction(t *testing.T) {
 func TestDeleteFormActionText(t *testing.T) {
 	insertTestData(db)
 
-	msg := buildMessage(TestUID3)
+	msg := buildMessage(TestUID2)
 	reqenv := buildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias},
+		&wizard.Field{Name: FieldAlias, Data: TestAlias2},
 		&wizard.Field{Name: FieldDeleteAll, Data: No},
-		&wizard.Field{Name: FieldObject, Type: TestType, Data: TestText},
+		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: TestText},
 	}
 
 	deleteFormAction(reqenv, msg, fields)
 
-	checkRowsCount(t, 0, TestUID3, nil) // row with TestFileID is on its place
+	alias := TestAlias2
+	checkRowsCount(t, 0, TestUID2, &alias) // row with TestFileID is on its place
 }
 
 func TestTrimCountSuffix(t *testing.T) {

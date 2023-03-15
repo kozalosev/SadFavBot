@@ -34,6 +34,7 @@ const (
 	TestUniqueFileID  = "FileUniqueID"
 	TestUniqueFileID2 = "FileUniqueID_2"
 	TestText          = "test_text"
+	TestTextID        = 1
 )
 
 var (
@@ -95,7 +96,7 @@ func shutDown() {
 }
 
 func insertTestData(db *sql.DB) {
-	for _, table := range []string{"items", "aliases", "users"} {
+	for _, table := range []string{"items", "aliases", "texts", "users"} {
 		_, err := db.Exec("DELETE FROM " + table)
 		check(err)
 	}
@@ -110,8 +111,10 @@ func insertTestData(db *sql.DB) {
 		"($2, $3, $4, $6, $8)", // TestUID2, TestAlias, TestFileID, TestUniqueFileID
 		TestUID, TestUID2, TestType, TestAliasID, TestAlias2ID, TestFileID, TestFileID2, TestUniqueFileID, TestUniqueFileID2)
 	check(err)
+	_, err = db.Exec("INSERT INTO texts(id, text) VALUES ($1, $2)", TestTextID, TestText)
+	check(err)
 	_, err = db.Exec("INSERT INTO items(uid, type, alias, text) VALUES ($1, $2, $3, $4)",
-		TestUID2, wizard.Text, TestAlias2ID, TestText)
+		TestUID2, wizard.Text, TestAlias2ID, TestTextID)
 	check(err)
 
 	_, err = db.Exec("INSERT INTO users(uid, language) VALUES ($1, 'ru')", TestUID)
