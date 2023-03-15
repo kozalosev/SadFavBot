@@ -1,5 +1,5 @@
 INSERT INTO Aliases (name)
-SELECT alias FROM Items;
+SELECT DISTINCT alias FROM Items;
 
 UPDATE Items
 SET alias = (
