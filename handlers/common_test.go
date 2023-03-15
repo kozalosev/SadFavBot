@@ -24,6 +24,7 @@ const (
 	TestUID2          = TestUID + 1
 	TestUID3          = TestUID + 2
 	TestAlias         = "alias"
+	TestAliasCI       = "AliAS"
 	TestAliasID       = 1
 	TestAlias2        = TestAlias + "2"
 	TestAlias2ID      = 2
