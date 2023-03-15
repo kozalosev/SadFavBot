@@ -136,7 +136,7 @@ func deleteByFileID(db *sql.DB, uid int64, alias string, file wizard.File) (sql.
 
 func deleteByText(db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d', alias '%s' and text '%s'", uid, alias, text)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = $3", uid, alias, text)
+	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = (SELECT id FROM texts WHERE text = $3)", uid, alias, text)
 }
 
 func trimCountSuffix(s string) string {
