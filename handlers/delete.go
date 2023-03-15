@@ -22,6 +22,7 @@ const (
 	DeleteStatusNoRows   = DeleteStatusTrPrefix + StatusNoRows
 	Yes                  = "👍"
 	No                   = "👎"
+	SelectObjectBtnTr	 = "commands.delete.button.select.object"
 )
 
 var trimCountRegex = regexp.MustCompile("\\(\\d+\\)$")
@@ -57,16 +58,17 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	delAllDesc := desc.AddField(FieldDeleteAll, DeleteFieldsTrPrefix+FieldDeleteAll)
 	delAllDesc.InlineKeyboardAnswers = []string{Yes, No}
-	delAllDesc.InlineButtonCustomizer(No, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
-		query := f.Form.Fields.FindField(FieldAlias).Data.(string)
-		btn.SwitchInlineQueryCurrentChat = &query
-	})
 
 	objDesc := desc.AddField(FieldObject, DeleteFieldsTrPrefix+FieldObject)
 	objDesc.SkipIf = &wizard.SkipOnFieldValue{
 		Name:  FieldDeleteAll,
 		Value: Yes,
 	}
+	objDesc.InlineKeyboardAnswers = []string{SelectObjectBtnTr}
+	objDesc.InlineButtonCustomizer(SelectObjectBtnTr, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
+		query := f.Form.Fields.FindField(FieldAlias).Data.(string)
+		btn.SwitchInlineQueryCurrentChat = &query
+	})
 
 	return desc
 }

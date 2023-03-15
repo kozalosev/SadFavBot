@@ -56,7 +56,7 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	promptDescription := reqenv.Lang.Tr(f.descriptor.promptDescription)
 	if len(f.descriptor.InlineKeyboardAnswers) > 0 {
 		inlineAnswers := funk.Map(f.descriptor.InlineKeyboardAnswers, func(s string) tgbotapi.InlineKeyboardButton {
-			btn := tgbotapi.InlineKeyboardButton{Text: s}
+			btn := tgbotapi.InlineKeyboardButton{Text: reqenv.Lang.Tr(s)}
 			if customizer, ok := f.descriptor.inlineButtonCustomizers[s]; ok {
 				customizer(&btn, f)
 			} else {
