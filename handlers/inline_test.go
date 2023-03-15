@@ -34,6 +34,6 @@ func TestMapper(t *testing.T) {
 func buildInlineQuery() *tgbotapi.InlineQuery {
 	return &tgbotapi.InlineQuery{
 		From:  &tgbotapi.User{ID: TestUID},
-		Query: TestAlias,
+		Query: TestAliasCI,
 	}
 }

@@ -2,9 +2,13 @@ package wizard
 
 import (
 	"fmt"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/thoas/go-funk"
 )
+
+type InlineButtonCustomizer func(btn *tgbotapi.InlineKeyboardButton, f *Field)
+type ReplyKeyboardBuilder func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string
 
 type FormDescriptor struct {
 	action FormAction
@@ -14,11 +18,12 @@ type FormDescriptor struct {
 type FieldDescriptor struct {
 	Validator             FieldValidator
 	SkipIf                SkipCondition
-	ReplyKeyboardAnswers  []string
+	ReplyKeyboardBuilder  ReplyKeyboardBuilder
 	InlineKeyboardAnswers []string
 
-	promptDescription string
-	formDescriptor    *FormDescriptor
+	promptDescription 		string
+	formDescriptor          *FormDescriptor
+	inlineButtonCustomizers map[string]InlineButtonCustomizer
 }
 
 var registeredWizardDescriptors = make(map[string]*FormDescriptor)
@@ -34,6 +39,17 @@ func (descriptor *FormDescriptor) AddField(name, promptDescriptionOrTrKey string
 	}
 	descriptor.fields[name] = fieldDescriptor
 	return fieldDescriptor
+}
+
+func (descriptor *FieldDescriptor) InlineButtonCustomizer(option string, customizer InlineButtonCustomizer) bool {
+	if descriptor.inlineButtonCustomizers == nil {
+		descriptor.inlineButtonCustomizers = make(map[string]InlineButtonCustomizer, len(descriptor.InlineKeyboardAnswers))
+	}
+	if _, ok := descriptor.inlineButtonCustomizers[option]; ok {
+		return false
+	}
+	descriptor.inlineButtonCustomizers[option] = customizer
+	return true
 }
 
 func PopulateWizardDescriptors(handlers []base.MessageHandler) bool {

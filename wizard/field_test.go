@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/base"
 	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -68,7 +69,9 @@ func TestFieldMarshalling(t *testing.T) {
 }
 
 func TestField_validate(t *testing.T) {
-	lc := loc.NewPool("en").GetContext("en")
+	reqenv := &base.RequestEnv{
+		Lang:     loc.NewPool("en").GetContext("en"),
+	}
 	expectedError := errors.New("validation failed")
 
 	validMsg := &tgbotapi.Message{Text: TestValue}
@@ -84,15 +87,17 @@ func TestField_validate(t *testing.T) {
 		},
 	}
 
-	assert.NoError(t, fSimpleValidation.validate(validMsg, lc))
-	assert.Error(t, expectedError, fSimpleValidation.validate(invalidMsg, lc))
+	assert.NoError(t, fSimpleValidation.validate(reqenv, validMsg))
+	assert.Error(t, expectedError, fSimpleValidation.validate(reqenv, invalidMsg))
 
 	fInlineKeyboard := Field{
 		descriptor: &FieldDescriptor{
-			ReplyKeyboardAnswers: []string{TestValue},
+			ReplyKeyboardBuilder: func(*base.RequestEnv, *tgbotapi.Message) []string {
+				return []string{TestValue}
+			},
 		},
 	}
 
-	assert.NoError(t, fInlineKeyboard.validate(validMsg, lc))
-	assert.Error(t, expectedError, fInlineKeyboard.validate(invalidMsg, lc))
+	assert.NoError(t, fInlineKeyboard.validate(reqenv, validMsg))
+	assert.Error(t, expectedError, fInlineKeyboard.validate(reqenv, invalidMsg))
 }

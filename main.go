@@ -84,10 +84,11 @@ func main() {
 	} else {
 		addHttpHandlerForWebhook(bot, appParams, &wg)
 		<-ctx.Done()
+		stopListeningForIncomingRequests(srv)
 	}
 
 	wg.Wait()
-	shutdown(stateStorage, db, srv)
+	shutdown(stateStorage, db)
 }
 
 func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *sql.DB) {
@@ -139,17 +140,19 @@ func startServer(port string) *http.Server {
 	return srv
 }
 
-func shutdown(stateStorage wizard.StateStorage, db *sql.DB, srv *http.Server) {
+func stopListeningForIncomingRequests(srv *http.Server) {
+	ctx, c := context.WithTimeout(context.Background(), time.Minute)
+	defer c()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Errorln(err)
+	}
+}
+
+func shutdown(stateStorage wizard.StateStorage, db *sql.DB) {
 	if err := db.Close(); err != nil {
 		log.Errorln(err)
 	}
 	if err := stateStorage.Close(); err != nil {
-		log.Errorln(err)
-	}
-
-	ctx, c := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer c()
-	if err := srv.Shutdown(ctx); err != nil {
 		log.Errorln(err)
 	}
 }
