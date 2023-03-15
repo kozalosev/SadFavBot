@@ -35,6 +35,8 @@ type Field struct {
 	WasRequested bool        `json:"wasRequested"`
 	Type         FieldType   `json:"type"`
 
+	Form       	 *Form	     `json:"-"`
+
 	extractor  FieldExtractor
 	descriptor *FieldDescriptor
 }
@@ -53,12 +55,16 @@ func (fs Fields) FindField(name string) *Field {
 func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	promptDescription := reqenv.Lang.Tr(f.descriptor.promptDescription)
 	if len(f.descriptor.InlineKeyboardAnswers) > 0 {
-		inlineAnswers := funk.Map(f.descriptor.InlineKeyboardAnswers, func(s string) base.InlineButton {
-			return base.InlineButton{
-				Text: s,
-				Data: callbackDataFieldPrefix + f.Name + callbackDataSep + s,
+		inlineAnswers := funk.Map(f.descriptor.InlineKeyboardAnswers, func(s string) tgbotapi.InlineKeyboardButton {
+			btn := tgbotapi.InlineKeyboardButton{Text: s}
+			if customizer, ok := f.descriptor.inlineButtonCustomizers[s]; ok {
+				customizer(&btn, f)
+			} else {
+				data := callbackDataFieldPrefix + f.Name + callbackDataSep + s
+				btn.CallbackData = &data
 			}
-		}).([]base.InlineButton)
+			return btn
+		}).([]tgbotapi.InlineKeyboardButton)
 		reqenv.Bot.ReplyWithInlineKeyboard(msg, promptDescription, inlineAnswers)
 	} else if len(f.descriptor.ReplyKeyboardAnswers) > 0 {
 		reqenv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardAnswers)

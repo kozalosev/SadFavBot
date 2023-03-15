@@ -29,8 +29,3 @@ type RequestEnv struct {
 	Database *sql.DB
 	Ctx      context.Context
 }
-
-type InlineButton struct {
-	Text string
-	Data string
-}

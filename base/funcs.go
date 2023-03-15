@@ -53,24 +53,19 @@ func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options
 	buttons := funk.Map(options, func(s string) tgbotapi.KeyboardButton {
 		return tgbotapi.NewKeyboardButton(s)
 	}).([]tgbotapi.KeyboardButton)
-	keyboard := tgbotapi.NewReplyKeyboard(
+	keyboard := tgbotapi.NewOneTimeReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(buttons...),
 	)
-	keyboard.OneTimeKeyboard = true
 
 	bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
 		msgConfig.ReplyMarkup = keyboard
 	})
 }
 
-func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, buttons []InlineButton) {
-	tgButtons := funk.Map(buttons, func(btn InlineButton) tgbotapi.InlineKeyboardButton {
-		return tgbotapi.NewInlineKeyboardButtonData(btn.Text, btn.Data)
-	}).([]tgbotapi.InlineKeyboardButton)
+func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, buttons []tgbotapi.InlineKeyboardButton) {
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgButtons...),
+		tgbotapi.NewInlineKeyboardRow(buttons...),
 	)
-
 	bot.ReplyWithMessageCustomizer(msg, text, func(msgConfig *tgbotapi.MessageConfig) {
 		msgConfig.ReplyMarkup = keyboard
 	})

@@ -42,6 +42,10 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	delAllDesc := desc.AddField(FieldDeleteAll, DeleteFieldsTrPrefix+FieldDeleteAll)
 	delAllDesc.InlineKeyboardAnswers = []string{Yes, No}
+	delAllDesc.InlineButtonCustomizer(No, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
+		query := f.Form.Fields.FindField(FieldAlias).Data.(string)
+		btn.SwitchInlineQueryCurrentChat = &query
+	})
 
 	objDesc := desc.AddField(FieldObject, DeleteFieldsTrPrefix+FieldObject)
 	objDesc.SkipIf = &wizard.SkipOnFieldValue{

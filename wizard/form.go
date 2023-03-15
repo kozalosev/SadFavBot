@@ -32,13 +32,14 @@ func (form *Form) AddEmptyField(name string, fieldType FieldType) {
 	field := &Field{
 		Name:       name,
 		Type:       fieldType,
+		Form:       form,
 		descriptor: fieldDesc,
 	}
 	form.Fields = append(form.Fields, field)
 }
 
 func (form *Form) AddPrefilledField(name string, value interface{}) {
-	field := &Field{Name: name, Data: value}
+	field := &Field{Name: name, Data: value, Form: form}
 	form.Fields = append(form.Fields, field)
 }
 
