@@ -11,23 +11,26 @@ import (
 func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update) {
 	if upd.InlineQuery != nil {
 		wg.Add(1)
+		query := *upd.InlineQuery
 		go func() {
 			defer wg.Done()
-			processInline(appParams, upd.InlineQuery)
+			processInline(appParams, &query)
 		}()
 	} else if upd.ChosenInlineResult != nil {
 		inc(chosenInlineResultCounter)
 	} else if upd.Message != nil {
 		wg.Add(1)
+		msg := *upd.Message
 		go func() {
 			defer wg.Done()
-			processMessage(appParams, upd.Message)
+			processMessage(appParams, &msg)
 		}()
 	} else if upd.CallbackQuery != nil {
 		wg.Add(1)
+		query := *upd.CallbackQuery
 		go func() {
 			defer wg.Done()
-			processCallbackQuery(appParams, upd.CallbackQuery)
+			processCallbackQuery(appParams, &query)
 		}()
 	}
 }
