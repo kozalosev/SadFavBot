@@ -10,5 +10,6 @@ const (
 	StatusFailure = "failure"
 	StatusNoRows  = "no.rows"
 
-	FieldValidationErrorTrSuffix = ".validation.error.length"
+	FieldValidationErrorTrInfix = ".validation.error."
+	FieldMaxLengthErrorTrSuffix = FieldValidationErrorTrInfix + "length"
 )
