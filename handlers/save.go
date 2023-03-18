@@ -12,6 +12,7 @@ import (
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -21,8 +22,12 @@ const (
 	SaveStatusFailure   = SaveStatusTrPrefix + StatusFailure
 	SaveStatusDuplicate = SaveStatusTrPrefix + "duplicate"
 
+	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldObject + FieldValidationErrorTrInfix + "forbidden.symbols"
+
 	MaxAliasLen = 1024
-	MaxTextLen  = 10000
+	MaxTextLen  = 4096
+	ReservedSymbols = reservedSymbolsForMessage + "\n"
+	reservedSymbolsForMessage = "•@|{}[]"
 )
 
 var (
@@ -43,16 +48,16 @@ func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	aliasDesc := desc.AddField(FieldAlias, SaveFieldsTrPrefix+FieldAlias)
 	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
 		if len(msg.Text) > MaxAliasLen {
-			template := lc.Tr(SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrSuffix)
+			template := lc.Tr(SaveFieldsTrPrefix + FieldAlias + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
 		}
-		return nil
+		return validateAlias(msg.Text, lc)
 	}
 
 	objDesc := desc.AddField(FieldObject, SaveFieldsTrPrefix+FieldObject)
 	objDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
 		if len(msg.Text) > MaxTextLen {
-			template := lc.Tr(SaveFieldsTrPrefix + FieldObject + FieldValidationErrorTrSuffix)
+			template := lc.Tr(SaveFieldsTrPrefix + FieldObject + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, maxTextLenStr))
 		}
 		return nil
@@ -69,7 +74,12 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	wizardForm := wizard.NewWizard(handler, 2)
 	title := base.GetCommandArgument(msg)
 	if len(title) > 0 {
-		wizardForm.AddPrefilledField(FieldAlias, title)
+		if err := validateAlias(title, reqenv.Lang); err != nil {
+			reqenv.Bot.ReplyWithMarkdown(msg, err.Error())
+			wizardForm.AddEmptyField(FieldAlias, wizard.Text)
+		} else {
+			wizardForm.AddPrefilledField(FieldAlias, title)
+		}
 	} else {
 		wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 	}
@@ -171,5 +181,14 @@ func saveTextToSeparateTable(tx *sql.Tx, text string) (int64, error) {
 		return 0, nil
 	} else {
 		return 0, err
+	}
+}
+
+func validateAlias(text string, lc *loc.Context) error {
+	if strings.ContainsAny(text, ReservedSymbols) {
+		template := lc.Tr(SaveStatusErrorForbiddenSymbolsInAlias)
+		return errors.New(fmt.Sprintf(template, reservedSymbolsForMessage))
+	} else {
+		return nil
 	}
 }

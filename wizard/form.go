@@ -63,7 +63,7 @@ start:
 			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr)+reqenv.Lang.Tr(string(currentField.Type)))
 			return
 		} else if err := currentField.validate(reqenv, msg); err != nil {
-			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueErrorTr)+reqenv.Lang.Tr(err.Error()))
+			reqenv.Bot.ReplyWithMarkdown(msg, reqenv.Lang.Tr(InvalidFieldValueErrorTr)+reqenv.Lang.Tr(err.Error()))
 			return
 		}
 		currentField.Data = value
