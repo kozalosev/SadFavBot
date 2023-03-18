@@ -5,7 +5,7 @@ import (
 	"github.com/kozalosev/SadFavBot/base"
 )
 
-type FormAction func(request *base.RequestEnv, msg *tgbotapi.Message, fields Fields)
+type FormAction func(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields Fields)
 
 type Wizard interface {
 	AddEmptyField(name string, fieldType FieldType)

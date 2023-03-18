@@ -22,9 +22,9 @@ const (
 	SaveStatusFailure   = SaveStatusTrPrefix + StatusFailure
 	SaveStatusDuplicate = SaveStatusTrPrefix + "duplicate"
 
-	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldObject + FieldValidationErrorTrInfix + "forbidden.symbols"
+	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrInfix + "forbidden.symbols"
 
-	MaxAliasLen = 1024
+	MaxAliasLen = 128
 	MaxTextLen  = 4096
 	ReservedSymbols = reservedSymbolsForMessage + "\n"
 	reservedSymbolsForMessage = "•@|{}[]"
@@ -51,7 +51,7 @@ func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 			template := lc.Tr(SaveFieldsTrPrefix + FieldAlias + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
 		}
-		return validateAlias(msg.Text, lc)
+		return verifyNoReservedSymbols(msg.Text, lc, SaveStatusErrorForbiddenSymbolsInAlias)
 	}
 
 	objDesc := desc.AddField(FieldObject, SaveFieldsTrPrefix+FieldObject)
@@ -74,7 +74,7 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	wizardForm := wizard.NewWizard(handler, 2)
 	title := base.GetCommandArgument(msg)
 	if len(title) > 0 {
-		if err := validateAlias(title, reqenv.Lang); err != nil {
+		if err := verifyNoReservedSymbols(title, reqenv.Lang, SaveStatusErrorForbiddenSymbolsInAlias); err != nil {
 			reqenv.Bot.ReplyWithMarkdown(msg, err.Error())
 			wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 		} else {
@@ -184,9 +184,9 @@ func saveTextToSeparateTable(tx *sql.Tx, text string) (int64, error) {
 	}
 }
 
-func validateAlias(text string, lc *loc.Context) error {
+func verifyNoReservedSymbols(text string, lc *loc.Context, errTemplateName string) error {
 	if strings.ContainsAny(text, ReservedSymbols) {
-		template := lc.Tr(SaveStatusErrorForbiddenSymbolsInAlias)
+		template := lc.Tr(errTemplateName)
 		return errors.New(fmt.Sprintf(template, reservedSymbolsForMessage))
 	} else {
 		return nil
