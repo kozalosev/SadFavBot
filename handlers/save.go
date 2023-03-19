@@ -27,7 +27,7 @@ const (
 	MaxAliasLen = 128
 	MaxTextLen  = 4096
 	ReservedSymbols = reservedSymbolsForMessage + "\n"
-	reservedSymbolsForMessage = "•@|{}[]"
+	reservedSymbolsForMessage = "•@|{}[]:"
 )
 
 var (
