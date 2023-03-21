@@ -74,13 +74,15 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 }
 
 func (f *Field) validate(reqenv *base.RequestEnv, msg *tgbotapi.Message) error {
-	notInReplyKeyboardOptionsIfExists := f.descriptor.ReplyKeyboardBuilder != nil &&
-		!slices.Contains(f.descriptor.ReplyKeyboardBuilder(reqenv, msg), msg.Text)
-	notInInlineKeyboardOptionsIfExists := len(f.descriptor.InlineKeyboardAnswers) > 0 &&
-		!slices.Contains(f.descriptor.InlineKeyboardAnswers, msg.Text) &&
-		!slices.Contains(translateList(f.descriptor.InlineKeyboardAnswers, reqenv.Lang), msg.Text)
-	if notInReplyKeyboardOptionsIfExists || notInInlineKeyboardOptionsIfExists {
-		return errors.New(ValidErrNotInListTr)
+	if !f.descriptor.DisableKeyboardValidation {
+		notInReplyKeyboardOptionsIfExists := f.descriptor.ReplyKeyboardBuilder != nil &&
+			!slices.Contains(f.descriptor.ReplyKeyboardBuilder(reqenv, msg), msg.Text)
+		notInInlineKeyboardOptionsIfExists := len(f.descriptor.InlineKeyboardAnswers) > 0 &&
+			!slices.Contains(f.descriptor.InlineKeyboardAnswers, msg.Text) &&
+			!slices.Contains(translateList(f.descriptor.InlineKeyboardAnswers, reqenv.Lang), msg.Text)
+		if notInReplyKeyboardOptionsIfExists || notInInlineKeyboardOptionsIfExists {
+			return errors.New(ValidErrNotInListTr)
+		}
 	}
 	if f.descriptor.Validator == nil {
 		return nil

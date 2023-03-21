@@ -66,6 +66,7 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		Value: Yes,
 	}
 	objDesc.InlineKeyboardAnswers = []string{SelectObjectBtnTr}
+	objDesc.DisableKeyboardValidation = true
 	objDesc.InlineButtonCustomizer(SelectObjectBtnTr, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
 		query := f.Form.Fields.FindField(FieldAlias).Data.(string)
 		btn.SwitchInlineQueryCurrentChat = &query

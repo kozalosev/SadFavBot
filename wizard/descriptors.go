@@ -20,6 +20,7 @@ type FieldDescriptor struct {
 	SkipIf                SkipCondition
 	ReplyKeyboardBuilder  ReplyKeyboardBuilder
 	InlineKeyboardAnswers []string
+	DisableKeyboardValidation bool
 
 	promptDescription 		string
 	formDescriptor          *FormDescriptor
