@@ -90,11 +90,20 @@ func TestField_validate(t *testing.T) {
 	assert.NoError(t, fSimpleValidation.validate(reqenv, validMsg))
 	assert.Error(t, expectedError, fSimpleValidation.validate(reqenv, invalidMsg))
 
-	fInlineKeyboard := Field{
+	fReplyKeyboard := Field{
 		descriptor: &FieldDescriptor{
 			ReplyKeyboardBuilder: func(*base.RequestEnv, *tgbotapi.Message) []string {
 				return []string{TestValue}
 			},
+		},
+	}
+
+	assert.NoError(t, fReplyKeyboard.validate(reqenv, validMsg))
+	assert.Error(t, expectedError, fReplyKeyboard.validate(reqenv, invalidMsg))
+
+	fInlineKeyboard := Field{
+		descriptor: &FieldDescriptor{
+			InlineKeyboardAnswers: []string{TestValue},
 		},
 	}
 

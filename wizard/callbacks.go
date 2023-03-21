@@ -43,7 +43,8 @@ func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery
 			log.Error(err)
 		}
 	} else {
-		c = tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, query.Message.Text+" "+fieldValue)
+		chosenValue := reqenv.Lang.Tr(fieldValue)
+		c = tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, query.Message.Text+" "+chosenValue)
 
 		msg := query.Message.ReplyToMessage
 		form.PopulateRestored(msg, stateStorage)

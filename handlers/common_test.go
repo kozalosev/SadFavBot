@@ -35,6 +35,8 @@ const (
 	TestUniqueFileID2 = "FileUniqueID_2"
 	TestText          = "test_text"
 	TestTextID        = 1
+	TestPackage		  = "package/test"
+	TestPackageFullName = "123456@package/test"
 )
 
 var (
@@ -96,7 +98,7 @@ func shutDown() {
 }
 
 func insertTestData(db *sql.DB) {
-	for _, table := range []string{"items", "aliases", "texts", "users"} {
+	for _, table := range []string{"package_aliases", "packages", "items", "aliases", "texts", "users"} {
 		_, err := db.Exec("DELETE FROM " + table)
 		check(err)
 	}
@@ -117,7 +119,14 @@ func insertTestData(db *sql.DB) {
 		TestUID2, wizard.Text, TestAlias2ID, TestTextID)
 	check(err)
 
-	_, err = db.Exec("INSERT INTO users(uid, language) VALUES ($1, 'ru')", TestUID)
+	_, err = db.Exec("INSERT INTO users(uid, language) VALUES ($1, 'ru'), ($2, 'en'), ($3, 'ru')", TestUID, TestUID2, TestUID3)
+}
+
+func insertTestPackages(db *sql.DB) {
+	_, err := db.Exec("INSERT INTO packages(id, owner_uid, name) VALUES ($1, $2, $3)", 1, TestUID, TestPackage)
+	check(err)
+	_, err = db.Exec("INSERT INTO package_aliases(package_id, alias_id) SELECT 1, id FROM aliases WHERE name = $1", TestAlias2)
+	check(err)
 }
 
 func check(err error) {

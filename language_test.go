@@ -30,13 +30,13 @@ var (
 )
 
 func TestFetchLanguage(t *testing.T) {
-	assert.Equal(t, "en", fetchLanguage(db, TestUID, "en"))
+	assert.Equal(t, "en", fetchLanguage(ctx, db, TestUID, "en"))
 
 	res, err := db.Exec("INSERT INTO users(uid, language) VALUES ($1, 'ru')", TestUID)
 	assert.NoError(t, err)
 	assert.True(t, checkRowsWereAffected(res))
 
-	assert.Equal(t, "ru", fetchLanguage(db, TestUID, "en"))
+	assert.Equal(t, "ru", fetchLanguage(ctx, db, TestUID, "en"))
 }
 
 //TestMain controls main for the tests and allows for setup and shutdown of tests

@@ -24,6 +24,13 @@ var (
 	}
 )
 
+func (bot *BotAPI) GetName() string {
+	if bot.DummyMode {
+		return "DummyMode"
+	}
+	return bot.internal.Self.UserName
+}
+
 func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string, customizer MessageCustomizer) {
 	if bot.DummyMode {
 		return

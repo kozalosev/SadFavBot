@@ -8,7 +8,7 @@ import (
 func TestFetchAliases(t *testing.T) {
 	insertTestData(db)
 
-	aliases, err := fetchAliases(db, TestUID)
+	aliases, err := fetchAliases(ctx, db, TestUID)
 
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 2)
@@ -16,10 +16,21 @@ func TestFetchAliases(t *testing.T) {
 	assert.Contains(t, aliases, TestAlias2+" (1)")
 }
 
+func TestFetchPackages(t *testing.T) {
+	insertTestData(db)
+	insertTestPackages(db)
+
+	packages, err := fetchPackages(ctx, db, TestUID)
+
+	assert.NoError(t, err)
+	assert.Len(t, packages, 1)
+	assert.Contains(t, packages, formatPackageName(TestUID, TestPackage)+" (1)")
+}
+
 func TestFetchAliasesNoRows(t *testing.T) {
 	insertTestData(db)
 
-	aliases, err := fetchAliases(db, TestUID-1)
+	aliases, err := fetchAliases(ctx, db, TestUID-1)
 
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 0)

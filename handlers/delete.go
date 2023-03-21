@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -46,7 +47,7 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		return nil
 	}
 	aliasDesc.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
-		aliases, err := fetchAliases(reqenv.Database, msg.From.ID)
+		aliases, err := fetchAliases(reqenv.Ctx, reqenv.Database, msg.From.ID)
 		if err != nil {
 			return []string{}
 		} else {
@@ -108,11 +109,11 @@ func deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wiz
 		err error
 	)
 	if deleteAll {
-		res, err = deleteByAlias(reqenv.Database, uid, itemValues.Alias)
+		res, err = deleteByAlias(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias)
 	} else if itemValues.Type == wizard.Text {
-		res, err = deleteByText(reqenv.Database, uid, itemValues.Alias, itemValues.Text)
+		res, err = deleteByText(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, itemValues.Text)
 	} else {
-		res, err = deleteByFileID(reqenv.Database, uid, itemValues.Alias, *itemValues.File)
+		res, err = deleteByFileID(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, *itemValues.File)
 	}
 	if err != nil {
 		log.Errorln(err.Error())
@@ -126,19 +127,19 @@ func deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wiz
 	}
 }
 
-func deleteByAlias(db *sql.DB, uid int64, alias string) (sql.Result, error) {
+func deleteByAlias(ctx context.Context, db *sql.DB, uid int64, alias string) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d' and alias '%s'", uid, alias)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
+	return db.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
 }
 
-func deleteByFileID(db *sql.DB, uid int64, alias string, file wizard.File) (sql.Result, error) {
+func deleteByFileID(ctx context.Context, db *sql.DB, uid int64, alias string, file wizard.File) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3", uid, alias, file.UniqueID)
+	return db.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3", uid, alias, file.UniqueID)
 }
 
-func deleteByText(db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
+func deleteByText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
 	log.Infof("Deletion of items with uid '%d', alias '%s' and text '%s'", uid, alias, text)
-	return db.Exec("DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = (SELECT id FROM texts WHERE text = $3)", uid, alias, text)
+	return db.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = (SELECT id FROM texts WHERE text = $3)", uid, alias, text)
 }
 
 func trimCountSuffix(s string) string {

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
@@ -70,13 +69,8 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 }
 
 func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*StoredObject {
-	rows, err := reqenv.Database.Query("SELECT i.id, type, file_id, t.text FROM items i JOIN aliases a ON a.id = i.alias LEFT JOIN texts t ON t.id = i.text WHERE uid = $1 AND lower(name) = lower($2)",
+	rows, err := reqenv.Database.QueryContext(reqenv.Ctx, "SELECT i.id, type, file_id, t.text FROM items i JOIN aliases a ON a.id = i.alias LEFT JOIN texts t ON t.id = i.text WHERE uid = $1 AND lower(name) = lower($2)",
 		query.From.ID, query.Query)
-	defer func(rows *sql.Rows) {
-		if err := rows.Close(); err != nil {
-			log.Error(err)
-		}
-	}(rows)
 
 	var result []*StoredObject
 	if err != nil {

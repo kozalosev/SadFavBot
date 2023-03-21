@@ -53,7 +53,7 @@ func languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields w
 }
 
 func saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
-	_, err := reqenv.Database.Exec("UPDATE users SET language = $1 WHERE uid = $2", langFlagToCode(language), msg.From.ID)
+	_, err := reqenv.Database.ExecContext(reqenv.Ctx, "UPDATE users SET language = $1 WHERE uid = $2", langFlagToCode(language), msg.From.ID)
 	if err != nil {
 		log.Errorln(err)
 		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(LanguageStatusFailure))
