@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -60,7 +61,7 @@ func (handler InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 }
 
 func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
-	if itemsCount, err := fetchCountOfAliasesInPackage(reqenv.Database, name); err == nil {
+	if itemsCount, err := fetchCountOfAliasesInPackage(reqenv.Ctx, reqenv.Database, name); err == nil {
 		itemsCountMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItemsCount), name, itemsCount)
 		reqenv.Bot.ReplyWithMarkdown(msg, itemsCountMsg)
 	} else {
@@ -68,10 +69,10 @@ func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message,
 	}
 }
 
-func fetchCountOfAliasesInPackage(db *sql.DB, name string) (itemsCount int, err error) {
+func fetchCountOfAliasesInPackage(ctx context.Context, db *sql.DB, name string) (itemsCount int, err error) {
 	var pkgInfo *packageInfo
 	if pkgInfo, err = parsePackageName(name); err == nil {
-		err = db.QueryRow("SELECT count(pa.alias_id) FROM package_aliases pa JOIN packages p ON p.id = pa.package_id WHERE p.owner_uid = $1 AND p.name = $2", pkgInfo.uid, pkgInfo.name).Scan(&itemsCount)
+		err = db.QueryRowContext(ctx, "SELECT count(pa.alias_id) FROM package_aliases pa JOIN packages p ON p.id = pa.package_id WHERE p.owner_uid = $1 AND p.name = $2", pkgInfo.uid, pkgInfo.name).Scan(&itemsCount)
 	}
 	return
 }
@@ -87,7 +88,7 @@ func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Me
 	uid := msg.From.ID
 	reply := replierFactory(reqenv, msg)
 
-	if installedAliases, err := installPackage(reqenv.Database, uid, name); err == noRowsWereAffected {
+	if installedAliases, err := installPackage(reqenv.Ctx, reqenv.Database, uid, name); err == noRowsWereAffected {
 		reply(InstallStatusNoRows)
 	} else if err != nil {
 		log.Error(err)
@@ -101,7 +102,7 @@ func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Me
 	}
 }
 
-func installPackage(db *sql.DB, uid int64, name string) ([]string, error) {
+func installPackage(ctx context.Context, db *sql.DB, uid int64, name string) ([]string, error) {
 	var (
 		pkgInfo *packageInfo
 		aliasIDs []int
@@ -112,7 +113,7 @@ func installPackage(db *sql.DB, uid int64, name string) ([]string, error) {
 		return nil, err
 	}
 
-	res, err = db.Query("INSERT INTO items(uid, type, alias, file_id, file_unique_id, text) "+
+	res, err = db.QueryContext(ctx, "INSERT INTO items(uid, type, alias, file_id, file_unique_id, text) "+
 		"SELECT $1, i.type, i.alias, i.file_id, i.file_unique_id, i.text FROM packages p "+
 		"JOIN package_aliases pa ON p.id = pa.package_id "+
 		"JOIN items i ON i.uid = p.owner_uid AND i.alias = pa.alias_id "+
@@ -138,7 +139,7 @@ func installPackage(db *sql.DB, uid int64, name string) ([]string, error) {
 			return acc + "," + strconv.Itoa(elem)
 		}, strconv.Itoa(aliasIDs[0]))
 
-		res, err = db.Query("SELECT name FROM aliases WHERE id IN ($1)", aliasIDsAsStr)
+		res, err = db.QueryContext(ctx, "SELECT name FROM aliases WHERE id IN ($1)", aliasIDsAsStr)
 
 		var installedAliases []string
 		if err == nil {

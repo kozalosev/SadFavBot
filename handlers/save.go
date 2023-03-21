@@ -130,12 +130,12 @@ func saveText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (s
 	if err != nil {
 		return nil, err
 	}
-	aliasID, err := saveAliasToSeparateTable(tx, alias)
-	textID, err := saveTextToSeparateTable(tx, text)
+	aliasID, err := saveAliasToSeparateTable(ctx, tx, alias)
+	textID, err := saveTextToSeparateTable(ctx, tx, text)
 	if err != nil {
 		return nil, err
 	}
-	res, err := tx.Exec("INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, " +
+	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, " +
 		"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, " +
 		"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6) END)",
 		uid, wizard.Text, aliasID, alias, textID, text)
@@ -150,11 +150,11 @@ func saveFile(ctx context.Context, db *sql.DB, uid int64, alias string, fileType
 	if err != nil {
 		return nil, err
 	}
-	id, err := saveAliasToSeparateTable(tx, alias)
+	id, err := saveAliasToSeparateTable(ctx, tx, alias)
 	if err != nil {
 		return nil, err
 	}
-	res, err := tx.Exec("INSERT INTO items (uid, type, alias, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
+	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
 		uid, fileType, id, alias, file.ID, file.UniqueID)
 	if err != nil {
 		return nil, err
@@ -162,9 +162,9 @@ func saveFile(ctx context.Context, db *sql.DB, uid int64, alias string, fileType
 	return res, tx.Commit()
 }
 
-func saveAliasToSeparateTable(tx *sql.Tx, alias string) (int, error) {
+func saveAliasToSeparateTable(ctx context.Context, tx *sql.Tx, alias string) (int, error) {
 	var id int
-	if err := tx.QueryRow("INSERT INTO aliases(name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", alias).Scan(&id); err == nil {
+	if err := tx.QueryRowContext(ctx, "INSERT INTO aliases(name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", alias).Scan(&id); err == nil {
 		return id, nil
 	} else if err == sql.ErrNoRows {
 		return 0, nil
@@ -173,9 +173,9 @@ func saveAliasToSeparateTable(tx *sql.Tx, alias string) (int, error) {
 	}
 }
 
-func saveTextToSeparateTable(tx *sql.Tx, text string) (int, error) {
+func saveTextToSeparateTable(ctx context.Context, tx *sql.Tx, text string) (int, error) {
 	var id int
-	if err := tx.QueryRow("INSERT INTO texts(text) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", text).Scan(&id); err == nil {
+	if err := tx.QueryRowContext(ctx, "INSERT INTO texts(text) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", text).Scan(&id); err == nil {
 		return id, nil
 	} else if err == sql.ErrNoRows {
 		return 0, nil

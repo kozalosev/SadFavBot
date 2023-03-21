@@ -95,7 +95,7 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 
 	var err error
 	if deletion {
-		err = deletePackage(reqenv.Database, uid, name)
+		err = deletePackage(reqenv.Ctx, reqenv.Database, uid, name)
 	} else {
 		aliasesStr := fields.FindField(FieldAliases).Data.(string)
 		aliases := strings.Split(aliasesStr, "\n")
@@ -131,26 +131,26 @@ func createPackage(ctx context.Context, db *sql.DB, uid int64, name string, alia
 		err error
 	)
 	if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err == nil {
-		if err = createPackageImpl(db, tx, uid, name, aliases); err == nil {
+		if err = createPackageImpl(ctx, db, tx, uid, name, aliases); err == nil {
 			err = tx.Commit()
 		}
 	}
 	return err
 }
 
-func createPackageImpl(db *sql.DB, tx *sql.Tx, uid int64, name string, aliases []string) error {
+func createPackageImpl(ctx context.Context, db *sql.DB, tx *sql.Tx, uid int64, name string, aliases []string) error {
 	var (
 		packID int
 		res *sql.Rows
 		err error
 	)
-	if err = tx.QueryRow("INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id", uid, name).Scan(&packID); err == nil {
-		if res, err = db.Query(fmt.Sprintf("SELECT id FROM aliases WHERE name IN ('%s')", strings.Join(aliases, "', '"))); err == nil {
+	if err = tx.QueryRowContext(ctx, "INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id", uid, name).Scan(&packID); err == nil {
+		if res, err = db.QueryContext(ctx, fmt.Sprintf("SELECT id FROM aliases WHERE name IN ('%s')", strings.Join(aliases, "', '"))); err == nil {
 			var aliasID int
 			for res.Next() {
 				if err = res.Scan(&aliasID); err == nil {
 					// TODO: this will be optimized in #4 (make use of batch inserts from the pgx module)
-					_, err = tx.Exec("INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", packID, aliasID)
+					_, err = tx.ExecContext(ctx, "INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", packID, aliasID)
 				}
 			}
 		}
@@ -158,8 +158,8 @@ func createPackageImpl(db *sql.DB, tx *sql.Tx, uid int64, name string, aliases [
 	return err
 }
 
-func deletePackage(db *sql.DB, uid int64, name string) error {
-	res, err := db.Exec("DELETE FROM packages WHERE owner_uid = $1 AND name = $2", uid, name)
+func deletePackage(ctx context.Context, db *sql.DB, uid int64, name string) error {
+	res, err := db.ExecContext(ctx,"DELETE FROM packages WHERE owner_uid = $1 AND name = $2", uid, name)
 	if err != nil {
 		return err
 	}

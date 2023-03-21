@@ -10,7 +10,7 @@ func TestFetchCountOfAliasesInPackage(t *testing.T) {
 	insertTestData(db)
 	insertTestPackages(db)
 
-	count, err := fetchCountOfAliasesInPackage(db, TestPackageFullName)
+	count, err := fetchCountOfAliasesInPackage(ctx, db, TestPackageFullName)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, count)
 }
@@ -19,7 +19,7 @@ func TestInstallPackage(t *testing.T) {
 	insertTestData(db)
 	insertTestPackages(db)
 
-	installed, err := installPackage(db, TestUID3, TestPackageFullName)
+	installed, err := installPackage(ctx, db, TestUID3, TestPackageFullName)
 	assert.NoError(t, err)
 	assert.Len(t, installed, 1)
 	assert.Contains(t, installed, TestAlias2)
@@ -71,14 +71,14 @@ func TestInstallPackageAction(t *testing.T) {
 	}
 	installPackageAction(reqenv, msg, fields)
 
-	aliases, err := fetchAliases(db, TestUID3)
+	aliases, err := fetchAliases(ctx, db, TestUID3)
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 0)
 
 	fields.FindField(FieldConfirmation).Data = Yes
 	installPackageAction(reqenv, msg, fields)
 
-	aliases, err = fetchAliases(db, TestUID3)
+	aliases, err = fetchAliases(ctx, db, TestUID3)
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 1)
 	assert.Contains(t, aliases, TestAlias2+" (1)")

@@ -33,7 +33,7 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 }
 
 func processMessage(appParams *appParams, msg *tgbotapi.Message) {
-	langCode := fetchLanguage(appParams.db, msg.From.ID, msg.From.LanguageCode)
+	langCode := fetchLanguage(appParams.ctx, appParams.db, msg.From.ID, msg.From.LanguageCode)
 	lc := locpool.GetContext(langCode)
 	reqenv := newRequestEnv(appParams, lc)
 
@@ -67,7 +67,7 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 }
 
 func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
-	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
+	langCode := fetchLanguage(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(langCode)
 	reqenv := newRequestEnv(appParams, lc)
 
@@ -81,7 +81,7 @@ func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 }
 
 func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
-	langCode := fetchLanguage(appParams.db, query.From.ID, query.From.LanguageCode)
+	langCode := fetchLanguage(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(langCode)
 	reqenv := newRequestEnv(appParams, lc)
 	wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)

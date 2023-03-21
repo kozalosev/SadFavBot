@@ -13,7 +13,7 @@ func TestCreatePackage(t *testing.T) {
 	err := createPackage(ctx, db, TestUID, TestPackage, []string{TestAlias2})
 	assert.NoError(t, err)
 
-	packages, err := fetchPackages(db, TestUID)
+	packages, err := fetchPackages(ctx, db, TestUID)
 	assert.NoError(t, err)
 	assert.Len(t, packages, 1)
 	assert.Contains(t, packages, formatPackageName(TestUID, TestPackage)+" (1)")
@@ -28,10 +28,10 @@ func TestDeletePackage(t *testing.T) {
 	insertTestData(db)
 	insertTestPackages(db)
 
-	err := deletePackage(db, TestUID, TestPackage)
+	err := deletePackage(ctx, db, TestUID, TestPackage)
 	assert.NoError(t, err)
 
-	packages, err := fetchPackages(db, TestUID)
+	packages, err := fetchPackages(ctx, db, TestUID)
 	assert.NoError(t, err)
 	assert.Len(t, packages, 0)
 }
@@ -57,7 +57,7 @@ func TestPackageAction(t *testing.T) {
 	}
 	packageAction(reqenv, msg, fields)
 
-	packages, err := fetchPackages(db, TestUID3)
+	packages, err := fetchPackages(ctx, db, TestUID3)
 	assert.NoError(t, err)
 	assert.Len(t, packages, 1)
 	assert.Contains(t, packages, fmt.Sprintf("%d@%s (2)", TestUID3, TestPackage))
@@ -65,7 +65,7 @@ func TestPackageAction(t *testing.T) {
 	fields.FindField(FieldCreateOrDelete).Data = Delete
 	packageAction(reqenv, msg, fields)
 
-	packages, err = fetchPackages(db, TestUID3)
+	packages, err = fetchPackages(ctx, db, TestUID3)
 	assert.NoError(t, err)
 	assert.Len(t, packages, 0)
 }

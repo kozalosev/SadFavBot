@@ -42,7 +42,7 @@ func (StartHandler) CanHandle(msg *tgbotapi.Message) bool {
 }
 
 func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	res, err := reqenv.Database.Exec("INSERT INTO Users(uid) VALUES ($1) ON CONFLICT DO NOTHING", msg.From.ID)
+	res, err := reqenv.Database.ExecContext(reqenv.Ctx, "INSERT INTO Users(uid) VALUES ($1) ON CONFLICT DO NOTHING", msg.From.ID)
 
 	var installingPackage string
 	if err == nil {
