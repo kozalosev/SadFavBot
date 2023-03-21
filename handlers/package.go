@@ -121,7 +121,7 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := formatPackageName(uid, name)
 		urlPath := base64.StdEncoding.EncodeToString([]byte(packName))
-		reqenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, reqenv.Bot.GetName(), urlPath, reqenv.Bot.GetName(), urlPath))
+		reqenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, reqenv.Bot.GetName(), urlPath))
 	}
 }
 
