@@ -20,7 +20,7 @@ const (
 	SaveStatusTrPrefix  = "commands.save.status."
 	SaveStatusSuccess   = SaveStatusTrPrefix + StatusSuccess
 	SaveStatusFailure   = SaveStatusTrPrefix + StatusFailure
-	SaveStatusDuplicate = SaveStatusTrPrefix + "duplicate"
+	SaveStatusDuplicate = SaveStatusTrPrefix + StatusDuplicate
 
 	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrInfix + "forbidden.symbols"
 
@@ -109,7 +109,7 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode {
 			replyWith(SaveStatusDuplicate)
 		} else {
 			log.Errorln(err.Error())
@@ -162,8 +162,8 @@ func saveFile(ctx context.Context, db *sql.DB, uid int64, alias string, fileType
 	return res, tx.Commit()
 }
 
-func saveAliasToSeparateTable(tx *sql.Tx, alias string) (int64, error) {
-	var id int64
+func saveAliasToSeparateTable(tx *sql.Tx, alias string) (int, error) {
+	var id int
 	if err := tx.QueryRow("INSERT INTO aliases(name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", alias).Scan(&id); err == nil {
 		return id, nil
 	} else if err == sql.ErrNoRows {
@@ -173,8 +173,8 @@ func saveAliasToSeparateTable(tx *sql.Tx, alias string) (int64, error) {
 	}
 }
 
-func saveTextToSeparateTable(tx *sql.Tx, text string) (int64, error) {
-	var id int64
+func saveTextToSeparateTable(tx *sql.Tx, text string) (int, error) {
+	var id int
 	if err := tx.QueryRow("INSERT INTO texts(text) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", text).Scan(&id); err == nil {
 		return id, nil
 	} else if err == sql.ErrNoRows {

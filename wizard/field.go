@@ -74,11 +74,22 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 }
 
 func (f *Field) validate(reqenv *base.RequestEnv, msg *tgbotapi.Message) error {
-	if f.descriptor.ReplyKeyboardBuilder != nil && !slices.Contains(f.descriptor.ReplyKeyboardBuilder(reqenv, msg), msg.Text) {
+	notInReplyKeyboardOptionsIfExists := f.descriptor.ReplyKeyboardBuilder != nil &&
+		!slices.Contains(f.descriptor.ReplyKeyboardBuilder(reqenv, msg), msg.Text)
+	notInInlineKeyboardOptionsIfExists := len(f.descriptor.InlineKeyboardAnswers) > 0 &&
+		!slices.Contains(f.descriptor.InlineKeyboardAnswers, msg.Text) &&
+		!slices.Contains(translateList(f.descriptor.InlineKeyboardAnswers, reqenv.Lang), msg.Text)
+	if notInReplyKeyboardOptionsIfExists || notInInlineKeyboardOptionsIfExists {
 		return errors.New(ValidErrNotInListTr)
 	}
 	if f.descriptor.Validator == nil {
 		return nil
 	}
 	return f.descriptor.Validator(msg, reqenv.Lang)
+}
+
+func translateList(arr []string, lc *loc.Context) []string {
+	return funk.Map(arr, func(s string) string {
+		return lc.Tr(s)
+	}).([]string)
 }

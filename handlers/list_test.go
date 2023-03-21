@@ -16,6 +16,17 @@ func TestFetchAliases(t *testing.T) {
 	assert.Contains(t, aliases, TestAlias2+" (1)")
 }
 
+func TestFetchPackages(t *testing.T) {
+	insertTestData(db)
+	insertTestPackages(db)
+
+	packages, err := fetchPackages(db, TestUID)
+
+	assert.NoError(t, err)
+	assert.Len(t, packages, 1)
+	assert.Contains(t, packages, formatPackageName(TestUID, TestPackage)+" (1)")
+}
+
 func TestFetchAliasesNoRows(t *testing.T) {
 	insertTestData(db)
 

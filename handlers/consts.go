@@ -9,7 +9,10 @@ const (
 	StatusSuccess = "success"
 	StatusFailure = "failure"
 	StatusNoRows  = "no.rows"
+	StatusDuplicate = "duplicate"
 
 	FieldValidationErrorTrInfix = ".validation.error."
 	FieldMaxLengthErrorTrSuffix = FieldValidationErrorTrInfix + "length"
+
+	DuplicateConstraintSQLCode = "23505"
 )
