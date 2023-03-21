@@ -28,12 +28,13 @@ func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		reqenv.Lang = reqenv.Lang.GetContext(newLang)
 		sendHelpMessage(reqenv, msg)
 
-		if installingPackage := fields.FindField(FieldInstallingPackage).Data; installingPackage != nil {
-			runWizardForInstallation(reqenv, msg, &handler, installingPackage.(string))
+		if installingPackage := fields.FindField(FieldInstallingPackage).Data.(string); len(installingPackage) > 0 {
+			runWizardForInstallation(reqenv, msg, &handler, installingPackage)
 		}
 	})
 	f := desc.AddField(FieldLanguage, LangParamPrompt)
 	f.InlineKeyboardAnswers = []string{EnFlag, RuFlag}
+	desc.AddField(FieldInstallingPackage, "if you see this, something went wrong")
 	return desc
 }
 

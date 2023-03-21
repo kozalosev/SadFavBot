@@ -13,6 +13,7 @@ import (
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"net/url"
 	"strings"
 )
 
@@ -120,7 +121,7 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 	} else {
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := formatPackageName(uid, name)
-		urlPath := base64.StdEncoding.EncodeToString([]byte(packName))
+		urlPath := url.QueryEscape(base64.StdEncoding.EncodeToString([]byte(packName)))
 		reqenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, reqenv.Bot.GetName(), urlPath))
 	}
 }
