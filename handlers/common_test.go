@@ -26,7 +26,7 @@ const (
 	TestAlias         = "alias"
 	TestAliasCI       = "AliAS"
 	TestAliasID       = 1
-	TestAlias2        = TestAlias + "2"
+	TestAlias2        = TestAlias + "'2"
 	TestAlias2ID      = 2
 	TestType          = wizard.Sticker
 	TestFileID        = "FileID"
