@@ -137,9 +137,9 @@ func installPackage(ctx context.Context, db *sql.DB, uid int64, name string) ([]
 		aliasIDs = removeDuplicates(aliasIDs)
 		aliasIDsAsStr := funk.Reduce(aliasIDs[1:], func(acc string, elem int) string {
 			return acc + "," + strconv.Itoa(elem)
-		}, strconv.Itoa(aliasIDs[0]))
+		}, strconv.Itoa(aliasIDs[0])).(string)
 
-		res, err = db.QueryContext(ctx, "SELECT name FROM aliases WHERE id IN ($1)", aliasIDsAsStr)
+		res, err = db.QueryContext(ctx, "SELECT name FROM aliases WHERE id IN (" + aliasIDsAsStr + ")")
 
 		var installedAliases []string
 		if err == nil {
