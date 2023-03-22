@@ -146,6 +146,9 @@ func createPackageImpl(ctx context.Context, db *sql.DB, tx *sql.Tx, uid int64, n
 		err error
 	)
 	if err = tx.QueryRowContext(ctx, "INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id", uid, name).Scan(&packID); err == nil {
+		aliases = funk.Map(aliases, func(a string) string {
+			return strings.Replace(a, "'", "''", -1)
+		}).([]string)
 		if res, err = db.QueryContext(ctx, fmt.Sprintf("SELECT id FROM aliases WHERE name IN ('%s')", strings.Join(aliases, "', '"))); err == nil {
 			var aliasID int
 			for res.Next() {

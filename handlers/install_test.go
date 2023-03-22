@@ -38,6 +38,20 @@ func TestInstallPackage(t *testing.T) {
 	assert.Contains(t, arr, TestAlias2ID)
 }
 
+func TestInstallPackageWithMoreAliases(t *testing.T) {
+	insertTestData(db)
+	insertTestPackages(db)
+
+	_, err := db.Exec("INSERT INTO package_aliases(package_id, alias_id) SELECT 1, id FROM aliases WHERE name = $1", TestAlias)
+	assert.NoError(t, err)
+
+	installed, err := installPackage(ctx, db, TestUID3, TestPackageFullName)
+	assert.NoError(t, err)
+	assert.Len(t, installed, 2)
+	assert.Contains(t, installed, TestAlias)
+	assert.Contains(t, installed, TestAlias2)
+}
+
 func TestParsePackageName(t *testing.T) {
 	pkgInfo, err := parsePackageName(TestPackageFullName)
 
