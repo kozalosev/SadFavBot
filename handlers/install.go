@@ -15,13 +15,13 @@ import (
 )
 
 const (
-	InstallFieldsTrPrefix = "commands.install.fields."
-	InstallStatusTrPrefix = "commands.install.status."
-	InstallStatusSuccess  = InstallStatusTrPrefix + StatusSuccess
-	InstallStatusSuccessNoNames  = InstallStatusTrPrefix + StatusSuccess + ".no.names"
-	InstallStatusFailure  = InstallStatusTrPrefix + StatusFailure
-	InstallStatusNoRows   = InstallStatusTrPrefix + StatusNoRows
-	PackageItemsCount	  = "commands.install.message.package.items.count"
+	InstallFieldsTrPrefix       = "commands.install.fields."
+	InstallStatusTrPrefix       = "commands.install.status."
+	InstallStatusSuccess        = InstallStatusTrPrefix + StatusSuccess
+	InstallStatusSuccessNoNames = InstallStatusTrPrefix + StatusSuccess + ".no.names"
+	InstallStatusFailure        = InstallStatusTrPrefix + StatusFailure
+	InstallStatusNoRows         = InstallStatusTrPrefix + StatusNoRows
+	PackageItemsCount           = "commands.install.message.package.items.count"
 
 	FieldConfirmation = "confirmation"
 )
@@ -31,7 +31,9 @@ type InstallPackageHandler struct {
 }
 
 func (InstallPackageHandler) GetWizardName() string { return "InstallPackageWizard" }
-func (handler InstallPackageHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func (handler InstallPackageHandler) GetWizardStateStorage() wizard.StateStorage {
+	return handler.StateStorage
+}
 
 func (handler InstallPackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(installPackageAction)
@@ -95,7 +97,7 @@ func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		reply(InstallStatusFailure)
 	} else {
 		if len(installedAliases) > 0 {
-			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InstallStatusSuccess) + "\n\n" + LinePrefix + strings.Join(installedAliases, "\n"+LinePrefix))
+			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InstallStatusSuccess)+"\n\n"+LinePrefix+strings.Join(installedAliases, "\n"+LinePrefix))
 		} else {
 			reply(InstallStatusSuccessNoNames)
 		}
@@ -104,32 +106,27 @@ func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 func installPackage(ctx context.Context, db *sql.DB, uid int64, name string) ([]string, error) {
 	var (
-		pkgInfo *packageInfo
-		aliasIDs []int
-		res *sql.Rows
-		err error
+		pkgInfo      *packageInfo
+		tx           *sql.Tx
+		res          *sql.Rows
+		err          error
+		items, links []int
 	)
-	if pkgInfo, err = parsePackageName(name); err != nil {
-		return nil, err
-	}
-
-	res, err = db.QueryContext(ctx, "INSERT INTO items(uid, type, alias, file_id, file_unique_id, text) "+
-		"SELECT $1, i.type, i.alias, i.file_id, i.file_unique_id, i.text FROM packages p "+
-		"JOIN package_aliases pa ON p.id = pa.package_id "+
-		"JOIN items i ON i.uid = p.owner_uid AND i.alias = pa.alias_id "+
-		"WHERE p.owner_uid = $2 AND p.name = $3 " +
-		"ON CONFLICT DO NOTHING " +
-		"RETURNING alias", uid, pkgInfo.uid, pkgInfo.name)
-	if err == nil {
-		var aliasID int
-		for res.Next() {
-			if err = res.Scan(&aliasID); err == nil {
-				aliasIDs = append(aliasIDs, aliasID)
+	if pkgInfo, err = parsePackageName(name); err == nil {
+		if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err == nil {
+			if items, err = installItems(ctx, tx, uid, pkgInfo); err == nil {
+				if links, err = installLinks(ctx, tx, uid, pkgInfo); err == nil {
+					err = tx.Commit()
+				}
 			}
 		}
 	}
+	aliasIDs := append(items, links...)
 
 	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			log.Error(err)
+		}
 		return nil, err
 	} else if len(aliasIDs) == 0 {
 		return nil, noRowsWereAffected
@@ -139,7 +136,7 @@ func installPackage(ctx context.Context, db *sql.DB, uid int64, name string) ([]
 			return acc + "," + strconv.Itoa(elem)
 		}, strconv.Itoa(aliasIDs[0])).(string)
 
-		res, err = db.QueryContext(ctx, "SELECT name FROM aliases WHERE id IN (" + aliasIDsAsStr + ")")
+		res, err = db.QueryContext(ctx, "SELECT name FROM aliases WHERE id IN ("+aliasIDsAsStr+")")
 
 		var installedAliases []string
 		if err == nil {
@@ -156,8 +153,66 @@ func installPackage(ctx context.Context, db *sql.DB, uid int64, name string) ([]
 	}
 }
 
+func installItems(ctx context.Context, tx *sql.Tx, uid int64, pkgInfo *packageInfo) ([]int, error) {
+	res, err := tx.QueryContext(ctx, "INSERT INTO items(uid, type, alias, file_id, file_unique_id, text) "+
+		"SELECT cast($1 AS bigint), i.type, i.alias, i.file_id, i.file_unique_id, i.text FROM packages p "+
+		"JOIN package_aliases pa ON p.id = pa.package_id "+
+		"JOIN items i ON i.uid = p.owner_uid AND i.alias = pa.alias_id "+
+		"WHERE p.owner_uid = $2 AND p.name = $3 "+
+		"UNION "+
+		"SELECT cast($1 AS bigint), i.type, i.alias, i.file_id, i.file_unique_id, i.text FROM packages p "+
+		"JOIN package_aliases pa ON p.id = pa.package_id "+
+		"JOIN links l ON l.uid = p.owner_uid AND l.alias_id = pa.alias_id "+
+		"JOIN items i ON i.uid = p.owner_uid AND i.alias = l.linked_alias_id "+
+		"WHERE p.owner_uid = $2 AND p.name = $3 "+
+		"ON CONFLICT DO NOTHING "+
+		"RETURNING alias", uid, pkgInfo.uid, pkgInfo.name)
+	if err == nil {
+		var (
+			aliasID  int
+			aliasIDs []int
+		)
+		for res.Next() {
+			if err = res.Scan(&aliasID); err == nil {
+				aliasIDs = append(aliasIDs, aliasID)
+			} else {
+				log.Error(err)
+			}
+		}
+		return aliasIDs, nil
+	} else {
+		return nil, err
+	}
+}
+
+func installLinks(ctx context.Context, tx *sql.Tx, uid int64, pkgInfo *packageInfo) ([]int, error) {
+	res, err := tx.QueryContext(ctx, "INSERT INTO links(uid, alias_id, linked_alias_id) "+
+		"SELECT $1, l.alias_id, l.linked_alias_id FROM packages p "+
+		"JOIN package_aliases pa ON p.id = pa.package_id "+
+		"JOIN links l ON l.uid = p.owner_uid AND l.alias_id = pa.alias_id "+
+		"WHERE p.owner_uid = $2 AND p.name = $3 "+
+		"ON CONFLICT DO NOTHING "+
+		"RETURNING alias_id", uid, pkgInfo.uid, pkgInfo.name)
+	if err == nil {
+		var (
+			aliasID  int
+			aliasIDs []int
+		)
+		for res.Next() {
+			if err = res.Scan(&aliasID); err == nil {
+				aliasIDs = append(aliasIDs, aliasID)
+			} else {
+				log.Error(err)
+			}
+		}
+		return aliasIDs, nil
+	} else {
+		return nil, err
+	}
+}
+
 type packageInfo struct {
-	uid int64
+	uid  int64
 	name string
 }
 

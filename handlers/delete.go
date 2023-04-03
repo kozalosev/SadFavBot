@@ -9,6 +9,7 @@ import (
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
+	errors2 "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"regexp"
@@ -23,7 +24,7 @@ const (
 	DeleteStatusNoRows   = DeleteStatusTrPrefix + StatusNoRows
 	Yes                  = "👍"
 	No                   = "👎"
-	SelectObjectBtnTr	 = "commands.delete.button.select.object"
+	SelectObjectBtnTr    = "commands.delete.button.select.object"
 )
 
 var trimCountRegex = regexp.MustCompile("\\(\\d+\\)$")
@@ -129,8 +130,30 @@ func deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wiz
 }
 
 func deleteByAlias(ctx context.Context, db *sql.DB, uid int64, alias string) (sql.Result, error) {
-	log.Infof("Deletion of items with uid '%d' and alias '%s'", uid, alias)
-	return db.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
+	log.Infof("Deletion of items and/or links with uid '%d' and alias '%s'", uid, alias)
+	var (
+		tx       *sql.Tx
+		res      sql.Result
+		resUnion sqlDeleteResultUnion
+		err      error
+	)
+	if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err == nil {
+		if res, err = tx.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)", uid, alias); err == nil {
+			if err = resUnion.Add(res); err == nil {
+				if res, err = tx.ExecContext(ctx, "DELETE FROM links WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2)", uid, alias); err == nil {
+					if err = resUnion.Add(res); err == nil {
+						err = tx.Commit()
+					}
+				}
+			}
+		}
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				err = errors2.Wrap(err, rbErr.Error()) // TODO: replace with errors.Join() when migrate to Go 1.20
+			}
+		}
+	}
+	return &resUnion, err
 }
 
 func deleteByFileID(ctx context.Context, db *sql.DB, uid int64, alias string, file wizard.File) (sql.Result, error) {
@@ -148,5 +171,26 @@ func trimCountSuffix(s string) string {
 		return strings.TrimSpace(s[:indexes[0]])
 	} else {
 		return s
+	}
+}
+
+type sqlDeleteResultUnion struct {
+	rowsAffected []int64
+}
+
+func (s *sqlDeleteResultUnion) LastInsertId() (int64, error) {
+	return 0, nil
+}
+
+func (s *sqlDeleteResultUnion) RowsAffected() (int64, error) {
+	return funk.SumInt64(s.rowsAffected), nil
+}
+
+func (s *sqlDeleteResultUnion) Add(res sql.Result) error {
+	if rowsAffected, err := res.RowsAffected(); err == nil {
+		s.rowsAffected = append(s.rowsAffected, rowsAffected)
+		return nil
+	} else {
+		return err
 	}
 }

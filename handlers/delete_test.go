@@ -46,8 +46,38 @@ func TestDeleteFormActionText(t *testing.T) {
 	checkRowsCount(t, 0, TestUID2, &alias) // row with TestFileID is on its place
 }
 
+func TestDeleteFormActionLink(t *testing.T) {
+	insertTestData(db)
+
+	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID2, TestAlias2ID)
+	assert.NoError(t, err)
+	_, err = db.Exec("INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", TestUID2, TestAlias2ID, TestAliasID)
+	assert.NoError(t, err)
+
+	msg := buildMessage(TestUID2)
+	reqenv := buildRequestEnv()
+	fields := wizard.Fields{
+		&wizard.Field{Name: FieldAlias, Data: TestAlias2},
+		&wizard.Field{Name: FieldDeleteAll, Data: Yes},
+		&wizard.Field{Name: FieldObject},
+	}
+
+	assert.Equal(t, 1, checkLinksRowsCount(TestUID2))
+	deleteFormAction(reqenv, msg, fields)
+	assert.Equal(t, 0, checkLinksRowsCount(TestUID2))
+}
+
 func TestTrimCountSuffix(t *testing.T) {
-	assert.Equal(t, TestAlias, trimCountSuffix(TestAlias + " (1)"))
+	assert.Equal(t, TestAlias, trimCountSuffix(TestAlias+" (1)"))
 	assert.Equal(t, TestAlias, trimCountSuffix(TestAlias))
-	assert.Equal(t, TestAlias + " (test)", trimCountSuffix(TestAlias + " (test)"))
+	assert.Equal(t, TestAlias+" (test)", trimCountSuffix(TestAlias+" (test)"))
+}
+
+func checkLinksRowsCount(uid int64) int {
+	var linksRowsCount int
+	if err := db.QueryRow("SELECT count(id) FROM links WHERE uid = $1", uid).Scan(&linksRowsCount); err == nil {
+		return linksRowsCount
+	} else {
+		return -1
+	}
 }

@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
@@ -69,6 +71,11 @@ func checkRowsWereAffected(res sql.Result) bool {
 	} else {
 		return true
 	}
+}
+
+func isDuplicateConstraintViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode
 }
 
 func replierFactory(reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {

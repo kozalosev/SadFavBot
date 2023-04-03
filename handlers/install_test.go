@@ -27,7 +27,7 @@ func TestInstallPackage(t *testing.T) {
 	res, err := db.Query("SELECT DISTINCT alias FROM items WHERE uid = $1", TestUID3)
 	assert.NoError(t, err)
 	var (
-		arr []int
+		arr  []int
 		elem int
 	)
 	for res.Next() {
@@ -42,7 +42,25 @@ func TestInstallPackageWithMoreAliases(t *testing.T) {
 	insertTestData(db)
 	insertTestPackages(db)
 
-	_, err := db.Exec("INSERT INTO package_aliases(package_id, alias_id) SELECT 1, id FROM aliases WHERE name = $1", TestAlias)
+	_, err := db.Exec("INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2)", TestPackageID, TestAliasID)
+	assert.NoError(t, err)
+
+	installed, err := installPackage(ctx, db, TestUID3, TestPackageFullName)
+	assert.NoError(t, err)
+	assert.Len(t, installed, 2)
+	assert.Contains(t, installed, TestAlias)
+	assert.Contains(t, installed, TestAlias2)
+}
+
+func TestInstallPackageWithLink(t *testing.T) {
+	insertTestData(db)
+	insertTestPackages(db)
+
+	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID, TestAliasID)
+	assert.NoError(t, err)
+	_, err = db.Exec("INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", TestUID, TestAliasID, TestAlias2ID)
+	assert.NoError(t, err)
+	_, err = db.Exec("INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2)", TestPackageID, TestAliasID)
 	assert.NoError(t, err)
 
 	installed, err := installPackage(ctx, db, TestUID3, TestPackageFullName)

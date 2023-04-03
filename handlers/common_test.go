@@ -20,23 +20,24 @@ const (
 	TestDB        = "testdb"
 	ExposedDBPort = "5432"
 
-	TestUID           = 123456
-	TestUID2          = TestUID + 1
-	TestUID3          = TestUID + 2
-	TestAlias         = "alias"
-	TestAliasCI       = "AliAS"
-	TestAliasID       = 1
-	TestAlias2        = TestAlias + "'2"
-	TestAlias2ID      = 2
-	TestType          = wizard.Sticker
-	TestFileID        = "FileID"
-	TestFileID2       = "FileID_2"
-	TestUniqueFileID  = "FileUniqueID"
-	TestUniqueFileID2 = "FileUniqueID_2"
-	TestText          = "test_text"
-	TestTextID        = 1
-	TestPackage		  = "package/test"
+	TestUID             = 123456
+	TestUID2            = TestUID + 1
+	TestUID3            = TestUID + 2
+	TestAlias           = "alias"
+	TestAliasCI         = "AliAS"
+	TestAliasID         = 1
+	TestAlias2          = TestAlias + "'2"
+	TestAlias2ID        = 2
+	TestType            = wizard.Sticker
+	TestFileID          = "FileID"
+	TestFileID2         = "FileID_2"
+	TestUniqueFileID    = "FileUniqueID"
+	TestUniqueFileID2   = "FileUniqueID_2"
+	TestText            = "test_text"
+	TestTextID          = 1
+	TestPackage         = "package/test"
 	TestPackageFullName = "123456@package/test"
+	TestPackageID       = 1
 )
 
 var (
@@ -98,7 +99,7 @@ func shutDown() {
 }
 
 func insertTestData(db *sql.DB) {
-	for _, table := range []string{"package_aliases", "packages", "items", "aliases", "texts", "users"} {
+	for _, table := range []string{"links", "package_aliases", "packages", "items", "aliases", "texts", "users"} {
 		_, err := db.Exec("DELETE FROM " + table)
 		check(err)
 	}
@@ -123,9 +124,9 @@ func insertTestData(db *sql.DB) {
 }
 
 func insertTestPackages(db *sql.DB) {
-	_, err := db.Exec("INSERT INTO packages(id, owner_uid, name) VALUES ($1, $2, $3)", 1, TestUID, TestPackage)
+	_, err := db.Exec("INSERT INTO packages(id, owner_uid, name) VALUES ($1, $2, $3)", TestPackageID, TestUID, TestPackage)
 	check(err)
-	_, err = db.Exec("INSERT INTO package_aliases(package_id, alias_id) SELECT 1, id FROM aliases WHERE name = $1", TestAlias2)
+	_, err = db.Exec("INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2)", TestPackageID, TestAlias2ID)
 	check(err)
 }
 

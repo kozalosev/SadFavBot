@@ -20,6 +20,22 @@ func TestFindObjects(t *testing.T) {
 	assert.Equal(t, TestFileID2, *objects[1].FileID)
 }
 
+func TestFindObjectsByLink(t *testing.T) {
+	insertTestData(db)
+
+	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID, TestAliasID)
+	assert.NoError(t, err)
+	_, err = db.Exec("INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", TestUID, TestAliasID, TestAlias2ID)
+	assert.NoError(t, err)
+
+	query := buildInlineQuery()
+	reqenv := buildRequestEnv()
+	objects := findObjects(reqenv, query)
+
+	assert.Len(t, objects, 1)
+	assert.Equal(t, TestFileID, *objects[0].FileID)
+}
+
 func TestMapper(t *testing.T) {
 	insertTestData(db)
 
