@@ -21,7 +21,7 @@ const (
 	InstallStatusSuccessNoNames = InstallStatusTrPrefix + StatusSuccess + ".no.names"
 	InstallStatusFailure        = InstallStatusTrPrefix + StatusFailure
 	InstallStatusNoRows         = InstallStatusTrPrefix + StatusNoRows
-	PackageItemsCount           = "commands.install.message.package.items.count"
+	PackageItems                = "commands.install.message.package.items"
 
 	FieldConfirmation = "confirmation"
 )
@@ -63,18 +63,31 @@ func (handler InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 }
 
 func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
-	if itemsCount, err := fetchCountOfAliasesInPackage(reqenv.Ctx, reqenv.Database, name); err == nil {
-		itemsCountMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItemsCount), name, itemsCount)
-		reqenv.Bot.ReplyWithMarkdown(msg, itemsCountMsg)
+	if items, err := fetchAliasesInPackage(reqenv.Ctx, reqenv.Database, name); err == nil {
+		if len(items) > 0 {
+			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(items, "\n"+LinePrefix))
+			reqenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
+		} else {
+			log.Warning("Empty package: " + name)
+		}
 	} else {
 		log.Error(err)
 	}
 }
 
-func fetchCountOfAliasesInPackage(ctx context.Context, db *sql.DB, name string) (itemsCount int, err error) {
+func fetchAliasesInPackage(ctx context.Context, db *sql.DB, name string) (items []string, err error) {
 	var pkgInfo *packageInfo
 	if pkgInfo, err = parsePackageName(name); err == nil {
-		err = db.QueryRowContext(ctx, "SELECT count(pa.alias_id) FROM package_aliases pa JOIN packages p ON p.id = pa.package_id WHERE p.owner_uid = $1 AND p.name = $2", pkgInfo.uid, pkgInfo.name).Scan(&itemsCount)
+		var res *sql.Rows
+		q := "SELECT a.name FROM package_aliases pa JOIN packages p ON p.id = pa.package_id JOIN aliases a ON pa.alias_id = a.id WHERE p.owner_uid = $1 AND p.name = $2"
+		if res, err = db.QueryContext(ctx, q, pkgInfo.uid, pkgInfo.name); err == nil {
+			var item string
+			for res.Next() {
+				if err = res.Scan(&item); err == nil {
+					items = append(items, item)
+				}
+			}
+		}
 	}
 	return
 }

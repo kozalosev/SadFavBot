@@ -10,9 +10,10 @@ func TestFetchCountOfAliasesInPackage(t *testing.T) {
 	insertTestData(db)
 	insertTestPackages(db)
 
-	count, err := fetchCountOfAliasesInPackage(ctx, db, TestPackageFullName)
+	aliases, err := fetchAliasesInPackage(ctx, db, TestPackageFullName)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count)
+	assert.Len(t, aliases, 1)
+	assert.Contains(t, aliases, TestAlias2)
 }
 
 func TestInstallPackage(t *testing.T) {
