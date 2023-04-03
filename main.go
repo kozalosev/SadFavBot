@@ -123,6 +123,7 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 		handlers.HelpHandler{},
 		handlers.CancelHandler{StateStorage: stateStorage},
 		handlers.LanguageHandler{StateStorage: stateStorage},
+		handlers.LinkHandler{StateStorage: stateStorage},
 		handlers.PackageHandler{StateStorage: stateStorage},
 	}
 	inlineHandlers = []base.InlineHandler{

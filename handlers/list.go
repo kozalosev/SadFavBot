@@ -13,26 +13,26 @@ import (
 )
 
 const (
-	ListStatusTrPrefix = "commands.list.status."
-	ListStatusSuccessAliases  = ListStatusTrPrefix + StatusSuccess + ".aliases"
-	ListStatusSuccessPackages  = ListStatusTrPrefix + StatusSuccess + ".packages"
-	ListStatusFailure  = ListStatusTrPrefix + StatusFailure
-	ListStatusNoRowsAliases   = ListStatusTrPrefix + StatusNoRows + ".aliases"
-	ListStatusNoRowsPackages   = ListStatusTrPrefix + StatusNoRows + ".packages"
+	ListStatusTrPrefix                 = "commands.list.status."
+	ListStatusSuccessAliases           = ListStatusTrPrefix + StatusSuccess + ".aliases"
+	ListStatusSuccessPackages          = ListStatusTrPrefix + StatusSuccess + ".packages"
+	ListStatusFailure                  = ListStatusTrPrefix + StatusFailure
+	ListStatusNoRowsAliases            = ListStatusTrPrefix + StatusNoRows + ".aliases"
+	ListStatusNoRowsPackages           = ListStatusTrPrefix + StatusNoRows + ".packages"
 	ListFieldAliasesOrPackagesPromptTr = "commands.list.fields.aliases.or.packages"
 
 	FieldAliasesOrPackages = "aliasesOrPackages"
-	Aliases = "Aliases"
-	Packages = "Packages"
+	Aliases                = "Aliases"
+	Packages               = "Packages"
 
 	LinePrefix = "• "
 )
 
-type ListHandler struct{
+type ListHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (ListHandler) GetWizardName() string { return "ListWizard" }
+func (ListHandler) GetWizardName() string                              { return "ListWizard" }
 func (handler ListHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
 func (handler ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {
@@ -49,7 +49,7 @@ func (ListHandler) CanHandle(msg *tgbotapi.Message) bool {
 func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	arg := strings.ToLower(base.GetCommandArgument(msg))
-	if  arg == "aliases" || arg == "a" || arg == "alias" {
+	if arg == "aliases" || arg == "a" || arg == "alias" {
 		w.AddPrefilledField(FieldAliasesOrPackages, Aliases)
 	} else if arg == "packages" || arg == "p" || arg == "packs" || arg == "package" || arg == "pack" {
 		w.AddPrefilledField(FieldAliasesOrPackages, Packages)
@@ -61,10 +61,10 @@ func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 
 func listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	var (
-		items []string
+		items        []string
 		successTitle string
-		noRowsTitle string
-		err error
+		noRowsTitle  string
+		err          error
 	)
 	if fields.FindField(FieldAliasesOrPackages).Data.(string) == Packages {
 		items, err = fetchPackages(reqenv.Ctx, reqenv.Database, msg.From.ID)
@@ -84,44 +84,60 @@ func listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 		replyWith(noRowsTitle)
 	} else {
 		title := reqenv.Lang.Tr(successTitle)
-		reqenv.Bot.Reply(msg, title+"\n\n"+LinePrefix+strings.Join(items, "\n" + LinePrefix))
+		reqenv.Bot.Reply(msg, title+"\n\n"+LinePrefix+strings.Join(items, "\n"+LinePrefix))
 	}
 }
 
 func fetchAliases(ctx context.Context, db *sql.DB, uid int64) ([]string, error) {
-	q := "SELECT a.name, count(a.name) FROM items i JOIN aliases a ON i.alias = a.id WHERE uid = $1 GROUP BY a.name ORDER BY a.name"
-	return fetchCountableList(ctx, db, q, uid)
+	q := "SELECT a1.name, count(a1.name), null AS link FROM items i JOIN aliases a1 ON i.alias = a1.id WHERE i.uid = $1 GROUP BY a1.name " +
+		"UNION " +
+		"SELECT a2.name, null AS count, (SELECT name FROM aliases a WHERE a.id = l.linked_alias_id) AS link FROM links l JOIN aliases a2 ON l.alias_id = a2.id WHERE l.uid = $2 " +
+		"ORDER BY name"
+
+	if rows, err := db.QueryContext(ctx, q, uid, uid); err == nil {
+		var (
+			aliases []string
+			alias   string
+			count   *int
+			link    *string
+		)
+		for rows.Next() {
+			if err = rows.Scan(&alias, &count, &link); err == nil {
+				if link != nil {
+					aliases = append(aliases, fmt.Sprintf("%s → %s", alias, *link))
+				} else {
+					aliases = append(aliases, fmt.Sprintf("%s (%d)", alias, *count))
+				}
+			} else {
+				log.Error("Error occurred while fetching from database: ", err)
+			}
+		}
+		return aliases, nil
+	} else {
+		return nil, err
+	}
 }
 
 func fetchPackages(ctx context.Context, db *sql.DB, uid int64) ([]string, error) {
 	q := "SELECT p.name, count(pa.alias_id) FROM packages p JOIN package_aliases pa ON p.id = pa.package_id WHERE p.owner_uid = $1 GROUP BY p.name ORDER BY p.name"
-	res, err := fetchCountableList(ctx, db, q, uid)
-	if err == nil {
-		res = funk.Map(res, func(s string) string {
-			return formatPackageName(uid, s)
-		}).([]string)
-	}
-	return res, err
-}
 
-func fetchCountableList(ctx context.Context, db *sql.DB, query string, uid int64) ([]string, error) {
-	rows, err := db.QueryContext(ctx, query, uid)
-	if err != nil {
+	if rows, err := db.QueryContext(ctx, q, uid); err == nil {
+		var (
+			packages []string
+			pkg      string
+			count    int
+		)
+		for rows.Next() {
+			if err = rows.Scan(&pkg, &count); err == nil {
+				packages = append(packages, fmt.Sprintf("%s (%d)", pkg, count))
+			} else {
+				log.Error("Error occurred while fetching from database: ", err)
+			}
+		}
+		return funk.Map(packages, func(s string) string {
+			return formatPackageName(uid, s)
+		}).([]string), nil
+	} else {
 		return nil, err
 	}
-
-	var items []string
-	for rows.Next() {
-		var (
-			item  string
-			count int
-		)
-		err = rows.Scan(&item, &count)
-		if err != nil {
-			log.Error("Error occurred while fetching from database: ", err)
-			continue
-		}
-		items = append(items, fmt.Sprintf("%s (%d)", item, count))
-	}
-	return items, nil
 }
