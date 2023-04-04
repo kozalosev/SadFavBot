@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
@@ -24,9 +23,9 @@ const (
 
 	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrInfix + "forbidden.symbols"
 
-	MaxAliasLen = 128
-	MaxTextLen  = 4096
-	ReservedSymbols = reservedSymbolsForMessage + "\n"
+	MaxAliasLen               = 128
+	MaxTextLen                = 4096
+	ReservedSymbols           = reservedSymbolsForMessage + "\n"
 	reservedSymbolsForMessage = "•@|{}[]:"
 )
 
@@ -108,8 +107,7 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 	}
 
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode {
+		if isDuplicateConstraintViolation(err) {
 			replyWith(SaveStatusDuplicate)
 		} else {
 			log.Errorln(err.Error())
@@ -135,8 +133,8 @@ func saveText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (s
 	if err != nil {
 		return nil, err
 	}
-	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, " +
-		"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, " +
+	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, "+
+		"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
 		"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6) END)",
 		uid, wizard.Text, aliasID, alias, textID, text)
 	if err != nil {

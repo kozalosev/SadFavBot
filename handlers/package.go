@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
@@ -18,19 +17,19 @@ import (
 )
 
 const (
-	PackageFieldsTrPrefix = "commands.package.fields."
-	PackageStatusTrPrefix = "commands.package.status."
-	PackageStatusCreationSuccess  = PackageStatusTrPrefix + StatusSuccess + ".creation"
-	PackageStatusDeletionSuccess  = PackageStatusTrPrefix + StatusSuccess + ".deletion"
-	PackageStatusFailure   = PackageStatusTrPrefix + StatusFailure
-	PackageStatusDuplicate = PackageStatusTrPrefix + StatusDuplicate
-	PackageStatusNoRows    = PackageStatusTrPrefix + StatusNoRows
+	PackageFieldsTrPrefix        = "commands.package.fields."
+	PackageStatusTrPrefix        = "commands.package.status."
+	PackageStatusCreationSuccess = PackageStatusTrPrefix + StatusSuccess + ".creation"
+	PackageStatusDeletionSuccess = PackageStatusTrPrefix + StatusSuccess + ".deletion"
+	PackageStatusFailure         = PackageStatusTrPrefix + StatusFailure
+	PackageStatusDuplicate       = PackageStatusTrPrefix + StatusDuplicate
+	PackageStatusNoRows          = PackageStatusTrPrefix + StatusNoRows
 
 	PackageStatusErrorForbiddenSymbolsInName = PackageFieldsTrPrefix + FieldName + FieldValidationErrorTrInfix + "forbidden.symbols"
 
 	FieldCreateOrDelete = "createOrDelete"
-	FieldName = "name"
-	FieldAliases = FieldAlias + "es"
+	FieldName           = "name"
+	FieldAliases        = FieldAlias + "es"
 
 	Create = "Create"
 	Delete = "Delete"
@@ -45,7 +44,9 @@ type PackageHandler struct {
 }
 
 func (PackageHandler) GetWizardName() string { return "PackageWizard" }
-func (handler PackageHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func (handler PackageHandler) GetWizardStateStorage() wizard.StateStorage {
+	return handler.StateStorage
+}
 
 func (PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(packageAction)
@@ -108,8 +109,7 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 	}
 
 	reply := replierFactory(reqenv, msg)
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode {
+	if isDuplicateConstraintViolation(err) {
 		reply(PackageStatusDuplicate)
 	} else if err == noRowsWereAffected {
 		reply(PackageStatusNoRows)
@@ -128,7 +128,7 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 
 func createPackage(ctx context.Context, db *sql.DB, uid int64, name string, aliases []string) error {
 	var (
-		tx *sql.Tx
+		tx  *sql.Tx
 		err error
 	)
 	if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err == nil {
@@ -142,8 +142,8 @@ func createPackage(ctx context.Context, db *sql.DB, uid int64, name string, alia
 func createPackageImpl(ctx context.Context, db *sql.DB, tx *sql.Tx, uid int64, name string, aliases []string) error {
 	var (
 		packID int
-		res *sql.Rows
-		err error
+		res    *sql.Rows
+		err    error
 	)
 	if err = tx.QueryRowContext(ctx, "INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id", uid, name).Scan(&packID); err == nil {
 		aliases = funk.Map(aliases, func(a string) string {
@@ -163,7 +163,7 @@ func createPackageImpl(ctx context.Context, db *sql.DB, tx *sql.Tx, uid int64, n
 }
 
 func deletePackage(ctx context.Context, db *sql.DB, uid int64, name string) error {
-	res, err := db.ExecContext(ctx,"DELETE FROM packages WHERE owner_uid = $1 AND name = $2", uid, name)
+	res, err := db.ExecContext(ctx, "DELETE FROM packages WHERE owner_uid = $1 AND name = $2", uid, name)
 	if err != nil {
 		return err
 	}
