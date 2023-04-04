@@ -125,6 +125,7 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 		handlers.LanguageHandler{StateStorage: stateStorage},
 		handlers.LinkHandler{StateStorage: stateStorage},
 		handlers.PackageHandler{StateStorage: stateStorage},
+		handlers.SearchModeHandler{StateStorage: stateStorage},
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.GetFavoritesInlineHandler{},

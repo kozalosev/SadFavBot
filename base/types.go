@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/loctools/go-l10n/loc"
 )
 
@@ -28,4 +29,5 @@ type RequestEnv struct {
 	Lang     *loc.Context
 	Database *sql.DB
 	Ctx      context.Context
+	Options  *settings.UserOptions
 }

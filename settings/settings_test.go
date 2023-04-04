@@ -1,4 +1,4 @@
-package main
+package settings
 
 import (
 	"context"
@@ -30,13 +30,31 @@ var (
 )
 
 func TestFetchLanguage(t *testing.T) {
-	assert.Equal(t, "en", fetchLanguage(ctx, db, TestUID, "en"))
+	clearDatabase(t)
+
+	lang, _ := FetchUserOptions(ctx, db, TestUID, "en")
+	assert.Equal(t, LangCode("en"), lang)
 
 	res, err := db.Exec("INSERT INTO users(uid, language) VALUES ($1, 'ru')", TestUID)
 	assert.NoError(t, err)
 	assert.True(t, checkRowsWereAffected(res))
 
-	assert.Equal(t, "ru", fetchLanguage(ctx, db, TestUID, "en"))
+	lang, _ = FetchUserOptions(ctx, db, TestUID, "en")
+	assert.Equal(t, LangCode("ru"), lang)
+}
+
+func TestFetchUserOptions(t *testing.T) {
+	clearDatabase(t)
+
+	_, opts := FetchUserOptions(ctx, db, TestUID, "")
+	assert.False(t, opts.SubstrSearchEnabled)
+
+	res, err := db.Exec("INSERT INTO users(uid, substring_search) VALUES ($1, true)", TestUID)
+	assert.NoError(t, err)
+	assert.True(t, checkRowsWereAffected(res))
+
+	_, opts = FetchUserOptions(ctx, db, TestUID, "")
+	assert.True(t, opts.SubstrSearchEnabled)
 }
 
 //TestMain controls main for the tests and allows for setup and shutdown of tests
@@ -89,6 +107,12 @@ func shutDown() {
 	if err := container.Terminate(ctx); err != nil {
 		panic(fmt.Sprintf("failed to terminate container: %s", err.Error()))
 	}
+}
+
+func clearDatabase(t *testing.T) {
+	//goland:noinspection SqlWithoutWhere
+	_, err := db.Exec("DELETE FROM users")
+	assert.NoError(t, err)
 }
 
 func checkRowsWereAffected(res sql.Result) bool {
