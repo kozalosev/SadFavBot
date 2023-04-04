@@ -23,6 +23,7 @@ COPY base/* ./base/
 COPY handlers/* ./handlers/
 COPY storage/* ./storage/
 COPY wizard/* ./wizard/
+COPY settings/* ./settings/
 
 # Build without debugging info
 RUN go build -ldflags="-w -s" -o /sadFavBot github.com/kozalosev/SadFavBot

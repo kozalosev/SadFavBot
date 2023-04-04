@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-redis/redis/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -33,9 +34,9 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 }
 
 func processMessage(appParams *appParams, msg *tgbotapi.Message) {
-	langCode := fetchLanguage(appParams.ctx, appParams.db, msg.From.ID, msg.From.LanguageCode)
-	lc := locpool.GetContext(langCode)
-	reqenv := newRequestEnv(appParams, lc)
+	lang, opts := settings.FetchUserOptions(appParams.ctx, appParams.db, msg.From.ID, msg.From.LanguageCode)
+	lc := locpool.GetContext(string(lang))
+	reqenv := newRequestEnv(appParams, lc, opts)
 
 	for _, handler := range appParams.messageHandlers {
 		if handler.CanHandle(msg) {
@@ -67,9 +68,9 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 }
 
 func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
-	langCode := fetchLanguage(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
-	lc := locpool.GetContext(langCode)
-	reqenv := newRequestEnv(appParams, lc)
+	lang, opts := settings.FetchUserOptions(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
+	lc := locpool.GetContext(string(lang))
+	reqenv := newRequestEnv(appParams, lc, opts)
 
 	for _, handler := range appParams.inlineHandlers {
 		if handler.CanHandle(query) {
@@ -81,8 +82,8 @@ func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 }
 
 func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
-	langCode := fetchLanguage(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
-	lc := locpool.GetContext(langCode)
-	reqenv := newRequestEnv(appParams, lc)
+	lang, opts := settings.FetchUserOptions(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
+	lc := locpool.GetContext(string(lang))
+	reqenv := newRequestEnv(appParams, lc, opts)
 	wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)
 }

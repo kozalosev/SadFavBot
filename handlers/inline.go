@@ -69,14 +69,22 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 }
 
 func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*StoredObject {
-	q := "SELECT i.id, type, file_id, t.text FROM items i " +
+	var userQuery string
+	if reqenv.Options.SubstrSearchEnabled {
+		userQuery = "%" + query.Query + "%"
+	} else {
+		userQuery = query.Query
+	}
+
+	q := "SELECT min(i.id), type, file_id, t.text FROM items i " +
 		"JOIN aliases a ON a.id = i.alias " +
 		"LEFT JOIN texts t ON t.id = i.text " +
-		"WHERE uid = $1 AND lower(name) IN (lower($2), (SELECT ai_linked.name FROM links l " +
+		"WHERE uid = $1 AND (name ILIKE $2 OR name = (SELECT ai_linked.name FROM links l " +
 		"	JOIN aliases ai ON l.alias_id = ai.id " +
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
-		"	WHERE l.uid = $1 AND lower(ai.name) = lower($2)))"
-	rows, err := reqenv.Database.QueryContext(reqenv.Ctx, q, query.From.ID, query.Query)
+		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +
+		"GROUP BY type, file_id, t.text"
+	rows, err := reqenv.Database.QueryContext(reqenv.Ctx, q, query.From.ID, userQuery)
 
 	var result []*StoredObject
 	if err != nil {

@@ -3,6 +3,7 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
@@ -67,6 +68,7 @@ func buildRequestEnv() *base.RequestEnv {
 		Database: db,
 		Bot:      &base.BotAPI{DummyMode: true},
 		Lang:     loc.NewPool("en").GetContext("en"),
-		Ctx: 	  ctx,
+		Ctx:      ctx,
+		Options:  &settings.UserOptions{},
 	}
 }

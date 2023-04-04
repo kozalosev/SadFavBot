@@ -20,6 +20,25 @@ func TestFindObjects(t *testing.T) {
 	assert.Equal(t, TestFileID2, *objects[1].FileID)
 }
 
+func TestFindObjectsBySubstring(t *testing.T) {
+	insertTestData(db)
+
+	query := buildInlineQuery()
+	query.Query = "a"
+	reqenv := buildRequestEnv()
+
+	objects := findObjects(reqenv, query)
+
+	assert.Len(t, objects, 0)
+
+	reqenv.Options.SubstrSearchEnabled = true
+	objects = findObjects(reqenv, query)
+
+	assert.Len(t, objects, 2)
+	assert.Equal(t, TestFileID, *objects[0].FileID)
+	assert.Equal(t, TestFileID2, *objects[1].FileID)
+}
+
 func TestFindObjectsByLink(t *testing.T) {
 	insertTestData(db)
 
