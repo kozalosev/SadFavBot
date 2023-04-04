@@ -6,6 +6,8 @@ import (
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
+	"strings"
 )
 
 const (
@@ -57,11 +59,20 @@ func (handler LinkHandler) CanHandle(msg *tgbotapi.Message) bool {
 func (handler LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	if name := base.GetCommandArgument(msg); len(name) > 0 {
-		w.AddPrefilledField(FieldName, name)
+		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
+			return strings.TrimSpace(s)
+		}).([]string)
+		if len(argParts) == 2 {
+			w.AddPrefilledField(FieldName, argParts[0])
+			w.AddPrefilledField(FieldAlias, argParts[1])
+		} else {
+			w.AddPrefilledField(FieldName, name)
+			w.AddEmptyField(FieldAlias, wizard.Text)
+		}
 	} else {
 		w.AddEmptyField(FieldName, wizard.Text)
+		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
-	w.AddEmptyField(FieldAlias, wizard.Text)
 	w.ProcessNextField(reqenv, msg)
 }
 
