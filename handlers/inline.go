@@ -9,6 +9,8 @@ import (
 	"github.com/thoas/go-funk"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +18,17 @@ const (
 	ErrorTitleTr  = "error"
 	UnknownTypeTr = "inline.errors.type.invalid"
 )
+
+var inlineAnswerCacheTime int
+
+func init() {
+	if cacheTime, err := strconv.Atoi(os.Getenv("INLINE_CACHE_TIME")); err != nil {
+		log.Error(err)
+		inlineAnswerCacheTime = 300 // default
+	} else {
+		inlineAnswerCacheTime = cacheTime
+	}
+}
 
 type StoredObject struct {
 	ID     string
@@ -34,6 +47,7 @@ func (GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi
 	answer := tgbotapi.InlineConfig{
 		InlineQueryID: query.ID,
 		IsPersonal:    true,
+		CacheTime:     inlineAnswerCacheTime,
 	}
 	if len(query.Query) > 0 {
 		objects := funk.Map(findObjects(reqenv, query), generateMapper(reqenv.Lang)).([]interface{})
