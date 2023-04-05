@@ -39,6 +39,18 @@ func TestFindObjectsBySubstring(t *testing.T) {
 	assert.Equal(t, TestFileID2, *objects[1].FileID)
 }
 
+func TestFindObjectsEscaping(t *testing.T) {
+	insertTestData(db)
+
+	query := buildInlineQuery()
+	query.Query = "%a%"
+	reqenv := buildRequestEnv()
+
+	objects := findObjects(reqenv, query)
+
+	assert.Len(t, objects, 0)
+}
+
 func TestFindObjectsByLink(t *testing.T) {
 	insertTestData(db)
 
