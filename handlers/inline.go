@@ -9,6 +9,7 @@ import (
 	"github.com/thoas/go-funk"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"strings"
 )
 
 const (
@@ -69,11 +70,12 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 }
 
 func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*StoredObject {
-	var userQuery string
+	escaper := strings.NewReplacer(
+		"%", "\\%",
+		"?", "\\?")
+	userQuery := escaper.Replace(query.Query)
 	if reqenv.Options.SubstrSearchEnabled {
-		userQuery = "%" + query.Query + "%"
-	} else {
-		userQuery = query.Query
+		userQuery = "%" + userQuery + "%"
 	}
 
 	q := "SELECT min(i.id), type, file_id, t.text FROM items i " +
