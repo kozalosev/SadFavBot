@@ -1,0 +1,2 @@
+-- There is no special syntax to drop a value from an enum.
+-- Actually, there is no sense to drop the value either.

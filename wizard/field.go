@@ -27,6 +27,7 @@ const (
 	Video     FieldType = "video"
 	VideoNote FieldType = "video_note"
 	Gif       FieldType = "gif"
+	Document  FieldType = "document"
 )
 
 type Field struct {
@@ -35,7 +36,7 @@ type Field struct {
 	WasRequested bool        `json:"wasRequested"`
 	Type         FieldType   `json:"type"`
 
-	Form       	 *Form	     `json:"-"`
+	Form *Form `json:"-"`
 
 	extractor  FieldExtractor
 	descriptor *FieldDescriptor

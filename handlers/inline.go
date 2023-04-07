@@ -76,6 +76,8 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, *object.FileID, caser.String(lc.Tr("voice")))
 		case wizard.Gif:
 			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, *object.FileID)
+		case wizard.Document:
+			return tgbotapi.NewInlineQueryResultCachedDocument(object.ID, *object.FileID, caser.String(lc.Tr("document")))
 		default:
 			log.Warning("Unsupported type: ", object)
 			return tgbotapi.NewInlineQueryResultArticle(object.ID, lc.Tr(ErrorTitleTr), lc.Tr(UnknownTypeTr))
