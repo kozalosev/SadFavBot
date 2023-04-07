@@ -101,7 +101,8 @@ func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*Stored
 		"	JOIN aliases ai ON l.alias_id = ai.id " +
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
 		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +
-		"GROUP BY type, file_id, t.text"
+		"GROUP BY type, file_id, t.text " +
+		"LIMIT 50"
 	rows, err := reqenv.Database.QueryContext(reqenv.Ctx, q, query.From.ID, userQuery)
 
 	var result []*StoredObject
