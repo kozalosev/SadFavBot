@@ -7,6 +7,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/handlers"
+	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/SadFavBot/storage"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
@@ -35,7 +36,7 @@ func main() {
 	srv := startServer(os.Getenv("APP_PORT"))
 
 	stateStorage, db := establishConnections(ctx)
-	messageHandlers, inlineHandlers := initHandlers(stateStorage)
+	messageHandlers, inlineHandlers, callbackHandlers := initHandlers(stateStorage)
 
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("API_TOKEN"))
 	if err != nil {
@@ -46,12 +47,13 @@ func main() {
 	bot.Debug = strings.ToLower(debugMode) == "true" || debugMode == "1"
 
 	appParams := &appParams{
-		ctx:             ctx,
-		messageHandlers: messageHandlers,
-		inlineHandlers:  inlineHandlers,
-		api:             api,
-		stateStorage:    stateStorage,
-		db:              db,
+		ctx:              ctx,
+		messageHandlers:  messageHandlers,
+		inlineHandlers:   inlineHandlers,
+		callbackHandlers: callbackHandlers,
+		api:              api,
+		stateStorage:     stateStorage,
+		db:               db,
 	}
 
 	if wasPopulated := wizard.PopulateWizardDescriptors(messageHandlers); !wasPopulated {
@@ -112,7 +114,8 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 	return
 }
 
-func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler) {
+func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler) {
+	help.InitMessages(handlers.MaxAliasLen, handlers.MaxPackageNameLen, handlers.ReservedSymbolsForMessage)
 	installPackageHandler := handlers.InstallPackageHandler{StateStorage: stateStorage}
 	messageHandlers = []base.MessageHandler{
 		handlers.SaveHandler{StateStorage: stateStorage},
@@ -120,7 +123,7 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 		handlers.DeleteHandler{StateStorage: stateStorage},
 		installPackageHandler,
 		handlers.StartHandler{StateStorage: stateStorage, InstallPackageHandler: &installPackageHandler},
-		handlers.HelpHandler{},
+		help.CommandHandler{},
 		handlers.CancelHandler{StateStorage: stateStorage},
 		handlers.LanguageHandler{StateStorage: stateStorage},
 		handlers.LinkHandler{StateStorage: stateStorage},
@@ -129,6 +132,9 @@ func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.Mess
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.GetFavoritesInlineHandler{},
+	}
+	callbackHandlers = []base.CallbackHandler{
+		help.CallbackHandler{},
 	}
 	registerMessageHandlerCounters(messageHandlers...)
 	registerInlineHandlerCounters(inlineHandlers...)

@@ -4,17 +4,18 @@ import (
 	"encoding/base64"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	StartStatusFailure = "commands.start.status." + StatusFailure
+	StartStatusFailure     = "commands.start.status." + StatusFailure
 	FieldInstallingPackage = "installingPackage"
 )
 
 type StartHandler struct {
-	StateStorage wizard.StateStorage
+	StateStorage          wizard.StateStorage
 	InstallPackageHandler *InstallPackageHandler
 }
 
@@ -26,7 +27,7 @@ func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		languageFormAction(reqenv, msg, fields)
 		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(string))
 		reqenv.Lang = reqenv.Lang.GetContext(newLang)
-		sendHelpMessage(reqenv, msg)
+		help.SendHelpMessage(reqenv, msg)
 
 		if installingPackage := fields.FindField(FieldInstallingPackage).Data.(string); len(installingPackage) > 0 {
 			runWizardForInstallation(reqenv, msg, &handler, installingPackage)
@@ -61,12 +62,10 @@ func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		w.AddEmptyField(FieldLanguage, wizard.Text)
 		w.AddPrefilledField(FieldInstallingPackage, installingPackage)
 		w.ProcessNextField(reqenv, msg)
+	} else if len(installingPackage) > 0 {
+		runWizardForInstallation(reqenv, msg, &handler, installingPackage)
 	} else {
-		sendHelpMessage(reqenv, msg)
-
-		if len(installingPackage) > 0 {
-			runWizardForInstallation(reqenv, msg, &handler, installingPackage)
-		}
+		help.SendHelpMessage(reqenv, msg)
 	}
 }
 

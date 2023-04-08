@@ -61,7 +61,7 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 			if customizer, ok := f.descriptor.inlineButtonCustomizers[s]; ok {
 				customizer(&btn, f)
 			} else {
-				data := callbackDataFieldPrefix + f.Name + callbackDataSep + s
+				data := CallbackDataFieldPrefix + f.Name + callbackDataSep + s
 				btn.CallbackData = &data
 			}
 			return btn

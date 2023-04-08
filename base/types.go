@@ -18,6 +18,11 @@ type InlineHandler interface {
 	Handle(reqenv *RequestEnv, query *tgbotapi.InlineQuery)
 }
 
+type CallbackHandler interface {
+	GetCallbackPrefix() string
+	Handle(reqenv *RequestEnv, query *tgbotapi.CallbackQuery)
+}
+
 type BotAPI struct {
 	internal *tgbotapi.BotAPI
 

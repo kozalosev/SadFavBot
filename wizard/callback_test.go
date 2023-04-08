@@ -42,7 +42,7 @@ func TestCallbackQueryHandler(t *testing.T) {
 
 	_ = storage.SaveState(TestID, form)
 
-	query.Data = fmt.Sprintf("%s%s:%s", callbackDataFieldPrefix, TestName, TestValue)
+	query.Data = fmt.Sprintf("%s%s:%s", CallbackDataFieldPrefix, TestName, TestValue)
 	CallbackQueryHandler(reqenv, query, storage)
 	_ = storage.GetCurrentState(TestID, form)
 
@@ -53,7 +53,7 @@ func TestCallbackQueryHandler(t *testing.T) {
 	assert.Nil(t, form.Fields[1].Data)
 	assert.False(t, actionFlagCont.flag)
 
-	query.Data = fmt.Sprintf("%s%s:%s", callbackDataFieldPrefix, TestName2, TestValue)
+	query.Data = fmt.Sprintf("%s%s:%s", CallbackDataFieldPrefix, TestName2, TestValue)
 	CallbackQueryHandler(reqenv, query, storage)
 	_ = storage.GetCurrentState(TestID, form)
 

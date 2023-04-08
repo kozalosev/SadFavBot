@@ -19,7 +19,13 @@ const (
 	UnknownTypeTr = "inline.errors.type.invalid"
 )
 
-var inlineAnswerCacheTime int
+var (
+	inlineAnswerCacheTime int
+
+	sqlEscaper = strings.NewReplacer(
+		"%", "\\%",
+		"?", "\\?")
+)
 
 func init() {
 	if cacheTime, err := strconv.Atoi(os.Getenv("INLINE_CACHE_TIME")); err != nil {
@@ -86,10 +92,7 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 }
 
 func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*StoredObject {
-	escaper := strings.NewReplacer(
-		"%", "\\%",
-		"?", "\\?")
-	userQuery := escaper.Replace(query.Query)
+	userQuery := sqlEscaper.Replace(query.Query)
 	if reqenv.Options.SubstrSearchEnabled {
 		userQuery = "%" + userQuery + "%"
 	}

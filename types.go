@@ -10,12 +10,13 @@ import (
 )
 
 type appParams struct {
-	ctx             context.Context
-	messageHandlers []base.MessageHandler
-	inlineHandlers  []base.InlineHandler
-	api             *base.BotAPI
-	stateStorage    wizard.StateStorage
-	db              *sql.DB
+	ctx              context.Context
+	messageHandlers  []base.MessageHandler
+	inlineHandlers   []base.InlineHandler
+	callbackHandlers []base.CallbackHandler
+	api              *base.BotAPI
+	stateStorage     wizard.StateStorage
+	db               *sql.DB
 }
 
 func newRequestEnv(params *appParams, langCtx *loc.Context, opts *settings.UserOptions) *base.RequestEnv {

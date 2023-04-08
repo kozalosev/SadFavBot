@@ -6,6 +6,7 @@ import (
 	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"sync"
 )
 
@@ -85,5 +86,22 @@ func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
 	lang, opts := settings.FetchUserOptions(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(string(lang))
 	reqenv := newRequestEnv(appParams, lc, opts)
-	wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)
+
+	splitData := strings.SplitN(query.Data, ":", 2)
+	if len(splitData) < 2 {
+		log.Warningf("Unexpected callback: %+v", query)
+		return
+	}
+	prefix := splitData[0] + ":"
+
+	if prefix == wizard.CallbackDataFieldPrefix {
+		wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)
+	} else {
+		for _, handler := range appParams.callbackHandlers {
+			if prefix == handler.GetCallbackPrefix() {
+				handler.Handle(reqenv, query)
+				return
+			}
+		}
+	}
 }

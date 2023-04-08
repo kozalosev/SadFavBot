@@ -25,8 +25,8 @@ const (
 
 	MaxAliasLen               = 128
 	MaxTextLen                = 4096
-	ReservedSymbols           = reservedSymbolsForMessage + "\n"
-	reservedSymbolsForMessage = "•@|{}[]:"
+	ReservedSymbols           = ReservedSymbolsForMessage + "\n"
+	ReservedSymbolsForMessage = "•@|{}[]:"
 )
 
 var (
@@ -115,7 +115,8 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 		}
 	} else {
 		if checkRowsWereAffected(res) {
-			replyWith(SaveStatusSuccess)
+			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), reqenv.Bot.GetName(), itemValues.Alias)
+			reqenv.Bot.ReplyWithMarkdown(msg, answer)
 		} else {
 			log.Warning("No rows were affected!")
 			replyWith(SaveStatusFailure)
@@ -185,7 +186,7 @@ func saveTextToSeparateTable(ctx context.Context, tx *sql.Tx, text string) (int,
 func verifyNoReservedSymbols(text string, lc *loc.Context, errTemplateName string) error {
 	if strings.ContainsAny(text, ReservedSymbols) {
 		template := lc.Tr(errTemplateName)
-		return errors.New(fmt.Sprintf(template, reservedSymbolsForMessage))
+		return errors.New(fmt.Sprintf(template, ReservedSymbolsForMessage))
 	} else {
 		return nil
 	}
