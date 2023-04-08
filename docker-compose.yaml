@@ -24,6 +24,7 @@ services:
       - WEBHOOK_HOST
       - WEBHOOK_PORT
       - WEBHOOK_PATH
+      - PHOTO_INLINE_EXAMPLE
     expose:
       - ${APP_PORT}
     depends_on:

@@ -20,7 +20,7 @@ RUN go mod download
 
 COPY *.go ./
 COPY base/* ./base/
-COPY handlers/* ./handlers/
+COPY handlers/ ./handlers/
 COPY storage/* ./storage/
 COPY wizard/* ./wizard/
 COPY settings/* ./settings/

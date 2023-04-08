@@ -20,7 +20,7 @@ const (
 	LinkStatusSuccess                     = LinkStatusTrPrefix + StatusSuccess
 	LinkStatusFailure                     = LinkStatusTrPrefix + StatusFailure
 	LinkStatusDuplicate                   = LinkStatusTrPrefix + StatusDuplicate
-	LinkStatusDuplicateAlias              = LinkStatusTrPrefix + StatusDuplicate + ".alias"
+	LinkStatusDuplicateFav                = LinkStatusTrPrefix + StatusDuplicate + ".fav"
 	LinkStatusNoAlias                     = LinkStatusTrPrefix + "no.alias"
 	LinkStatusErrorForbiddenSymbolsInName = LinkFieldTrPrefix + FieldName + FieldValidationErrorTrInfix + "forbidden.symbols"
 )
@@ -127,8 +127,8 @@ func linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 	}
 
 	reply := replierFactory(reqenv, msg)
-	if isAttemptToInsertLinkForExistingAlias(err) {
-		reply(LinkStatusDuplicateAlias)
+	if isAttemptToInsertLinkForExistingFav(err) {
+		reply(LinkStatusDuplicateFav)
 	} else if isDuplicateConstraintViolation(err) {
 		reply(LinkStatusDuplicate)
 	} else if isAttemptToLinkNonExistingAlias(err) {
@@ -141,9 +141,9 @@ func linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 	}
 }
 
-func isAttemptToInsertLinkForExistingAlias(err error) bool {
+func isAttemptToInsertLinkForExistingFav(err error) bool {
 	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Message == "Insertion of the link with the same name as an already existing alias is forbidden"
+	return errors.As(err, &pgErr) && pgErr.Message == "Insertion of the link with the same name as an already existing fav is forbidden"
 }
 
 func isAttemptToLinkNonExistingAlias(err error) bool {

@@ -14,16 +14,16 @@ import (
 
 const (
 	ListStatusTrPrefix                 = "commands.list.status."
-	ListStatusSuccessAliases           = ListStatusTrPrefix + StatusSuccess + ".aliases"
+	ListStatusSuccessFavs              = ListStatusTrPrefix + StatusSuccess + ".favs"
 	ListStatusSuccessPackages          = ListStatusTrPrefix + StatusSuccess + ".packages"
 	ListStatusFailure                  = ListStatusTrPrefix + StatusFailure
-	ListStatusNoRowsAliases            = ListStatusTrPrefix + StatusNoRows + ".aliases"
+	ListStatusNoRowsFavs               = ListStatusTrPrefix + StatusNoRows + ".favs"
 	ListStatusNoRowsPackages           = ListStatusTrPrefix + StatusNoRows + ".packages"
-	ListFieldAliasesOrPackagesPromptTr = "commands.list.fields.aliases.or.packages"
+	ListFieldAliasesOrPackagesPromptTr = "commands.list.fields.favs.or.packages"
 
-	FieldAliasesOrPackages = "aliasesOrPackages"
-	Aliases                = "Aliases"
-	Packages               = "Packages"
+	FieldFavsOrPackages = "favsOrPackages"
+	Favs                = "Favs"
+	Packages            = "Packages"
 
 	LinePrefix = "• "
 )
@@ -37,8 +37,8 @@ func (handler ListHandler) GetWizardStateStorage() wizard.StateStorage { return 
 
 func (handler ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(listAction)
-	f := desc.AddField(FieldAliasesOrPackages, ListFieldAliasesOrPackagesPromptTr)
-	f.InlineKeyboardAnswers = []string{Aliases, Packages}
+	f := desc.AddField(FieldFavsOrPackages, ListFieldAliasesOrPackagesPromptTr)
+	f.InlineKeyboardAnswers = []string{Favs, Packages}
 	return desc
 }
 
@@ -49,12 +49,12 @@ func (ListHandler) CanHandle(msg *tgbotapi.Message) bool {
 func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	arg := strings.ToLower(base.GetCommandArgument(msg))
-	if arg == "aliases" || arg == "a" || arg == "alias" {
-		w.AddPrefilledField(FieldAliasesOrPackages, Aliases)
+	if arg == "favs" || arg == "f" || arg == "fav" {
+		w.AddPrefilledField(FieldFavsOrPackages, Favs)
 	} else if arg == "packages" || arg == "p" || arg == "packs" || arg == "package" || arg == "pack" {
-		w.AddPrefilledField(FieldAliasesOrPackages, Packages)
+		w.AddPrefilledField(FieldFavsOrPackages, Packages)
 	} else {
-		w.AddEmptyField(FieldAliasesOrPackages, wizard.Text)
+		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
 	w.ProcessNextField(reqenv, msg)
 }
@@ -66,14 +66,14 @@ func listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 		noRowsTitle  string
 		err          error
 	)
-	if fields.FindField(FieldAliasesOrPackages).Data.(string) == Packages {
+	if fields.FindField(FieldFavsOrPackages).Data.(string) == Packages {
 		items, err = fetchPackages(reqenv.Ctx, reqenv.Database, msg.From.ID)
 		successTitle = ListStatusSuccessPackages
 		noRowsTitle = ListStatusNoRowsPackages
 	} else {
 		items, err = fetchAliases(reqenv.Ctx, reqenv.Database, msg.From.ID)
-		successTitle = ListStatusSuccessAliases
-		noRowsTitle = ListStatusNoRowsAliases
+		successTitle = ListStatusSuccessFavs
+		noRowsTitle = ListStatusNoRowsFavs
 	}
 
 	replyWith := replierFactory(reqenv, msg)

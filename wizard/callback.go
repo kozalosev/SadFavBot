@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	callbackDataSep         = ":"
-	callbackDataFieldPrefix = "field" + callbackDataSep
-	callbackDataErrorTr     = "callbacks.error"
+	CallbackDataFieldPrefix = "field" + callbackDataSep
+
+	callbackDataSep     = ":"
+	callbackDataErrorTr = "callbacks.error"
 )
 
 func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery, stateStorage StateStorage) {
@@ -23,7 +24,7 @@ func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery
 		fieldValue string
 	)
 	if err = stateStorage.GetCurrentState(id, &form); err == nil {
-		data := strings.TrimPrefix(query.Data, callbackDataFieldPrefix)
+		data := strings.TrimPrefix(query.Data, CallbackDataFieldPrefix)
 		dataArr := strings.Split(data, callbackDataSep)
 		dataArrLen := len(dataArr)
 		if dataArrLen == 2 {

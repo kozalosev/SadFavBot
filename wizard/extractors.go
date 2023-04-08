@@ -50,6 +50,12 @@ func gifExtractor(m *tgbotapi.Message) interface{} {
 	}
 	return File{ID: m.Animation.FileID, UniqueID: m.Animation.FileUniqueID}
 }
+func documentExtractor(m *tgbotapi.Message) interface{} {
+	if m.Document == nil {
+		return nil
+	}
+	return File{ID: m.Document.FileID, UniqueID: m.Document.FileUniqueID}
+}
 func imageExtractor(m *tgbotapi.Message) interface{} {
 	if m.Photo == nil || len(m.Photo) == 0 {
 		return nil
@@ -80,6 +86,9 @@ func determineMessageType(msg *tgbotapi.Message) FieldType {
 	if msg.Animation != nil {
 		return Gif
 	}
+	if msg.Document != nil {
+		return Document
+	}
 	return Text
 }
 
@@ -108,6 +117,8 @@ func (f *Field) restoreExtractor(msg *tgbotapi.Message) {
 		f.extractor = videoNoteExtractor
 	case Gif:
 		f.extractor = gifExtractor
+	case Document:
+		f.extractor = documentExtractor
 	default:
 		log.Warningf("No action was found for %+v", msg)
 		f.extractor = nilExtractor

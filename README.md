@@ -2,6 +2,7 @@
 ===================================
 
 [![CI Build](https://github.com/kozalosev/SadFavBot/actions/workflows/ci-build.yml/badge.svg?branch=main&event=push)](https://github.com/kozalosev/SadFavBot/actions/workflows/ci-build.yml)
+[![Wiki Docs](https://img.shields.io/badge/wiki-documentation-brightgreen)](../../wiki)
 
 Your lovely pocket for storing stickers, pictures, GIFs, voices, etc. It lets you save your favorite memes and keep
 them for further use via inline mode.

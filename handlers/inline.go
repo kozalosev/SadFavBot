@@ -19,7 +19,13 @@ const (
 	UnknownTypeTr = "inline.errors.type.invalid"
 )
 
-var inlineAnswerCacheTime int
+var (
+	inlineAnswerCacheTime int
+
+	sqlEscaper = strings.NewReplacer(
+		"%", "\\%",
+		"?", "\\?")
+)
 
 func init() {
 	if cacheTime, err := strconv.Atoi(os.Getenv("INLINE_CACHE_TIME")); err != nil {
@@ -76,6 +82,8 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, *object.FileID, caser.String(lc.Tr("voice")))
 		case wizard.Gif:
 			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, *object.FileID)
+		case wizard.Document:
+			return tgbotapi.NewInlineQueryResultCachedDocument(object.ID, *object.FileID, caser.String(lc.Tr("document")))
 		default:
 			log.Warning("Unsupported type: ", object)
 			return tgbotapi.NewInlineQueryResultArticle(object.ID, lc.Tr(ErrorTitleTr), lc.Tr(UnknownTypeTr))
@@ -84,10 +92,7 @@ func generateMapper(lc *loc.Context) func(object *StoredObject) interface{} {
 }
 
 func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*StoredObject {
-	escaper := strings.NewReplacer(
-		"%", "\\%",
-		"?", "\\?")
-	userQuery := escaper.Replace(query.Query)
+	userQuery := sqlEscaper.Replace(query.Query)
 	if reqenv.Options.SubstrSearchEnabled {
 		userQuery = "%" + userQuery + "%"
 	}
@@ -99,7 +104,8 @@ func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*Stored
 		"	JOIN aliases ai ON l.alias_id = ai.id " +
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
 		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +
-		"GROUP BY type, file_id, t.text"
+		"GROUP BY type, file_id, t.text " +
+		"LIMIT 50"
 	rows, err := reqenv.Database.QueryContext(reqenv.Ctx, q, query.From.ID, userQuery)
 
 	var result []*StoredObject

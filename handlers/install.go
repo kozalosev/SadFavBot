@@ -21,7 +21,7 @@ const (
 	InstallStatusSuccessNoNames = InstallStatusTrPrefix + StatusSuccess + ".no.names"
 	InstallStatusFailure        = InstallStatusTrPrefix + StatusFailure
 	InstallStatusNoRows         = InstallStatusTrPrefix + StatusNoRows
-	PackageItems                = "commands.install.message.package.items"
+	PackageItems                = "commands.install.message.package.favs"
 
 	FieldConfirmation = "confirmation"
 )

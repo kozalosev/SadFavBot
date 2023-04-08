@@ -27,6 +27,7 @@ const (
 	Video     FieldType = "video"
 	VideoNote FieldType = "video_note"
 	Gif       FieldType = "gif"
+	Document  FieldType = "document"
 )
 
 type Field struct {
@@ -35,7 +36,7 @@ type Field struct {
 	WasRequested bool        `json:"wasRequested"`
 	Type         FieldType   `json:"type"`
 
-	Form       	 *Form	     `json:"-"`
+	Form *Form `json:"-"`
 
 	extractor  FieldExtractor
 	descriptor *FieldDescriptor
@@ -60,7 +61,7 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 			if customizer, ok := f.descriptor.inlineButtonCustomizers[s]; ok {
 				customizer(&btn, f)
 			} else {
-				data := callbackDataFieldPrefix + f.Name + callbackDataSep + s
+				data := CallbackDataFieldPrefix + f.Name + callbackDataSep + s
 				btn.CallbackData = &data
 			}
 			return btn
