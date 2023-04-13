@@ -115,7 +115,7 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 		}
 	} else {
 		if checkRowsWereAffected(res) {
-			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), reqenv.Bot.GetName(), itemValues.Alias)
+			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), reqenv.Bot.GetName(), markdownEscaper.Replace(itemValues.Alias))
 			reqenv.Bot.ReplyWithMarkdown(msg, answer)
 		} else {
 			log.Warning("No rows were affected!")

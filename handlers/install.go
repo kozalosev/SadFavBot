@@ -65,7 +65,8 @@ func (handler InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	if items, err := fetchAliasesInPackage(reqenv.Ctx, reqenv.Database, name); err == nil {
 		if len(items) > 0 {
-			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(items, "\n"+LinePrefix))
+			escapedItems := funk.Map(items, markdownEscaper.Replace).([]string)
+			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
 			reqenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
 		} else {
 			log.Warning("Empty package: " + name)

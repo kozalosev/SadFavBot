@@ -8,6 +8,7 @@ import (
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type itemValues struct {
@@ -16,6 +17,11 @@ type itemValues struct {
 	Text  string
 	File  *wizard.File
 }
+
+var markdownEscaper = strings.NewReplacer(
+	"*", "\\*",
+	"_", "\\_",
+	"`", "\\`")
 
 func extractItemValues(fields wizard.Fields) (*itemValues, bool) {
 	aliasField := fields.FindField(FieldAlias)
