@@ -54,7 +54,7 @@ func init() {
 		"commands.install.status.success":                                 "The following aliases were installed successfully:",
 		"commands.install.status.success.no.names":                        "Installed successfully",
 		"commands.install.status.failure":                                 fmt.Sprintf(trStatusFailureTemplateEn, "installing the package"),
-		"commands.install.status.no.rows":                                 "You already have all items from this package",
+		"commands.install.status.no.rows":                                 "You already have all favs from this package",
 		"commands.install.message.package.favs":                           "The package _%s_ consists of:\n\n%s",
 		"commands.link.fields.name":                                       "Enter a name for a link",
 		"commands.link.fields.name.validation.error.length":               "the maximum length of the link name must be less than %d characters",

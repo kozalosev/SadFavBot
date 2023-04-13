@@ -99,7 +99,7 @@ func shutDown() {
 }
 
 func insertTestData(db *sql.DB) {
-	for _, table := range []string{"links", "package_aliases", "packages", "items", "aliases", "texts", "users"} {
+	for _, table := range []string{"links", "package_aliases", "packages", "favs", "aliases", "texts", "users"} {
 		_, err := db.Exec("DELETE FROM " + table)
 		check(err)
 	}
@@ -107,7 +107,7 @@ func insertTestData(db *sql.DB) {
 	_, err := db.Exec("INSERT INTO aliases(id, name) VALUES ($1, $2), ($3, $4)",
 		TestAliasID, TestAlias, TestAlias2ID, TestAlias2)
 	check(err)
-	_, err = db.Exec("INSERT INTO items(uid, type, alias, file_id, file_unique_id) VALUES"+
+	_, err = db.Exec("INSERT INTO favs(uid, type, alias_id, file_id, file_unique_id) VALUES"+
 		"($1, $3, $4, $6, $8),"+ // TestUID, TestAlias, TestFileID, TestUniqueFileID
 		"($1, $3, $4, $7, $9),"+ // TestUID, TestAlias, TestFileID2, TestUniqueFileID2
 		"($1, $3, $5, $6, $8),"+ // TestUID, TestAlias2, TestFileID, TestUniqueFileID
@@ -116,7 +116,7 @@ func insertTestData(db *sql.DB) {
 	check(err)
 	_, err = db.Exec("INSERT INTO texts(id, text) VALUES ($1, $2)", TestTextID, TestText)
 	check(err)
-	_, err = db.Exec("INSERT INTO items(uid, type, alias, text) VALUES ($1, $2, $3, $4)",
+	_, err = db.Exec("INSERT INTO favs(uid, type, alias_id, text_id) VALUES ($1, $2, $3, $4)",
 		TestUID2, wizard.Text, TestAlias2ID, TestTextID)
 	check(err)
 
@@ -139,9 +139,9 @@ func check(err error) {
 func checkRowsCount(t *testing.T, expected int, uid int64, alias *string) {
 	var countRes *sql.Row
 	if alias != nil {
-		countRes = db.QueryRow("SELECT count(id) FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
+		countRes = db.QueryRow("SELECT count(id) FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
 	} else {
-		countRes = db.QueryRow("SELECT count(id) FROM items WHERE uid = $1", uid)
+		countRes = db.QueryRow("SELECT count(id) FROM favs WHERE uid = $1", uid)
 	}
 	var count int
 	err := countRes.Scan(&count)

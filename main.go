@@ -145,7 +145,7 @@ func startServer(port string) *http.Server {
 	srv := &http.Server{Addr: ":" + port}
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 	}()
 	return srv
@@ -155,15 +155,15 @@ func stopListeningForIncomingRequests(srv *http.Server) {
 	ctx, c := context.WithTimeout(context.Background(), time.Minute)
 	defer c()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Errorln(err)
+		log.Error(err)
 	}
 }
 
 func shutdown(stateStorage wizard.StateStorage, db *sql.DB) {
 	if err := db.Close(); err != nil {
-		log.Errorln(err)
+		log.Error(err)
 	}
 	if err := stateStorage.Close(); err != nil {
-		log.Errorln(err)
+		log.Error(err)
 	}
 }

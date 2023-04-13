@@ -25,7 +25,7 @@ func TestInstallPackage(t *testing.T) {
 	assert.Len(t, installed, 1)
 	assert.Contains(t, installed, TestAlias2)
 
-	res, err := db.Query("SELECT DISTINCT alias FROM items WHERE uid = $1", TestUID3)
+	res, err := db.Query("SELECT DISTINCT alias_id FROM favs WHERE uid = $1", TestUID3)
 	assert.NoError(t, err)
 	var (
 		arr  []int
@@ -57,7 +57,7 @@ func TestInstallPackageWithLink(t *testing.T) {
 	insertTestData(db)
 	insertTestPackages(db)
 
-	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID, TestAliasID)
+	_, err := db.Exec("DELETE FROM favs WHERE uid = $1 AND alias_id = $2", TestUID, TestAliasID)
 	assert.NoError(t, err)
 	_, err = db.Exec("INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", TestUID, TestAliasID, TestAlias2ID)
 	assert.NoError(t, err)

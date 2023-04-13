@@ -50,7 +50,7 @@ func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 			aliases []string
 			alias   string
 		)
-		if res, err := reqenv.Database.QueryContext(reqenv.Ctx, "SELECT DISTINCT a.name FROM items i JOIN aliases a on a.id = i.alias WHERE i.uid = $1", msg.From.ID); err == nil {
+		if res, err := reqenv.Database.QueryContext(reqenv.Ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1", msg.From.ID); err == nil {
 			for res.Next() {
 				if err := res.Scan(&alias); err == nil {
 					aliases = append(aliases, alias)

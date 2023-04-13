@@ -52,7 +52,7 @@ func TestLinkAction(t *testing.T) {
 	}
 
 	// resolve conflict
-	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID, TestAlias2ID)
+	_, err := db.Exec("DELETE FROM favs WHERE uid = $1 AND alias_id = $2", TestUID, TestAlias2ID)
 	assert.NoError(t, err)
 
 	links, err := fetchLinks(db, TestUID)

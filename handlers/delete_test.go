@@ -49,7 +49,7 @@ func TestDeleteFormActionText(t *testing.T) {
 func TestDeleteFormActionLink(t *testing.T) {
 	insertTestData(db)
 
-	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID2, TestAlias2ID)
+	_, err := db.Exec("DELETE FROM favs WHERE uid = $1 AND alias_id = $2", TestUID2, TestAlias2ID)
 	assert.NoError(t, err)
 	_, err = db.Exec("INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", TestUID2, TestAlias2ID, TestAliasID)
 	assert.NoError(t, err)

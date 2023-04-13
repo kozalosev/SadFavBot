@@ -167,19 +167,19 @@ func installPackage(ctx context.Context, db *sql.DB, uid int64, name string) ([]
 }
 
 func installItems(ctx context.Context, tx *sql.Tx, uid int64, pkgInfo *packageInfo) ([]int, error) {
-	res, err := tx.QueryContext(ctx, "INSERT INTO items(uid, type, alias, file_id, file_unique_id, text) "+
-		"SELECT cast($1 AS bigint), i.type, i.alias, i.file_id, i.file_unique_id, i.text FROM packages p "+
+	res, err := tx.QueryContext(ctx, "INSERT INTO favs(uid, type, alias_id, file_id, file_unique_id, text_id) "+
+		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id FROM packages p "+
 		"JOIN package_aliases pa ON p.id = pa.package_id "+
-		"JOIN items i ON i.uid = p.owner_uid AND i.alias = pa.alias_id "+
+		"JOIN favs f ON f.uid = p.owner_uid AND f.alias_id = pa.alias_id "+
 		"WHERE p.owner_uid = $2 AND p.name = $3 "+
 		"UNION "+
-		"SELECT cast($1 AS bigint), i.type, i.alias, i.file_id, i.file_unique_id, i.text FROM packages p "+
+		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id FROM packages p "+
 		"JOIN package_aliases pa ON p.id = pa.package_id "+
 		"JOIN links l ON l.uid = p.owner_uid AND l.alias_id = pa.alias_id "+
-		"JOIN items i ON i.uid = p.owner_uid AND i.alias = l.linked_alias_id "+
+		"JOIN favs f ON f.uid = p.owner_uid AND f.alias_id = l.linked_alias_id "+
 		"WHERE p.owner_uid = $2 AND p.name = $3 "+
 		"ON CONFLICT DO NOTHING "+
-		"RETURNING alias", uid, pkgInfo.uid, pkgInfo.name)
+		"RETURNING alias_id", uid, pkgInfo.uid, pkgInfo.name)
 	if err == nil {
 		var (
 			aliasID  int

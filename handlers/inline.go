@@ -97,9 +97,9 @@ func findObjects(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) []*Stored
 		userQuery = "%" + userQuery + "%"
 	}
 
-	q := "SELECT min(i.id), type, file_id, t.text FROM items i " +
-		"JOIN aliases a ON a.id = i.alias " +
-		"LEFT JOIN texts t ON t.id = i.text " +
+	q := "SELECT min(f.id), type, file_id, t.text FROM favs f " +
+		"JOIN aliases a ON a.id = f.alias_id " +
+		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"WHERE uid = $1 AND (name ILIKE $2 OR name = (SELECT ai_linked.name FROM links l " +
 		"	JOIN aliases ai ON l.alias_id = ai.id " +
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +

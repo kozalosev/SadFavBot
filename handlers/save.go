@@ -134,7 +134,7 @@ func saveText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (s
 	if err != nil {
 		return nil, err
 	}
-	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, "+
+	res, err := tx.ExecContext(ctx, "INSERT INTO favs (uid, type, alias_id, text_id) VALUES ($1, $2, "+
 		"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
 		"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6) END)",
 		uid, wizard.Text, aliasID, alias, textID, text)
@@ -153,7 +153,7 @@ func saveFile(ctx context.Context, db *sql.DB, uid int64, alias string, fileType
 	if err != nil {
 		return nil, err
 	}
-	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
+	res, err := tx.ExecContext(ctx, "INSERT INTO favs (uid, type, alias_id, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
 		uid, fileType, id, alias, file.ID, file.UniqueID)
 	if err != nil {
 		return nil, err

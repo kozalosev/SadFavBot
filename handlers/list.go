@@ -89,7 +89,7 @@ func listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 }
 
 func fetchAliases(ctx context.Context, db *sql.DB, uid int64) ([]string, error) {
-	q := "SELECT a1.name, count(a1.name), null AS link FROM items i JOIN aliases a1 ON i.alias = a1.id WHERE i.uid = $1 GROUP BY a1.name " +
+	q := "SELECT a1.name, count(a1.name), null AS link FROM favs f JOIN aliases a1 ON f.alias_id = a1.id WHERE f.uid = $1 GROUP BY a1.name " +
 		"UNION " +
 		"SELECT a2.name, null AS count, (SELECT name FROM aliases a WHERE a.id = l.linked_alias_id) AS link FROM links l JOIN aliases a2 ON l.alias_id = a2.id WHERE l.uid = $2 " +
 		"ORDER BY name"

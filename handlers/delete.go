@@ -130,7 +130,7 @@ func deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wiz
 }
 
 func deleteByAlias(ctx context.Context, db *sql.DB, uid int64, alias string) (sql.Result, error) {
-	log.Infof("Deletion of items and/or links with uid '%d' and alias '%s'", uid, alias)
+	log.Infof("Deletion of favs and/or links with uid '%d' and alias '%s'", uid, alias)
 	var (
 		tx       *sql.Tx
 		res      sql.Result
@@ -138,7 +138,7 @@ func deleteByAlias(ctx context.Context, db *sql.DB, uid int64, alias string) (sq
 		err      error
 	)
 	if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err == nil {
-		if res, err = tx.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2)", uid, alias); err == nil {
+		if res, err = tx.ExecContext(ctx, "DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2)", uid, alias); err == nil {
 			if err = resUnion.Add(res); err == nil {
 				if res, err = tx.ExecContext(ctx, "DELETE FROM links WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2)", uid, alias); err == nil {
 					if err = resUnion.Add(res); err == nil {
@@ -157,13 +157,13 @@ func deleteByAlias(ctx context.Context, db *sql.DB, uid int64, alias string) (sq
 }
 
 func deleteByFileID(ctx context.Context, db *sql.DB, uid int64, alias string, file wizard.File) (sql.Result, error) {
-	log.Infof("Deletion of items with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
-	return db.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3", uid, alias, file.UniqueID)
+	log.Infof("Deletion of fav with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
+	return db.ExecContext(ctx, "DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3", uid, alias, file.UniqueID)
 }
 
 func deleteByText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
-	log.Infof("Deletion of items with uid '%d', alias '%s' and text '%s'", uid, alias, text)
-	return db.ExecContext(ctx, "DELETE FROM items WHERE uid = $1 AND alias = (SELECT id FROM aliases WHERE name = $2) AND text = (SELECT id FROM texts WHERE text = $3)", uid, alias, text)
+	log.Infof("Deletion of fav with uid '%d', alias '%s' and text '%s'", uid, alias, text)
+	return db.ExecContext(ctx, "DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3)", uid, alias, text)
 }
 
 func trimCountSuffix(s string) string {
