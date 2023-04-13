@@ -32,7 +32,6 @@ type ListHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (ListHandler) GetWizardName() string                              { return "ListWizard" }
 func (handler ListHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
 func (handler ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {

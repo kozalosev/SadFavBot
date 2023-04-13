@@ -38,7 +38,6 @@ type SaveHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (SaveHandler) GetWizardName() string                              { return "SaveWizard" }
 func (handler SaveHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
 func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {

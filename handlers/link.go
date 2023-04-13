@@ -29,7 +29,6 @@ type LinkHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (LinkHandler) GetWizardName() string                              { return "LinkWizard" }
 func (handler LinkHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
 func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {

@@ -4,6 +4,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	log "github.com/sirupsen/logrus"
+	"reflect"
+	"strings"
 )
 
 // localization keys
@@ -104,11 +106,12 @@ func (form *Form) PopulateRestored(msg *tgbotapi.Message, storage StateStorage) 
 // NewWizard is a constructor for [Wizard].
 // The fields parameter is used only for array initialization.
 func NewWizard(handler WizardMessageHandler, fields int) Wizard {
+	wizardName := getWizardName(handler)
 	return &Form{
 		storage:    handler.GetWizardStateStorage(),
 		Fields:     make(Fields, 0, fields),
-		WizardType: handler.GetWizardName(),
-		descriptor: findFormDescriptor(handler.GetWizardName()),
+		WizardType: wizardName,
+		descriptor: findFormDescriptor(wizardName),
 	}
 }
 
@@ -119,4 +122,10 @@ func shouldBeSkipped(field *Field, form *Form) bool {
 	} else {
 		return skipPredicate.ShouldBeSkipped(form)
 	}
+}
+
+// SomeHandler -> SomeWizard
+func getWizardName(handler WizardMessageHandler) string {
+	handlerName := reflect.TypeOf(handler).Name()
+	return strings.TrimSuffix(handlerName, "Handler") + "Wizard"
 }

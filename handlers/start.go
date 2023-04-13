@@ -19,7 +19,6 @@ type StartHandler struct {
 	InstallPackageHandler *InstallPackageHandler
 }
 
-func (StartHandler) GetWizardName() string                              { return "StartWizard" }
 func (handler StartHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
 func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {

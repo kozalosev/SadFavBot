@@ -85,7 +85,7 @@ func PopulateWizardDescriptors(handlers []base.MessageHandler) bool {
 	wizardHandlers := funk.Map(filteredHandlers, func(wh base.MessageHandler) WizardMessageHandler { return wh.(WizardMessageHandler) })
 
 	descriptorsMap := funk.Map(wizardHandlers, func(wh WizardMessageHandler) (string, *FormDescriptor) {
-		return wh.GetWizardName(), wh.GetWizardDescriptor()
+		return getWizardName(wh), wh.GetWizardDescriptor()
 	}).(map[string]*FormDescriptor)
 
 	registeredWizardDescriptors = descriptorsMap

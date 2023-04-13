@@ -25,7 +25,6 @@ type SearchModeHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (SearchModeHandler) GetWizardName() string { return "SearchModeWizard" }
 func (handler SearchModeHandler) GetWizardStateStorage() wizard.StateStorage {
 	return handler.StateStorage
 }

@@ -30,7 +30,6 @@ type InstallPackageHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (InstallPackageHandler) GetWizardName() string { return "InstallPackageWizard" }
 func (handler InstallPackageHandler) GetWizardStateStorage() wizard.StateStorage {
 	return handler.StateStorage
 }

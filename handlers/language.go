@@ -21,7 +21,6 @@ type LanguageHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (LanguageHandler) GetWizardName() string { return "LanguageWizard" }
 func (handler LanguageHandler) GetWizardStateStorage() wizard.StateStorage {
 	return handler.StateStorage
 }

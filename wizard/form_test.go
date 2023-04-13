@@ -108,7 +108,6 @@ type testHandler struct{}
 
 func (testHandler) CanHandle(*tgbotapi.Message) bool           { return false }
 func (testHandler) Handle(*base.RequestEnv, *tgbotapi.Message) {}
-func (testHandler) GetWizardName() string                      { return TestWizardName }
 func (testHandler) GetWizardAction() FormAction                { return tAction }
 func (testHandler) GetWizardStateStorage() StateStorage        { return nil }
 
@@ -121,8 +120,6 @@ func (h testHandler) GetWizardDescriptor() *FormDescriptor {
 type testHandler2 struct {
 	testHandler
 }
-
-func (testHandler2) GetWizardName() string { return TestWizardName + "2" }
 
 type flagContainer struct {
 	flag bool

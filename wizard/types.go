@@ -8,7 +8,7 @@ import (
 // FormAction is a function that will be executed when all of required fields are filled in.
 type FormAction func(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields Fields)
 
-// Wizard is another name for a form. Create a Wizard instance in your handler 	with [NewWizard] function and add fields to it.
+// Wizard is another name for a form. Create a Wizard instance in your handler with [NewWizard] function and add fields to it.
 type Wizard interface {
 	// AddEmptyField creates a new empty field of fieldType type.
 	AddEmptyField(name string, fieldType FieldType)
@@ -23,8 +23,6 @@ type Wizard interface {
 type WizardMessageHandler interface {
 	base.MessageHandler
 
-	// GetWizardName should return a name of your form that will be saved into a storage
-	GetWizardName() string
 	// GetWizardStateStorage should return an implementation of the storage. An instance of [RedisStateStorage] for example.
 	GetWizardStateStorage() StateStorage
 	// GetWizardDescriptor should return the description of all non-storable parameters of your form.

@@ -43,7 +43,6 @@ type PackageHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (PackageHandler) GetWizardName() string { return "PackageWizard" }
 func (handler PackageHandler) GetWizardStateStorage() wizard.StateStorage {
 	return handler.StateStorage
 }

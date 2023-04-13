@@ -33,7 +33,6 @@ type DeleteHandler struct {
 	StateStorage wizard.StateStorage
 }
 
-func (DeleteHandler) GetWizardName() string                              { return "DeleteWizard" }
 func (handler DeleteHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
 
 func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
