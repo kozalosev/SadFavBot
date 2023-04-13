@@ -60,6 +60,7 @@ func RunMigrations(config *DatabaseConfig, migrationsRepo string) {
 	} else if _, err := os.Stat("../" + migrationsPath); err == nil {
 		sourceURL = "file://../" + migrationsPath
 	} else {
+		log.Warning("Run migrations from the repository")
 		sourceURL = "github://" + migrationsRepo + "/" + migrationsPath
 	}
 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
