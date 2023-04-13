@@ -6,12 +6,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// LangCode is a language code like 'ru' or 'en'.
 type LangCode string
 
+// UserOptions stored in the database.
 type UserOptions struct {
 	SubstrSearchEnabled bool
 }
 
+// FetchUserOptions from the database if they exist.
 func FetchUserOptions(ctx context.Context, db *sql.DB, uid int64, defaultLang string) (LangCode, *UserOptions) {
 	var (
 		lang *string

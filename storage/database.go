@@ -16,7 +16,7 @@ import (
 const migrationsPath = "db/migrations"
 
 type DatabaseConfig struct {
-	host string
+	host     string
 	port     string
 	user     string
 	password string
@@ -52,6 +52,7 @@ func ConnectToDatabase(config *DatabaseConfig) *sql.DB {
 	return conn
 }
 
+// RunMigrations either from source code on a local machine if available (for developers) or from a GitHub repository (for production).
 func RunMigrations(config *DatabaseConfig, migrationsRepo string) {
 	var sourceURL string
 	if _, err := os.Stat(migrationsPath); err == nil {

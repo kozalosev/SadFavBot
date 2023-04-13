@@ -10,6 +10,8 @@ import (
 	"sync"
 )
 
+// Read comments in the `.env` file and
+// https://github.com/kozalosev/SadFavBot/wiki/Run-and-configuration#on-a-server-production-mode
 type webhookParams struct {
 	host    string
 	port    string

@@ -14,12 +14,8 @@ const (
 	noActiveWizardTr   = "wizard.active.not.set"
 )
 
-type RedisStateStorage struct {
-	rdb *redis.Client
-	ttl time.Duration
-	ctx context.Context
-}
-
+// StateStorage is an abstraction over the connection to some storage which provides methods for saving, restoring
+// and deletion of the states of the wizards.
 type StateStorage interface {
 	GetCurrentState(uid int64, dest Wizard) error
 	SaveState(uid int64, wizard Wizard) error
@@ -27,6 +23,17 @@ type StateStorage interface {
 	Close() error
 }
 
+// RedisStateStorage is an implementation of the [StateStorage] interface, using Redis as the storage.
+type RedisStateStorage struct {
+	rdb *redis.Client
+	ttl time.Duration
+	ctx context.Context
+}
+
+// ConnectToRedis is a constructor of the [RedisStateStorage].
+// - ctx is the application context;
+// - ttl is the lifetime of forms; after this duration the command will be cancelled;
+// - options is the connection options.
 func ConnectToRedis(ctx context.Context, ttl time.Duration, options *redis.Options) RedisStateStorage {
 	rdb := redis.NewClient(options)
 	status := rdb.Ping(ctx)

@@ -6,16 +6,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// localization keys
 const (
 	InvalidFieldValueErrorTr     = "wizard.errors.field.invalid.value"
 	InvalidFieldValueTypeErrorTr = "wizard.errors.field.invalid.type"
 	MissingStateErrorTr          = "wizard.errors.state.missing"
 )
 
+// Form is an implementation of the [Wizard] interface.
 type Form struct {
 	Fields     Fields `json:"fields"`
-	Index      int    `json:"index"`
-	WizardType string `json:"wizardType"`
+	Index      int    `json:"index"`      // index of the current field
+	WizardType string `json:"wizardType"` // name of the form
 
 	storage    StateStorage
 	descriptor *FormDescriptor
@@ -47,7 +49,7 @@ func (form *Form) ProcessNextField(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	maxIndex := len(form.Fields) - 1
 start:
 	if form.Index > maxIndex {
-		form.DoAction(reqenv, msg)
+		form.doAction(reqenv, msg)
 		return
 	}
 
@@ -80,7 +82,7 @@ start:
 	}
 }
 
-func (form *Form) DoAction(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (form *Form) doAction(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	if form.descriptor.action == nil {
 		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(MissingStateErrorTr))
 		return
@@ -88,6 +90,7 @@ func (form *Form) DoAction(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	form.descriptor.action(reqenv, msg, form.Fields)
 }
 
+// PopulateRestored sets non-storable fields of the form restored from [StateStorage].
 func (form *Form) PopulateRestored(msg *tgbotapi.Message, storage StateStorage) {
 	form.storage = storage
 	form.Fields[form.Index].restoreExtractor(msg)
@@ -98,6 +101,8 @@ func (form *Form) PopulateRestored(msg *tgbotapi.Message, storage StateStorage) 
 	}
 }
 
+// NewWizard is a constructor for [Wizard].
+// The fields parameter is used only for array initialization.
 func NewWizard(handler WizardMessageHandler, fields int) Wizard {
 	return &Form{
 		storage:    handler.GetWizardStateStorage(),

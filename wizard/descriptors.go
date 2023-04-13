@@ -7,26 +7,42 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+// InlineButtonCustomizer is a function that allows you to customize the inline button generated for a field prompt.
+// https://core.telegram.org/bots/api#inlinekeyboardbutton
 type InlineButtonCustomizer func(btn *tgbotapi.InlineKeyboardButton, f *Field)
+
+// ReplyKeyboardBuilder is used to generate variants for the reply keyboard, since I use it for fields when the user
+// must choose the option from a result set fetched from the database.
 type ReplyKeyboardBuilder func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string
 
+// FormDescriptor is the description of a wizard, describing all non-storable parameters.
+// Use [NewWizardDescriptor] to create one.
 type FormDescriptor struct {
 	action FormAction
 	fields map[string]*FieldDescriptor
 }
 
+// FieldDescriptor is the description of a concrete field of the form, describing all non-storable parameters.
+// Use [FormDescriptor.AddField] to create one and attach to a [FormDescriptor] instance.
 type FieldDescriptor struct {
-	Validator             FieldValidator
-	SkipIf                SkipCondition
-	ReplyKeyboardBuilder  ReplyKeyboardBuilder
-	InlineKeyboardAnswers []string
+	Validator FieldValidator
+
+	// if this condition is true, the field will be skipped
+	SkipIf SkipCondition
+
+	// keyboard options; you can attach either a reply keyboard or inline one, but not both
+	ReplyKeyboardBuilder      ReplyKeyboardBuilder
+	InlineKeyboardAnswers     []string
 	DisableKeyboardValidation bool
 
-	promptDescription 		string
+	// this text will be used to ask the user for the field value
+	promptDescription string
+
 	formDescriptor          *FormDescriptor
 	inlineButtonCustomizers map[string]InlineButtonCustomizer
 }
 
+// in-memory storage of all descriptors; use [PopulateWizardDescriptors] to register them at startup
 var registeredWizardDescriptors = make(map[string]*FormDescriptor)
 
 func NewWizardDescriptor(action FormAction) *FormDescriptor {
@@ -42,6 +58,8 @@ func (descriptor *FormDescriptor) AddField(name, promptDescriptionOrTrKey string
 	return fieldDescriptor
 }
 
+// InlineButtonCustomizer is a method for modifying the inline button generated for a specific option.
+// By default, an inline button with callback_data is created. By using this type of customizer, you're able to change this behavior.
 func (descriptor *FieldDescriptor) InlineButtonCustomizer(option string, customizer InlineButtonCustomizer) bool {
 	if descriptor.inlineButtonCustomizers == nil {
 		descriptor.inlineButtonCustomizers = make(map[string]InlineButtonCustomizer, len(descriptor.InlineKeyboardAnswers))
@@ -53,6 +71,8 @@ func (descriptor *FieldDescriptor) InlineButtonCustomizer(option string, customi
 	return true
 }
 
+// PopulateWizardDescriptors fills in the map that should be initialized at startup time to prevent the user from
+// receiving the "wizard.errors.state.missing" message.
 func PopulateWizardDescriptors(handlers []base.MessageHandler) bool {
 	if len(registeredWizardDescriptors) > 0 {
 		return false

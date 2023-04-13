@@ -4,10 +4,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SkipCondition is the condition type for [FieldDescriptor.SkipIf] field.
 type SkipCondition interface {
 	ShouldBeSkipped(form *Form) bool
 }
 
+// SkipOnFieldValue is a [SkipCondition] implementation that skips the field if the value of another field is equal to Value.
 type SkipOnFieldValue struct {
 	Name  string
 	Value string

@@ -29,6 +29,7 @@ const (
 var locpool = loc.NewPool("en")
 
 func main() {
+	// the application is listening for the SIGTERM signal to exit
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -72,6 +73,8 @@ func main() {
 		updateConfig := tgbotapi.UpdateConfig{Offset: 0, Timeout: 30}
 		updates := bot.GetUpdatesChan(updateConfig)
 
+		// Unfortunately, the loop won't exit immediately.
+		// https://github.com/go-telegram-bot-api/telegram-bot-api/issues/207
 		for upd := range updates {
 			select {
 			case <-ctx.Done():
@@ -89,7 +92,7 @@ func main() {
 		stopListeningForIncomingRequests(srv)
 	}
 
-	wg.Wait()
+	wg.Wait() // wait until all executing goroutines finish
 	shutdown(stateStorage, db)
 }
 

@@ -16,7 +16,7 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 		go func(query tgbotapi.InlineQuery) {
 			defer wg.Done()
 			processInline(appParams, &query)
-		}(*upd.InlineQuery)
+		}(*upd.InlineQuery) // copy by value
 	} else if upd.ChosenInlineResult != nil {
 		inc(chosenInlineResultCounter)
 	} else if upd.Message != nil {
@@ -24,13 +24,13 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 		go func(msg tgbotapi.Message) {
 			defer wg.Done()
 			processMessage(appParams, &msg)
-		}(*upd.Message)
+		}(*upd.Message) // copy by value
 	} else if upd.CallbackQuery != nil {
 		wg.Add(1)
 		go func(query tgbotapi.CallbackQuery) {
 			defer wg.Done()
 			processCallbackQuery(appParams, &query)
-		}(*upd.CallbackQuery)
+		}(*upd.CallbackQuery) // copy by value
 	}
 }
 
@@ -39,6 +39,7 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	lc := locpool.GetContext(string(lang))
 	reqenv := newRequestEnv(appParams, lc, opts)
 
+	// for commands and other handlers
 	for _, handler := range appParams.messageHandlers {
 		if handler.CanHandle(msg) {
 			incMessageHandlerCounter(handler)
@@ -47,6 +48,7 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 		}
 	}
 
+	// If no handler was chosen, check if this is a parameter for some previously created form.
 	var form wizard.Form
 	err := appParams.stateStorage.GetCurrentState(msg.From.ID, &form)
 	if err == nil {
@@ -59,6 +61,7 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 		return
 	}
 
+	// fallback/default handler
 	var defaultMessageTr string
 	if msg.IsCommand() {
 		defaultMessageTr = DefaultMessageOnCommandTr
@@ -94,6 +97,7 @@ func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
 	}
 	prefix := splitData[0] + ":"
 
+	// special case for the wizard callback, otherwise check other [base.CallbackHandler]s
 	if prefix == wizard.CallbackDataFieldPrefix {
 		wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)
 	} else {

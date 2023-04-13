@@ -36,9 +36,10 @@ func TestForm_AddPrefilledField(t *testing.T) {
 func TestRestorationOfFunctions(t *testing.T) {
 	wizard := NewWizard(testHandler{}, 1)
 	wizard.AddEmptyField(TestName, Text)
-	wizard.PopulateRestored(&tgbotapi.Message{}, nil)
 
 	form := wizard.(*Form)
+	form.PopulateRestored(&tgbotapi.Message{}, nil)
+
 	assert.Equal(t, getFuncPtr(tAction), getFuncPtr(form.descriptor.action))
 	assert.Equal(t, getFuncPtr(textExtractor), getFuncPtr(form.Fields[form.Index].extractor))
 	assert.Equal(t, TestPromptDesc, form.Fields[form.Index].descriptor.promptDescription)

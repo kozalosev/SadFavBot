@@ -5,11 +5,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type FieldExtractor func(msg *tgbotapi.Message) interface{}
+type fieldExtractor func(msg *tgbotapi.Message) interface{}
 
+// File is a representation of Telegram cached files.
+// https://core.telegram.org/bots/api#file
 type File struct {
-	ID       string
-	UniqueID string
+	ID       string // file_id
+	UniqueID string // file_unique_id
 }
 
 func nilExtractor(*tgbotapi.Message) interface{}    { return nil }
