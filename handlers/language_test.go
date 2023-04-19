@@ -14,7 +14,8 @@ func TestLanguageFormAction(t *testing.T) {
 	assertLanguage(t, "ru")
 
 	msg := buildMessage(test.UID)
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
 		&wizard.Field{
 			Name: FieldLanguage,
@@ -22,11 +23,12 @@ func TestLanguageFormAction(t *testing.T) {
 		},
 	}
 
-	languageFormAction(reqenv, msg, fields)
+	handler := NewLanguageHandler(appenv, nil)
+	handler.languageFormAction(reqenv, msg, fields)
 	assertLanguage(t, en)
 
 	fields.FindField(FieldLanguage).Data = "au" // unsupported
-	languageFormAction(reqenv, msg, fields)
+	handler.languageFormAction(reqenv, msg, fields)
 	assertLanguage(t, en)
 }
 

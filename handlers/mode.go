@@ -23,15 +23,26 @@ const (
 )
 
 type SearchModeHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	userService *repo.UserService
 }
 
-func (handler SearchModeHandler) GetWizardStateStorage() wizard.StateStorage {
-	return handler.StateStorage
+func NewSearchModeHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) SearchModeHandler {
+	return SearchModeHandler{
+		appenv:       appenv,
+		stateStorage: stateStorage,
+		userService:  repo.NewUserService(appenv),
+	}
 }
 
-func (SearchModeHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(searchModeAction)
+func (handler SearchModeHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
+
+func (handler SearchModeHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	desc := wizard.NewWizardDescriptor(handler.searchModeAction)
 	f := desc.AddField(FieldSubstrSearchEnabled, ModeFieldsTrPrefix+FieldSubstrSearchEnabled)
 	f.InlineKeyboardAnswers = []string{Yes, No}
 	return desc
@@ -48,7 +59,7 @@ func (handler SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.M
 	} else {
 		currVal = Disabled
 	}
-	reqenv.Bot.Reply(msg, reqenv.Lang.Tr(ModeMessageCurrentVal)+currVal)
+	handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(ModeMessageCurrentVal)+currVal)
 
 	w := wizard.NewWizard(handler, 1)
 	if arg := strings.ToLower(base.GetCommandArgument(msg)); arg == "true" || arg == "1" {
@@ -61,13 +72,12 @@ func (handler SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.M
 	w.ProcessNextField(reqenv, msg)
 }
 
-func searchModeAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	substrSearchEnabled := fields.FindField(FieldSubstrSearchEnabled).Data == Yes
 
-	userService := repo.NewUserService(reqenv.Ctx, reqenv.Database)
-	err := userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)
+	err := handler.userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)
 
-	reply := replierFactory(reqenv, msg)
+	reply := replierFactory(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.Error(err)
 		reply(ModeStatusFailure)

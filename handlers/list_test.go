@@ -12,7 +12,8 @@ import (
 func TestListActionFavs(t *testing.T) {
 	test.InsertTestData(db)
 
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
 		&wizard.Field{
@@ -21,9 +22,10 @@ func TestListActionFavs(t *testing.T) {
 		},
 	}
 
-	listAction(reqenv, msg, fields)
+	handler := NewListHandler(appenv, nil)
+	handler.listAction(reqenv, msg, fields)
 
-	bot := reqenv.Bot.(*base.FakeBotAPI)
+	bot := appenv.Bot.(*base.FakeBotAPI)
 	sentMessage := bot.GetOutput().(string)
 	lines := strings.Split(sentMessage, "\n")
 
@@ -40,7 +42,8 @@ func TestListActionPackages(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
 
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
 		&wizard.Field{
@@ -49,9 +52,10 @@ func TestListActionPackages(t *testing.T) {
 		},
 	}
 
-	listAction(reqenv, msg, fields)
+	handler := NewListHandler(appenv, nil)
+	handler.listAction(reqenv, msg, fields)
 
-	bot := reqenv.Bot.(*base.FakeBotAPI)
+	bot := appenv.Bot.(*base.FakeBotAPI)
 	sentMessage := bot.GetOutput().(string)
 	lines := strings.Split(sentMessage, "\n")
 

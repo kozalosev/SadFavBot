@@ -17,7 +17,7 @@ func TestFetchCountOfAliasesInPackage(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
 
-	packageService := NewPackageService(test.BuildRequestEnv(db))
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
 	aliases, err := packageService.ListAliases(packageInfo)
 
 	assert.NoError(t, err)
@@ -29,7 +29,7 @@ func TestInstallPackage(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
 
-	packageService := NewPackageService(test.BuildRequestEnv(db))
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
 	installed, err := packageService.Install(test.UID3, packageInfo)
 
 	assert.NoError(t, err)
@@ -57,7 +57,7 @@ func TestInstallPackageWithMoreAliases(t *testing.T) {
 	_, err := db.Exec(ctx, "INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2)", test.PackageID, test.AliasID)
 	assert.NoError(t, err)
 
-	packageService := NewPackageService(test.BuildRequestEnv(db))
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
 	installed, err := packageService.Install(test.UID3, packageInfo)
 
 	assert.NoError(t, err)
@@ -77,7 +77,7 @@ func TestInstallPackageWithLink(t *testing.T) {
 	_, err = db.Exec(ctx, "INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2)", test.PackageID, test.AliasID)
 	assert.NoError(t, err)
 
-	packageService := NewPackageService(test.BuildRequestEnv(db))
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
 	installed, err := packageService.Install(test.UID3, packageInfo)
 
 	assert.NoError(t, err)

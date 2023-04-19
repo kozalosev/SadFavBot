@@ -53,16 +53,20 @@ type BotAPI struct {
 	internal *tgbotapi.BotAPI
 }
 
-// RequestEnv is a container for all request related common resources. It's passed to all kinds of handlers.
-type RequestEnv struct {
+// ApplicationEnv is a container for all application scoped resources.
+type ApplicationEnv struct {
 	// Bot is used when you need to send a request to Telegram Bot API.
 	Bot ExtendedBotAPI
-	// Lang is a localization container. You can get a message in the user's language by key, using its [loc.Context.Tr] method.
-	Lang *loc.Context
 	// Database is a reference to a [sql.DB]-like object.
 	Database *pgxpool.Pool
 	// Ctx is a context of the application; It's state will be switched to Done when the application is received the SIGTERM signal.
 	Ctx context.Context
+}
+
+// RequestEnv is a container for all request related common resources. It's passed to all kinds of handlers.
+type RequestEnv struct {
+	// Lang is a localization container. You can get a message in the user's language by key, using its [loc.Context.Tr] method.
+	Lang *loc.Context
 	// Options is a container for user options fetched from the database.
 	Options *settings.UserOptions
 }

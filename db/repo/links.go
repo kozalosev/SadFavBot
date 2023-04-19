@@ -15,10 +15,10 @@ type LinkService struct {
 	db  *pgxpool.Pool
 }
 
-func NewLinkService(reqenv *base.RequestEnv) *LinkService {
+func NewLinkService(appenv *base.ApplicationEnv) *LinkService {
 	return &LinkService{
-		ctx: reqenv.Ctx,
-		db:  reqenv.Database,
+		ctx: appenv.Ctx,
+		db:  appenv.Database,
 	}
 }
 

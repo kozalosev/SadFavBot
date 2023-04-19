@@ -11,21 +11,22 @@ func TestDeleteFormAction(t *testing.T) {
 	test.InsertTestData(db)
 
 	msg := buildMessage(test.UID)
-	reqenv := test.BuildRequestEnv(db)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: test.Alias},
 		&wizard.Field{Name: FieldDeleteAll, Data: No},
 		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{UniqueID: test.UniqueFileID}},
 	}
 
-	deleteFormAction(reqenv, msg, fields)
+	handler := NewDeleteHandler(test.BuildApplicationEnv(db), nil)
+	handler.deleteFormAction(reqenv, msg, fields)
 
 	testAlias := test.Alias
 	test.CheckRowsCount(t, db, 1, test.UID, &testAlias) // row with FileID_2 is on its place
 	test.CheckRowsCount(t, db, 2, test.UID, nil)        // rows with alias2 and alias+FileID_2
 
 	fields.FindField(FieldDeleteAll).Data = Yes
-	deleteFormAction(reqenv, msg, fields)
+	handler.deleteFormAction(reqenv, msg, fields)
 
 	test.CheckRowsCount(t, db, 0, test.UID, &testAlias)
 }
@@ -34,14 +35,15 @@ func TestDeleteFormActionText(t *testing.T) {
 	test.InsertTestData(db)
 
 	msg := buildMessage(test.UID2)
-	reqenv := test.BuildRequestEnv(db)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: test.Alias2},
 		&wizard.Field{Name: FieldDeleteAll, Data: No},
 		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: test.Text},
 	}
 
-	deleteFormAction(reqenv, msg, fields)
+	handler := NewDeleteHandler(test.BuildApplicationEnv(db), nil)
+	handler.deleteFormAction(reqenv, msg, fields)
 
 	alias := test.Alias2
 	test.CheckRowsCount(t, db, 0, test.UID2, &alias) // row with TestFileID is on its place
@@ -56,7 +58,7 @@ func TestDeleteFormActionLink(t *testing.T) {
 	assert.NoError(t, err)
 
 	msg := buildMessage(test.UID2)
-	reqenv := test.BuildRequestEnv(db)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: test.Alias2},
 		&wizard.Field{Name: FieldDeleteAll, Data: Yes},
@@ -64,7 +66,8 @@ func TestDeleteFormActionLink(t *testing.T) {
 	}
 
 	assert.Equal(t, 1, checkLinksRowsCount(test.UID2))
-	deleteFormAction(reqenv, msg, fields)
+	handler := NewDeleteHandler(test.BuildApplicationEnv(db), nil)
+	handler.deleteFormAction(reqenv, msg, fields)
 	assert.Equal(t, 0, checkLinksRowsCount(test.UID2))
 }
 

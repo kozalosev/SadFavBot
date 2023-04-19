@@ -70,11 +70,11 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 			}
 			return btn
 		}).([]tgbotapi.InlineKeyboardButton)
-		reqenv.Bot.ReplyWithInlineKeyboard(msg, promptDescription, inlineAnswers)
+		f.Form.resources.appEnv.Bot.ReplyWithInlineKeyboard(msg, promptDescription, inlineAnswers)
 	} else if f.descriptor.ReplyKeyboardBuilder != nil {
-		reqenv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardBuilder(reqenv, msg))
+		f.Form.resources.appEnv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardBuilder(reqenv, msg))
 	} else {
-		reqenv.Bot.Reply(msg, promptDescription)
+		f.Form.resources.appEnv.Bot.Reply(msg, promptDescription)
 	}
 }
 

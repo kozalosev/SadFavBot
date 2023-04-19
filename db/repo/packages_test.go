@@ -10,7 +10,7 @@ func TestPackageService_ListWithCounts(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
 
-	packageService := NewPackageService(test.BuildRequestEnv(db))
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
 	packages, err := packageService.ListWithCounts(test.UID)
 
 	assert.NoError(t, err)
@@ -21,7 +21,7 @@ func TestPackageService_ListWithCounts(t *testing.T) {
 func TestPackageService_Create(t *testing.T) {
 	test.InsertTestData(db)
 
-	packageService := NewPackageService(test.BuildRequestEnv(db))
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
 	err := packageService.Create(test.UID, test.Package, []string{test.Alias2})
 	assert.NoError(t, err)
 
@@ -40,7 +40,7 @@ func TestPackageService_Delete(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
 
-	packageService := NewPackageService(test.BuildRequestEnv(db))
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
 	err := packageService.Delete(test.UID, test.Package)
 	assert.NoError(t, err)
 

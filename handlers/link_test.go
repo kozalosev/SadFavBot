@@ -11,7 +11,8 @@ import (
 func TestLinkActionOnConflict(t *testing.T) {
 	test.InsertTestData(db)
 
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
 		&wizard.Field{
@@ -28,8 +29,9 @@ func TestLinkActionOnConflict(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, links, 0)
 
+	handler := NewLinkHandler(appenv, nil)
 	// no rows will be inserted since TestUID already has an item with TestAlias2
-	linkAction(reqenv, msg, fields)
+	handler.linkAction(reqenv, msg, fields)
 
 	links, err = fetchLinks(db, test.UID)
 	assert.NoError(t, err)
@@ -39,7 +41,8 @@ func TestLinkActionOnConflict(t *testing.T) {
 func TestLinkAction(t *testing.T) {
 	test.InsertTestData(db)
 
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
 		&wizard.Field{
@@ -60,7 +63,8 @@ func TestLinkAction(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, links, 0)
 
-	linkAction(reqenv, msg, fields)
+	handler := NewLinkHandler(appenv, nil)
+	handler.linkAction(reqenv, msg, fields)
 
 	links, err = fetchLinks(db, test.UID)
 	assert.NoError(t, err)

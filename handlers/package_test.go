@@ -12,8 +12,9 @@ import (
 func TestPackageAction(t *testing.T) {
 	test.InsertTestData(db)
 
-	reqenv := test.BuildRequestEnv(db)
-	packageService := repo.NewPackageService(reqenv)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
+	packageService := repo.NewPackageService(appenv)
 	msg := buildMessage(test.UID3)
 	fields := wizard.Fields{
 		&wizard.Field{
@@ -29,7 +30,9 @@ func TestPackageAction(t *testing.T) {
 			Data: test.Alias + "\n" + test.Alias2,
 		},
 	}
-	packageAction(reqenv, msg, fields)
+
+	handler := NewPackageHandler(appenv, nil)
+	handler.packageAction(reqenv, msg, fields)
 
 	packages, err := packageService.ListWithCounts(test.UID3)
 	assert.NoError(t, err)
@@ -37,7 +40,7 @@ func TestPackageAction(t *testing.T) {
 	assert.Contains(t, packages, fmt.Sprintf("%d@%s (2)", test.UID3, test.Package))
 
 	fields.FindField(FieldCreateOrDelete).Data = Delete
-	packageAction(reqenv, msg, fields)
+	handler.packageAction(reqenv, msg, fields)
 
 	packages, err = packageService.ListWithCounts(test.UID3)
 	assert.NoError(t, err)

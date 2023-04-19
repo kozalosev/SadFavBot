@@ -40,10 +40,10 @@ type FavService struct {
 	db  *pgxpool.Pool
 }
 
-func NewFavsService(reqenv *base.RequestEnv) *FavService {
+func NewFavsService(appenv *base.ApplicationEnv) *FavService {
 	return &FavService{
-		ctx: reqenv.Ctx,
-		db:  reqenv.Database,
+		ctx: appenv.Ctx,
+		db:  appenv.Database,
 	}
 }
 

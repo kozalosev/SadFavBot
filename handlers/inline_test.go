@@ -15,9 +15,9 @@ func TestMapper(t *testing.T) {
 	test.InsertTestData(db)
 
 	query := test.BuildInlineQuery()
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
 
-	favsService := repo.NewFavsService(reqenv)
+	favsService := repo.NewFavsService(appenv)
 	objects, err := favsService.Find(query.From.ID, query.Query, false)
 	assert.NoError(t, err)
 
@@ -29,13 +29,14 @@ func TestGetFavoritesInlineHandler_Handle(t *testing.T) {
 	test.InsertTestData(db)
 
 	query := test.BuildInlineQuery()
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 
-	handler := GetFavoritesInlineHandler{}
+	handler := NewGetFavoritesInlineHandler(appenv)
 	assert.True(t, handler.CanHandle(query))
 	handler.Handle(reqenv, query)
 
-	bot := reqenv.Bot.(*base.FakeBotAPI)
+	bot := appenv.Bot.(*base.FakeBotAPI)
 	c := bot.GetOutput().(tgbotapi.InlineConfig)
 	assert.Len(t, c.Results, 2)
 

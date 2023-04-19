@@ -21,7 +21,7 @@ type Form struct {
 	Index      int    `json:"index"`      // index of the current field
 	WizardType string `json:"wizardType"` // name of the form
 
-	storage    StateStorage
+	resources  *Env
 	descriptor *FormDescriptor
 }
 
@@ -64,10 +64,10 @@ start:
 	if currentField.WasRequested {
 		value := currentField.extractor(msg)
 		if value == nil {
-			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr)+reqenv.Lang.Tr(string(currentField.Type)))
+			form.resources.appEnv.Bot.Reply(msg, reqenv.Lang.Tr(InvalidFieldValueTypeErrorTr)+reqenv.Lang.Tr(string(currentField.Type)))
 			return
 		} else if err := currentField.validate(reqenv, msg); err != nil {
-			reqenv.Bot.ReplyWithMarkdown(msg, reqenv.Lang.Tr(InvalidFieldValueErrorTr)+reqenv.Lang.Tr(err.Error()))
+			form.resources.appEnv.Bot.ReplyWithMarkdown(msg, reqenv.Lang.Tr(InvalidFieldValueErrorTr)+reqenv.Lang.Tr(err.Error()))
 			return
 		}
 		currentField.Data = value
@@ -78,7 +78,7 @@ start:
 		currentField.WasRequested = true
 	}
 
-	err := form.storage.SaveState(msg.From.ID, form)
+	err := form.resources.stateStorage.SaveState(msg.From.ID, form)
 	if err != nil {
 		log.Error(err)
 	}
@@ -86,15 +86,15 @@ start:
 
 func (form *Form) doAction(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	if form.descriptor.action == nil {
-		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(MissingStateErrorTr))
+		form.resources.appEnv.Bot.Reply(msg, reqenv.Lang.Tr(MissingStateErrorTr))
 		return
 	}
 	form.descriptor.action(reqenv, msg, form.Fields)
 }
 
 // PopulateRestored sets non-storable fields of the form restored from [StateStorage].
-func (form *Form) PopulateRestored(msg *tgbotapi.Message, storage StateStorage) {
-	form.storage = storage
+func (form *Form) PopulateRestored(msg *tgbotapi.Message, resources *Env) {
+	form.resources = resources
 	form.Fields[form.Index].restoreExtractor(msg)
 	form.descriptor = findFormDescriptor(form.WizardType)
 	for _, field := range form.Fields {
@@ -108,10 +108,17 @@ func (form *Form) PopulateRestored(msg *tgbotapi.Message, storage StateStorage) 
 func NewWizard(handler WizardMessageHandler, fields int) Wizard {
 	wizardName := getWizardName(handler)
 	return &Form{
-		storage:    handler.GetWizardStateStorage(),
+		resources:  handler.GetWizardEnv(),
 		Fields:     make(Fields, 0, fields),
 		WizardType: wizardName,
 		descriptor: findFormDescriptor(wizardName),
+	}
+}
+
+func NewEnv(appEnv *base.ApplicationEnv, stateStorage StateStorage) *Env {
+	return &Env{
+		appEnv:       appEnv,
+		stateStorage: stateStorage,
 	}
 }
 

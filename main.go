@@ -38,7 +38,6 @@ func main() {
 	srv := startServer(os.Getenv("APP_PORT"))
 
 	stateStorage, db := establishConnections(ctx)
-	messageHandlers, inlineHandlers, callbackHandlers := initHandlers(stateStorage)
 
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("API_TOKEN"))
 	if err != nil {
@@ -48,12 +47,20 @@ func main() {
 	debugMode := os.Getenv("DEBUG")
 	bot.Debug = strings.ToLower(debugMode) == "true" || debugMode == "1"
 
+	appenv := &base.ApplicationEnv{
+		Bot:      api,
+		Database: db,
+		Ctx:      ctx,
+	}
+
+	messageHandlers, inlineHandlers, callbackHandlers := initHandlers(appenv, stateStorage)
+
 	appParams := &appParams{
 		ctx:              ctx,
 		messageHandlers:  messageHandlers,
 		inlineHandlers:   inlineHandlers,
 		callbackHandlers: callbackHandlers,
-		settings:         repo.NewUserService(ctx, db),
+		settings:         repo.NewUserService(appenv),
 		api:              api,
 		stateStorage:     stateStorage,
 		db:               db,
@@ -119,27 +126,34 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 	return
 }
 
-func initHandlers(stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler) {
+func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler) {
 	help.InitMessages(handlers.MaxAliasLen, handlers.MaxPackageNameLen, handlers.ReservedSymbolsForMessage)
-	installPackageHandler := handlers.InstallPackageHandler{StateStorage: stateStorage}
+
+	languageHandler := handlers.NewLanguageHandler(appenv, stateStorage)
+	installPackageHandler := handlers.NewInstallPackageHandler(appenv, stateStorage)
+	startEmbeddedHandlers := handlers.StartEmbeddedHandlers{
+		Language:       &languageHandler,
+		InstallPackage: &installPackageHandler,
+	}
+
 	messageHandlers = []base.MessageHandler{
-		handlers.SaveHandler{StateStorage: stateStorage},
-		handlers.ListHandler{StateStorage: stateStorage},
-		handlers.DeleteHandler{StateStorage: stateStorage},
+		handlers.NewSaveHandler(appenv, stateStorage),
+		handlers.NewListHandler(appenv, stateStorage),
+		handlers.NewDeleteHandler(appenv, stateStorage),
 		installPackageHandler,
-		handlers.StartHandler{StateStorage: stateStorage, InstallPackageHandler: &installPackageHandler},
-		help.CommandHandler{},
-		handlers.CancelHandler{StateStorage: stateStorage},
-		handlers.LanguageHandler{StateStorage: stateStorage},
-		handlers.LinkHandler{StateStorage: stateStorage},
-		handlers.PackageHandler{StateStorage: stateStorage},
-		handlers.SearchModeHandler{StateStorage: stateStorage},
+		handlers.NewStartHandler(appenv, stateStorage, startEmbeddedHandlers),
+		help.NewCommandHandler(appenv),
+		handlers.NewCancelHandler(appenv, stateStorage),
+		languageHandler,
+		handlers.NewLinkHandler(appenv, stateStorage),
+		handlers.NewPackageHandler(appenv, stateStorage),
+		handlers.NewSearchModeHandler(appenv, stateStorage),
 	}
 	inlineHandlers = []base.InlineHandler{
-		handlers.GetFavoritesInlineHandler{},
+		handlers.NewGetFavoritesInlineHandler(appenv),
 	}
 	callbackHandlers = []base.CallbackHandler{
-		help.CallbackHandler{},
+		help.NewCallbackHandler(appenv),
 	}
 	registerMessageHandlerCounters(messageHandlers...)
 	registerInlineHandlerCounters(inlineHandlers...)

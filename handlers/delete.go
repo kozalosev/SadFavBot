@@ -23,13 +23,26 @@ const (
 )
 
 type DeleteHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	favService *repo.FavService
 }
 
-func (handler DeleteHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func NewDeleteHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) DeleteHandler {
+	return DeleteHandler{
+		appenv:       appenv,
+		stateStorage: stateStorage,
+		favService:   repo.NewFavsService(appenv),
+	}
+}
+
+func (handler DeleteHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
 
 func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(deleteFormAction)
+	desc := wizard.NewWizardDescriptor(handler.deleteFormAction)
 
 	aliasDesc := desc.AddField(FieldAlias, DeleteFieldsTrPrefix+FieldAlias)
 	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
@@ -40,7 +53,7 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		return nil
 	}
 	aliasDesc.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
-		aliasService := repo.NewAliasService(reqenv)
+		aliasService := repo.NewAliasService(handler.appenv)
 		aliases, err := aliasService.List(msg.From.ID)
 		if err != nil {
 			log.Error(err)
@@ -85,26 +98,25 @@ func (handler DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	w.ProcessNextField(reqenv, msg)
 }
 
-func deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	deleteAll := fields.FindField(FieldDeleteAll).Data == Yes
 	alias, fav := extractFavInfo(fields)
 
-	replyWith := replierFactory(reqenv, msg)
+	replyWith := replierFactory(handler.appenv, reqenv, msg)
 	if len(alias) == 0 {
 		replyWith(DeleteStatusFailure)
 		return
 	}
 
 	var (
-		res        repo.RowsAffectedAware
-		err        error
-		favService = repo.NewFavsService(reqenv)
+		res repo.RowsAffectedAware
+		err error
 	)
 	if deleteAll {
-		res, err = favService.DeleteByAlias(uid, alias)
+		res, err = handler.favService.DeleteByAlias(uid, alias)
 	} else {
-		res, err = favService.DeleteFav(uid, alias, fav)
+		res, err = handler.favService.DeleteFav(uid, alias, fav)
 	}
 
 	if err != nil {

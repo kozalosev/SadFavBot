@@ -30,27 +30,36 @@ func init() {
 	}
 }
 
-type GetFavoritesInlineHandler struct{}
+type GetFavoritesInlineHandler struct {
+	appenv     *base.ApplicationEnv
+	favService *repo.FavService
+}
+
+func NewGetFavoritesInlineHandler(appenv *base.ApplicationEnv) *GetFavoritesInlineHandler {
+	return &GetFavoritesInlineHandler{
+		appenv:     appenv,
+		favService: repo.NewFavsService(appenv),
+	}
+}
 
 func (GetFavoritesInlineHandler) CanHandle(*tgbotapi.InlineQuery) bool {
 	return true
 }
 
 func (handler GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) {
-	favsService := repo.NewFavsService(reqenv)
 	answer := tgbotapi.InlineConfig{
 		InlineQueryID: query.ID,
 		IsPersonal:    true,
 		CacheTime:     inlineAnswerCacheTime,
 	}
 	if len(query.Query) > 0 {
-		if objects, err := favsService.Find(query.From.ID, query.Query, reqenv.Options.SubstrSearchEnabled); err == nil {
+		if objects, err := handler.favService.Find(query.From.ID, query.Query, reqenv.Options.SubstrSearchEnabled); err == nil {
 			answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
 		} else {
 			log.Error(err)
 		}
 	}
-	if err := reqenv.Bot.Request(answer); err != nil {
+	if err := handler.appenv.Bot.Request(answer); err != nil {
 		log.Error("error while processing inline query: ", err)
 	}
 }

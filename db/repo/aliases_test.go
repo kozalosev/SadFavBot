@@ -17,7 +17,7 @@ func TestTrimCountSuffix(t *testing.T) {
 func TestAliasService_ListWithCounts(t *testing.T) {
 	test.InsertTestData(db)
 
-	aliasService := NewAliasService(test.BuildRequestEnv(db))
+	aliasService := NewAliasService(test.BuildApplicationEnv(db))
 	aliases, err := aliasService.ListWithCounts(test.UID)
 
 	assert.NoError(t, err)
@@ -29,7 +29,7 @@ func TestAliasService_ListWithCounts(t *testing.T) {
 func TestAliasService_List_noRows(t *testing.T) {
 	test.InsertTestData(db)
 
-	aliasService := NewAliasService(test.BuildRequestEnv(db))
+	aliasService := NewAliasService(test.BuildApplicationEnv(db))
 	aliases, err := aliasService.List(test.UID - 1)
 
 	assert.NoError(t, err)

@@ -26,13 +26,28 @@ const (
 )
 
 type ListHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	aliasService   *repo.AliasService
+	packageService *repo.PackageService
 }
 
-func (handler ListHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func NewListHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) ListHandler {
+	return ListHandler{
+		appenv:         appenv,
+		stateStorage:   stateStorage,
+		aliasService:   repo.NewAliasService(appenv),
+		packageService: repo.NewPackageService(appenv),
+	}
+}
+
+func (handler ListHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
 
 func (handler ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(listAction)
+	desc := wizard.NewWizardDescriptor(handler.listAction)
 	f := desc.AddField(FieldFavsOrPackages, ListFieldAliasesOrPackagesPromptTr)
 	f.InlineKeyboardAnswers = []string{Favs, Packages}
 	return desc
@@ -55,7 +70,7 @@ func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	w.ProcessNextField(reqenv, msg)
 }
 
-func listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	var (
 		items        []string
 		successTitle string
@@ -63,18 +78,16 @@ func listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 		err          error
 	)
 	if fields.FindField(FieldFavsOrPackages).Data.(string) == Packages {
-		packageService := repo.NewPackageService(reqenv)
-		items, err = packageService.ListWithCounts(msg.From.ID)
+		items, err = handler.packageService.ListWithCounts(msg.From.ID)
 		successTitle = ListStatusSuccessPackages
 		noRowsTitle = ListStatusNoRowsPackages
 	} else {
-		aliasService := repo.NewAliasService(reqenv)
-		items, err = aliasService.ListWithCounts(msg.From.ID)
+		items, err = handler.aliasService.ListWithCounts(msg.From.ID)
 		successTitle = ListStatusSuccessFavs
 		noRowsTitle = ListStatusNoRowsFavs
 	}
 
-	replyWith := replierFactory(reqenv, msg)
+	replyWith := replierFactory(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.Errorln(err)
 		replyWith(ListStatusFailure)
@@ -82,6 +95,6 @@ func listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 		replyWith(noRowsTitle)
 	} else {
 		title := reqenv.Lang.Tr(successTitle)
-		reqenv.Bot.Reply(msg, title+"\n\n"+LinePrefix+strings.Join(items, "\n"+LinePrefix))
+		handler.appenv.Bot.Reply(msg, title+"\n\n"+LinePrefix+strings.Join(items, "\n"+LinePrefix))
 	}
 }

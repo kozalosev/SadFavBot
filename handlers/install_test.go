@@ -20,8 +20,9 @@ func TestInstallPackageAction(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
 
-	reqenv := test.BuildRequestEnv(db)
-	aliasService := repo.NewAliasService(reqenv)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
+	aliasService := repo.NewAliasService(appenv)
 	msg := buildMessage(test.UID3)
 	fields := wizard.Fields{
 		&wizard.Field{
@@ -33,14 +34,16 @@ func TestInstallPackageAction(t *testing.T) {
 			Data: No,
 		},
 	}
-	installPackageAction(reqenv, msg, fields)
+
+	handler := NewInstallPackageHandler(appenv, nil)
+	handler.installPackageAction(reqenv, msg, fields)
 
 	aliases, err := aliasService.List(test.UID3)
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 0)
 
 	fields.FindField(FieldConfirmation).Data = Yes
-	installPackageAction(reqenv, msg, fields)
+	handler.installPackageAction(reqenv, msg, fields)
 
 	aliases, err = aliasService.ListWithCounts(test.UID3)
 	assert.NoError(t, err)

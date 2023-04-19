@@ -26,13 +26,28 @@ const (
 )
 
 type LinkHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	linkService  *repo.LinkService
+	aliasService *repo.AliasService
 }
 
-func (handler LinkHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func NewLinkHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) LinkHandler {
+	return LinkHandler{
+		appenv:       appenv,
+		stateStorage: stateStorage,
+		linkService:  repo.NewLinkService(appenv),
+		aliasService: repo.NewAliasService(appenv),
+	}
+}
+
+func (handler LinkHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
 
 func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(linkAction)
+	desc := wizard.NewWizardDescriptor(handler.linkAction)
 
 	nameField := desc.AddField(FieldName, LinkFieldTrPrefix+FieldName)
 	nameField.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
@@ -45,19 +60,8 @@ func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	aliasField := desc.AddField(FieldAlias, LinkFieldTrPrefix+FieldAlias)
 	aliasField.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
-		var (
-			aliases []string
-			alias   string
-		)
-		if res, err := reqenv.Database.Query(reqenv.Ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1", msg.From.ID); err == nil {
-			for res.Next() {
-				if err := res.Scan(&alias); err == nil {
-					aliases = append(aliases, alias)
-				} else {
-					log.Error(err)
-				}
-			}
-		} else {
+		aliases, err := handler.aliasService.ListForFavsOnly(msg.From.ID)
+		if err != nil {
 			log.Error(err)
 		}
 		return aliases
@@ -98,15 +102,14 @@ func (handler LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	w.ProcessNextField(reqenv, msg)
 }
 
-func linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	name := fields.FindField(FieldName).Data.(string)
 	refAlias := fields.FindField(FieldAlias).Data.(string)
 
-	linkService := repo.NewLinkService(reqenv)
-	err := linkService.Create(uid, name, refAlias)
+	err := handler.linkService.Create(uid, name, refAlias)
 
-	reply := replierFactory(reqenv, msg)
+	reply := replierFactory(handler.appenv, reqenv, msg)
 	if isAttemptToInsertLinkForExistingFav(err) {
 		reply(LinkStatusDuplicateFav)
 	} else if isDuplicateConstraintViolation(err) {

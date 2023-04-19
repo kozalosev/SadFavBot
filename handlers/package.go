@@ -37,15 +37,26 @@ const (
 )
 
 type PackageHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	packageService *repo.PackageService
 }
 
-func (handler PackageHandler) GetWizardStateStorage() wizard.StateStorage {
-	return handler.StateStorage
+func NewPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) PackageHandler {
+	return PackageHandler{
+		appenv:         appenv,
+		stateStorage:   stateStorage,
+		packageService: repo.NewPackageService(appenv),
+	}
 }
 
-func (PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(packageAction)
+func (handler PackageHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
+
+func (handler PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	desc := wizard.NewWizardDescriptor(handler.packageAction)
 
 	createOrDeleteDesc := desc.AddField(FieldCreateOrDelete, PackageFieldsTrPrefix+FieldCreateOrDelete)
 	createOrDeleteDesc.InlineKeyboardAnswers = []string{Create, Delete}
@@ -86,16 +97,14 @@ func (handler PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	w.ProcessNextField(reqenv, msg)
 }
 
-func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	deletion := fields.FindField(FieldCreateOrDelete).Data == Delete
 	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(string), " ", "-")
 
-	packageService := repo.NewPackageService(reqenv)
-
 	var err error
 	if deletion {
-		err = packageService.Delete(uid, name)
+		err = handler.packageService.Delete(uid, name)
 	} else {
 		aliasesStr := fields.FindField(FieldAliases).Data.(string)
 		aliases := strings.Split(aliasesStr, "\n")
@@ -103,10 +112,10 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 			return strings.TrimPrefix(a, LinePrefix)
 		}).([]string)
 
-		err = packageService.Create(uid, name, aliases)
+		err = handler.packageService.Create(uid, name, aliases)
 	}
 
-	reply := replierFactory(reqenv, msg)
+	reply := replierFactory(handler.appenv, reqenv, msg)
 	if isDuplicateConstraintViolation(err) {
 		reply(PackageStatusDuplicate)
 	} else if err == repo.NoRowsWereAffected {
@@ -120,6 +129,6 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := repo.FormatPackageName(uid, name)
 		urlPath := url.QueryEscape(base64.StdEncoding.EncodeToString([]byte(packName)))
-		reqenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, reqenv.Bot.GetName(), urlPath))
+		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, handler.appenv.Bot.GetName(), urlPath))
 	}
 }

@@ -36,7 +36,8 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	lang, opts := appParams.settings.FetchUserOptions(msg.From.ID, msg.From.LanguageCode)
 	lc := locpool.GetContext(string(lang))
-	reqenv := newRequestEnv(appParams, lc, opts)
+	reqenv := newRequestEnv(lc, opts)
+	appenv := newAppEnv(appParams)
 
 	// for commands and other handlers
 	for _, handler := range appParams.messageHandlers {
@@ -51,7 +52,8 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	var form wizard.Form
 	err := appParams.stateStorage.GetCurrentState(msg.From.ID, &form)
 	if err == nil {
-		form.PopulateRestored(msg, appParams.stateStorage)
+		resources := wizard.NewEnv(appenv, appParams.stateStorage)
+		form.PopulateRestored(msg, resources)
 		form.ProcessNextField(reqenv, msg)
 		return
 	}
@@ -67,13 +69,13 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	} else {
 		defaultMessageTr = DefaultMessageTr
 	}
-	reqenv.Bot.Reply(msg, reqenv.Lang.Tr(defaultMessageTr))
+	appenv.Bot.Reply(msg, reqenv.Lang.Tr(defaultMessageTr))
 }
 
 func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 	lang, opts := appParams.settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(string(lang))
-	reqenv := newRequestEnv(appParams, lc, opts)
+	reqenv := newRequestEnv(lc, opts)
 
 	for _, handler := range appParams.inlineHandlers {
 		if handler.CanHandle(query) {
@@ -87,7 +89,7 @@ func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
 	lang, opts := appParams.settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(string(lang))
-	reqenv := newRequestEnv(appParams, lc, opts)
+	reqenv := newRequestEnv(lc, opts)
 
 	splitData := strings.SplitN(query.Data, ":", 2)
 	if len(splitData) < 2 {
@@ -98,7 +100,8 @@ func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
 
 	// special case for the wizard callback, otherwise check other [base.CallbackHandler]s
 	if prefix == wizard.CallbackDataFieldPrefix {
-		wizard.CallbackQueryHandler(reqenv, query, appParams.stateStorage)
+		resources := wizard.NewEnv(newAppEnv(appParams), appParams.stateStorage)
+		wizard.CallbackQueryHandler(reqenv, query, resources)
 	} else {
 		for _, handler := range appParams.callbackHandlers {
 			if prefix == handler.GetCallbackPrefix() {

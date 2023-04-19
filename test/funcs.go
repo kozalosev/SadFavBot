@@ -66,13 +66,18 @@ func CheckRowsCount(t *testing.T, db *pgxpool.Pool, expected int, uid int64, ali
 	assert.Equal(t, expected, count)
 }
 
-func BuildRequestEnv(db *pgxpool.Pool) *base.RequestEnv {
-	return &base.RequestEnv{
-		Database: db,
+func BuildApplicationEnv(db *pgxpool.Pool) *base.ApplicationEnv {
+	return &base.ApplicationEnv{
 		Bot:      &base.FakeBotAPI{},
-		Lang:     loc.NewPool("en").GetContext("en"),
+		Database: db,
 		Ctx:      ctx,
-		Options:  &settings.UserOptions{},
+	}
+}
+
+func BuildRequestEnv() *base.RequestEnv {
+	return &base.RequestEnv{
+		Lang:    loc.NewPool("en").GetContext("en"),
+		Options: &settings.UserOptions{},
 	}
 }
 

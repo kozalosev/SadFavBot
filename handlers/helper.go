@@ -60,8 +60,8 @@ func isDuplicateConstraintViolation(err error) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode
 }
 
-func replierFactory(reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
+func replierFactory(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
 	return func(statusKey string) {
-		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(statusKey))
+		appenv.Bot.Reply(msg, reqenv.Lang.Tr(statusKey))
 	}
 }

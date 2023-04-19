@@ -20,12 +20,17 @@ type appParams struct {
 	db               *pgxpool.Pool
 }
 
-func newRequestEnv(params *appParams, langCtx *loc.Context, opts *settings.UserOptions) *base.RequestEnv {
-	return &base.RequestEnv{
+func newAppEnv(params *appParams) *base.ApplicationEnv {
+	return &base.ApplicationEnv{
 		Bot:      params.api,
-		Lang:     langCtx,
 		Database: params.db,
 		Ctx:      params.ctx,
-		Options:  opts,
+	}
+}
+
+func newRequestEnv(langCtx *loc.Context, opts *settings.UserOptions) *base.RequestEnv {
+	return &base.RequestEnv{
+		Lang:    langCtx,
+		Options: opts,
 	}
 }

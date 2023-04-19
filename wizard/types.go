@@ -19,12 +19,19 @@ type Wizard interface {
 }
 
 // WizardMessageHandler is an extended interface of [base.MessageHandler] which your handler must implement if you want to use this package facilities
+//
 //goland:noinspection GoNameStartsWithPackageName
 type WizardMessageHandler interface {
 	base.MessageHandler
 
-	// GetWizardStateStorage should return an implementation of the storage. An instance of [RedisStateStorage] for example.
-	GetWizardStateStorage() StateStorage
+	// GetWizardEnv should return the application environment and an implementation of the storage (an instance of [RedisStateStorage] for example).
+	GetWizardEnv() *Env
 	// GetWizardDescriptor should return the description of all non-storable parameters of your form.
 	GetWizardDescriptor() *FormDescriptor
+}
+
+//goland:noinspection GoNameStartsWithPackageName
+type Env struct {
+	appEnv       *base.ApplicationEnv
+	stateStorage StateStorage
 }

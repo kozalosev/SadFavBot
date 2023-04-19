@@ -11,12 +11,13 @@ import (
 func TestSearchModeAction(t *testing.T) {
 	test.InsertTestData(db)
 
-	userService := repo.NewUserService(ctx, db)
+	appenv := test.BuildApplicationEnv(db)
+	userService := repo.NewUserService(appenv)
 
 	_, opts := userService.FetchUserOptions(test.UID, "")
 	assert.False(t, opts.SubstrSearchEnabled)
 
-	reqenv := test.BuildRequestEnv(db)
+	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
 		&wizard.Field{
@@ -24,7 +25,8 @@ func TestSearchModeAction(t *testing.T) {
 			Data: Yes,
 		},
 	}
-	searchModeAction(reqenv, msg, fields)
+	handler := NewSearchModeHandler(appenv, nil)
+	handler.searchModeAction(reqenv, msg, fields)
 
 	_, opts = userService.FetchUserOptions(test.UID, "")
 	assert.True(t, opts.SubstrSearchEnabled)

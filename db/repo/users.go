@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/settings"
 	log "github.com/sirupsen/logrus"
 )
@@ -13,11 +14,10 @@ type UserService struct {
 	db  *pgxpool.Pool
 }
 
-// NewUserService is the only service constructor used in the main package, so it doesn't parse [github.com/kozalosev/SadFavBot/base.RequestEnv]
-func NewUserService(ctx context.Context, db *pgxpool.Pool) *UserService {
+func NewUserService(appenv *base.ApplicationEnv) *UserService {
 	return &UserService{
-		ctx: ctx,
-		db:  db,
+		ctx: appenv.Ctx,
+		db:  appenv.Database,
 	}
 }
 

@@ -22,10 +22,10 @@ type PackageService struct {
 	db  *pgxpool.Pool
 }
 
-func NewPackageService(reqenv *base.RequestEnv) *PackageService {
+func NewPackageService(appenv *base.ApplicationEnv) *PackageService {
 	return &PackageService{
-		ctx: reqenv.Ctx,
-		db:  reqenv.Database,
+		ctx: appenv.Ctx,
+		db:  appenv.Database,
 	}
 }
 

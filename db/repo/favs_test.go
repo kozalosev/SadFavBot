@@ -10,7 +10,7 @@ func TestFavService_Find(t *testing.T) {
 	test.InsertTestData(db)
 
 	query := test.BuildInlineQuery()
-	favsService := NewFavsService(test.BuildRequestEnv(db))
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
 	objects, err := favsService.Find(query.From.ID, query.Query, false)
 
 	assert.NoError(t, err)
@@ -25,7 +25,7 @@ func TestFavService_Find_bySubstring(t *testing.T) {
 	query := test.BuildInlineQuery()
 	query.Query = "a"
 
-	favsService := NewFavsService(test.BuildRequestEnv(db))
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
 	objects, err := favsService.Find(query.From.ID, query.Query, false)
 
 	assert.NoError(t, err)
@@ -44,7 +44,7 @@ func TestFavService_Find_escaping(t *testing.T) {
 	query := test.BuildInlineQuery()
 	query.Query = "%a%"
 
-	favsService := NewFavsService(test.BuildRequestEnv(db))
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
 	objects, err := favsService.Find(query.From.ID, query.Query, false)
 
 	assert.NoError(t, err)
@@ -61,7 +61,7 @@ func TestFavService_Find_byLink(t *testing.T) {
 
 	query := test.BuildInlineQuery()
 
-	favsService := NewFavsService(test.BuildRequestEnv(db))
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
 	objects, err := favsService.Find(query.From.ID, query.Query, false)
 
 	assert.Len(t, objects, 1)

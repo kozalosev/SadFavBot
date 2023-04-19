@@ -26,15 +26,26 @@ const (
 )
 
 type InstallPackageHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	packageService *repo.PackageService
 }
 
-func (handler InstallPackageHandler) GetWizardStateStorage() wizard.StateStorage {
-	return handler.StateStorage
+func NewInstallPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) InstallPackageHandler {
+	return InstallPackageHandler{
+		appenv:         appenv,
+		stateStorage:   stateStorage,
+		packageService: repo.NewPackageService(appenv),
+	}
+}
+
+func (handler InstallPackageHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
 func (handler InstallPackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(installPackageAction)
+	desc := wizard.NewWizardDescriptor(handler.installPackageAction)
 	desc.AddField(FieldName, InstallFieldsTrPrefix+FieldName)
 
 	confirmDesc := desc.AddField(FieldConfirmation, InstallFieldsTrPrefix+FieldConfirmation)
@@ -52,7 +63,7 @@ func (handler InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 	name := base.GetCommandArgument(msg)
 	if len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
-		sendCountOfAliasesInPackage(reqenv, msg, name)
+		sendCountOfAliasesInPackage(&handler, reqenv, msg, name)
 	} else {
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
@@ -60,19 +71,18 @@ func (handler InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 	w.ProcessNextField(reqenv, msg)
 }
 
-func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
+func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	packageService := repo.NewPackageService(reqenv)
-	if items, err := packageService.ListAliases(pkgInfo); err == nil {
+	if items, err := handler.packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
 			escapedItems := funk.Map(items, markdownEscaper.Replace).([]string)
 			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
-			reqenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
+			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
 		} else {
 			log.Warning("Empty package: " + name)
 		}
@@ -81,16 +91,16 @@ func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message,
 	}
 }
 
-func installPackageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler InstallPackageHandler) installPackageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	if fields.FindField(FieldConfirmation).Data == Yes {
 		name := fields.FindField(FieldName).Data.(string)
-		installPackageWithMessageHandling(reqenv, msg, name)
+		handler.installPackageWithMessageHandling(reqenv, msg, name)
 	}
 }
 
-func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
+func (handler InstallPackageHandler) installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	uid := msg.From.ID
-	reply := replierFactory(reqenv, msg)
+	reply := replierFactory(handler.appenv, reqenv, msg)
 
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {
@@ -99,15 +109,14 @@ func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		return
 	}
 
-	packageService := repo.NewPackageService(reqenv)
-	if installedAliases, err := packageService.Install(uid, pkgInfo); err == repo.NoRowsWereAffected {
+	if installedAliases, err := handler.packageService.Install(uid, pkgInfo); err == repo.NoRowsWereAffected {
 		reply(InstallStatusNoRows)
 	} else if err != nil {
 		log.Error(err)
 		reply(InstallStatusFailure)
 	} else {
 		if len(installedAliases) > 0 {
-			reqenv.Bot.Reply(msg, reqenv.Lang.Tr(InstallStatusSuccess)+"\n\n"+LinePrefix+strings.Join(installedAliases, "\n"+LinePrefix))
+			handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(InstallStatusSuccess)+"\n\n"+LinePrefix+strings.Join(installedAliases, "\n"+LinePrefix))
 		} else {
 			reply(InstallStatusSuccessNoNames)
 		}

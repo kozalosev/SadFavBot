@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
@@ -20,10 +21,10 @@ type AliasService struct {
 	db  *pgxpool.Pool
 }
 
-func NewAliasService(reqenv *base.RequestEnv) *AliasService {
+func NewAliasService(appenv *base.ApplicationEnv) *AliasService {
 	return &AliasService{
-		ctx: reqenv.Ctx,
-		db:  reqenv.Database,
+		ctx: appenv.Ctx,
+		db:  appenv.Database,
 	}
 }
 
@@ -70,6 +71,26 @@ func (service *AliasService) List(uid int64) ([]string, error) {
 		res = funk.Map(res, trimCountSuffix).([]string)
 	}
 	return res, err
+}
+
+// ListForFavsOnly returns the list of the user's aliases associated only with favs, but not with links.
+func (service *AliasService) ListForFavsOnly(uid int64) ([]string, error) {
+	if res, err := service.db.Query(service.ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1", uid); err == nil {
+		var (
+			aliases []string
+			alias   string
+		)
+		for res.Next() {
+			if e := res.Scan(&alias); err == nil {
+				aliases = append(aliases, alias)
+			} else {
+				err = errors.Join(err, e)
+			}
+		}
+		return aliases, err
+	} else {
+		return nil, err
+	}
 }
 
 func trimCountSuffix(s string) string {

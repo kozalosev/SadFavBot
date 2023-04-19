@@ -2,6 +2,7 @@ package repo
 
 import (
 	"github.com/kozalosev/SadFavBot/settings"
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,7 +10,7 @@ import (
 func TestFetchLanguage(t *testing.T) {
 	clearDatabase(t)
 
-	userService := NewUserService(ctx, db)
+	userService := NewUserService(test.BuildApplicationEnv(db))
 	lang, _ := userService.FetchUserOptions(TestUID, "en")
 	assert.Equal(t, settings.LangCode("en"), lang)
 
@@ -24,7 +25,7 @@ func TestFetchLanguage(t *testing.T) {
 func TestFetchUserOptions(t *testing.T) {
 	clearDatabase(t)
 
-	userService := NewUserService(ctx, db)
+	userService := NewUserService(test.BuildApplicationEnv(db))
 	_, opts := userService.FetchUserOptions(TestUID, "")
 	assert.False(t, opts.SubstrSearchEnabled)
 

@@ -11,7 +11,8 @@ func TestSaveFormAction(t *testing.T) {
 	test.InsertTestData(db)
 
 	msg := buildMessage(test.UID3)
-	reqenv := test.BuildRequestEnv(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	fieldsFile := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: test.Alias},
 		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{
@@ -20,7 +21,8 @@ func TestSaveFormAction(t *testing.T) {
 		}},
 	}
 
-	saveFormAction(reqenv, msg, fieldsFile)
+	handler := NewSaveHandler(appenv, nil)
+	handler.saveFormAction(reqenv, msg, fieldsFile)
 
 	test.CheckRowsCount(t, db, 1, test.UID3, nil)
 	itemFile := fetchItem(t, test.Type)
@@ -33,7 +35,7 @@ func TestSaveFormAction(t *testing.T) {
 	objField.Type = wizard.Text
 	objField.Data = test.Text
 
-	saveFormAction(reqenv, msg, fieldsText)
+	handler.saveFormAction(reqenv, msg, fieldsText)
 
 	test.CheckRowsCount(t, db, 2, test.UID3, nil)
 	itemText := fetchItem(t, wizard.Text)

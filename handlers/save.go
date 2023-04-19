@@ -34,13 +34,26 @@ var (
 )
 
 type SaveHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	favService *repo.FavService
 }
 
-func (handler SaveHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func NewSaveHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) SaveHandler {
+	return SaveHandler{
+		appenv:       appenv,
+		stateStorage: stateStorage,
+		favService:   repo.NewFavsService(appenv),
+	}
+}
+
+func (handler SaveHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
 
 func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(saveFormAction)
+	desc := wizard.NewWizardDescriptor(handler.saveFormAction)
 
 	aliasDesc := desc.AddField(FieldAlias, SaveFieldsTrPrefix+FieldAlias)
 	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
@@ -72,7 +85,7 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	title := base.GetCommandArgument(msg)
 	if len(title) > 0 {
 		if err := verifyNoReservedSymbols(title, reqenv.Lang, SaveStatusErrorForbiddenSymbolsInAlias); err != nil {
-			reqenv.Bot.ReplyWithMarkdown(msg, err.Error())
+			handler.appenv.Bot.ReplyWithMarkdown(msg, err.Error())
 			wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 		} else {
 			wizardForm.AddPrefilledField(FieldAlias, title)
@@ -84,18 +97,17 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	wizardForm.ProcessNextField(reqenv, msg)
 }
 
-func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	alias, fav := extractFavInfo(fields)
 
-	replyWith := replierFactory(reqenv, msg)
+	replyWith := replierFactory(handler.appenv, reqenv, msg)
 	if len(alias) == 0 {
 		replyWith(SaveStatusFailure)
 		return
 	}
 
-	favsService := repo.NewFavsService(reqenv)
-	res, err := favsService.Save(uid, alias, fav)
+	res, err := handler.favService.Save(uid, alias, fav)
 
 	if err != nil {
 		if isDuplicateConstraintViolation(err) {
@@ -106,8 +118,8 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 		}
 	} else {
 		if res.RowsAffected() > 0 {
-			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), reqenv.Bot.GetName(), markdownEscaper.Replace(alias))
-			reqenv.Bot.ReplyWithMarkdown(msg, answer)
+			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), markdownEscaper.Replace(alias))
+			handler.appenv.Bot.ReplyWithMarkdown(msg, answer)
 		} else {
 			log.Warning("No rows were affected!")
 			replyWith(SaveStatusFailure)

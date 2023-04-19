@@ -24,8 +24,11 @@ func TestCallbackQueryHandler(t *testing.T) {
 		From:    msg.From,
 		Message: msg,
 	}
+	appenv := &base.ApplicationEnv{
+		Bot: &base.FakeBotAPI{},
+		Ctx: ctx,
+	}
 	reqenv := &base.RequestEnv{
-		Bot:  &base.FakeBotAPI{},
 		Lang: loc.NewPool("en").GetContext("en"),
 	}
 
@@ -42,8 +45,10 @@ func TestCallbackQueryHandler(t *testing.T) {
 
 	_ = storage.SaveState(TestID, form)
 
+	resources := NewEnv(appenv, storage)
+
 	query.Data = fmt.Sprintf("%s%s:%s", CallbackDataFieldPrefix, TestName, TestValue)
-	CallbackQueryHandler(reqenv, query, storage)
+	CallbackQueryHandler(reqenv, query, resources)
 	_ = storage.GetCurrentState(TestID, form)
 
 	assert.Equal(t, 1, form.Index)
@@ -54,7 +59,7 @@ func TestCallbackQueryHandler(t *testing.T) {
 	assert.False(t, actionFlagCont.flag)
 
 	query.Data = fmt.Sprintf("%s%s:%s", CallbackDataFieldPrefix, TestName2, TestValue)
-	CallbackQueryHandler(reqenv, query, storage)
+	CallbackQueryHandler(reqenv, query, resources)
 	_ = storage.GetCurrentState(TestID, form)
 
 	assert.Equal(t, 2, form.Index)
