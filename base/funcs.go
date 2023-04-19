@@ -9,8 +9,8 @@ import (
 
 // GetCommandArgument extracts a command argument from the text of a message.
 // For example:
-// 	* "/foo bar" will result in "bar"
-// 	* "/foo" will result in ""
+//   - "/foo bar" will result in "bar"
+//   - "/foo" will result in ""
 func GetCommandArgument(msg *tgbotapi.Message) string {
 	return strings.TrimSpace(strings.TrimPrefix(msg.Text, "/"+msg.Command()))
 }
@@ -31,18 +31,10 @@ var (
 )
 
 func (bot *BotAPI) GetName() string {
-	if bot.DummyMode {
-		return "DummyMode"
-	}
 	return bot.internal.Self.UserName
 }
 
-// ReplyWithMessageCustomizer is the most common method to send text messages as a reply. Use this method if you want
-// to change several options like a message in Markdown with an inline keyboard.
 func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string, customizer MessageCustomizer) {
-	if bot.DummyMode {
-		return
-	}
 	if len(text) == 0 {
 		log.Error("Empty reply for the message: " + msg.Text)
 		return
@@ -56,7 +48,6 @@ func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string
 	}
 }
 
-// Reply with just a text message, without any customizations.
 func (bot *BotAPI) Reply(msg *tgbotapi.Message, text string) {
 	bot.ReplyWithMessageCustomizer(msg, text, noOpCustomizer)
 }
@@ -65,8 +56,6 @@ func (bot *BotAPI) ReplyWithMarkdown(msg *tgbotapi.Message, text string) {
 	bot.ReplyWithMessageCustomizer(msg, text, markdownCustomizer)
 }
 
-// ReplyWithKeyboard uses a one time reply keyboard.
-// https://core.telegram.org/bots/api#replykeyboardmarkup
 func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options []string) {
 	buttons := funk.Map(options, func(s string) tgbotapi.KeyboardButton {
 		return tgbotapi.NewKeyboardButton(s)
@@ -80,8 +69,6 @@ func (bot *BotAPI) ReplyWithKeyboard(msg *tgbotapi.Message, text string, options
 	})
 }
 
-// ReplyWithInlineKeyboard attaches an inline keyboard to the message.
-// https://core.telegram.org/bots/api#inlinekeyboardmarkup
 func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, buttons []tgbotapi.InlineKeyboardButton) {
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(buttons...),
@@ -91,12 +78,8 @@ func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, b
 	})
 }
 
-// Request is the most common method that can be used to send any request to Telegram.
-// This is a simple wrapper around [tgbotapi.BotAPI.Request].
+// Request is a simple wrapper around [tgbotapi.BotAPI.Request].
 func (bot *BotAPI) Request(c tgbotapi.Chattable) error {
-	if bot.DummyMode {
-		return nil
-	}
 	_, err := bot.internal.Request(c)
 	return err
 }

@@ -1,13 +1,13 @@
 package storage
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/source/github"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
@@ -33,20 +33,21 @@ func NewDatabaseConfig(host, port, username, password, dbName string) *DatabaseC
 	}
 }
 
-func ConnectToDatabase(config *DatabaseConfig) *sql.DB {
+// ConnectToDatabase returns a connection pool, which can be used to execute queries to the database.
+func ConnectToDatabase(ctx context.Context, config *DatabaseConfig) *pgxpool.Pool {
 	intPort, err := strconv.ParseInt(config.port, 10, strconv.IntSize)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		config.host, intPort, config.user, config.password, config.dbName)
-	conn, err := sql.Open("pgx", psqlInfo)
+	connURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
+		config.user, config.password, config.host, intPort, config.dbName)
+	conn, err := pgxpool.New(ctx, connURL)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	if err := conn.Ping(); err != nil {
+	if err := conn.Ping(ctx); err != nil {
 		panic(err)
 	}
 	return conn
@@ -59,6 +60,8 @@ func RunMigrations(config *DatabaseConfig, migrationsRepo string) {
 		sourceURL = "file://" + migrationsPath
 	} else if _, err := os.Stat("../" + migrationsPath); err == nil {
 		sourceURL = "file://../" + migrationsPath
+	} else if _, err := os.Stat("../../" + migrationsPath); err == nil {
+		sourceURL = "file://../../" + migrationsPath
 	} else {
 		log.Warning("Run migrations from the repository")
 		sourceURL = "github://" + migrationsRepo + "/" + migrationsPath

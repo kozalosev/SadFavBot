@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"context"
-	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -36,8 +35,6 @@ const (
 
 	MaxPackageNameLen = 256
 )
-
-var noRowsWereAffected = errors.New("no rows were affected")
 
 type PackageHandler struct {
 	StateStorage wizard.StateStorage
@@ -94,9 +91,11 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 	deletion := fields.FindField(FieldCreateOrDelete).Data == Delete
 	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(string), " ", "-")
 
+	packageService := repo.NewPackageService(reqenv)
+
 	var err error
 	if deletion {
-		err = deletePackage(reqenv.Ctx, reqenv.Database, uid, name)
+		err = packageService.Delete(uid, name)
 	} else {
 		aliasesStr := fields.FindField(FieldAliases).Data.(string)
 		aliases := strings.Split(aliasesStr, "\n")
@@ -104,13 +103,13 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 			return strings.TrimPrefix(a, LinePrefix)
 		}).([]string)
 
-		err = createPackage(reqenv.Ctx, reqenv.Database, uid, name, aliases)
+		err = packageService.Create(uid, name, aliases)
 	}
 
 	reply := replierFactory(reqenv, msg)
 	if isDuplicateConstraintViolation(err) {
 		reply(PackageStatusDuplicate)
-	} else if err == noRowsWereAffected {
+	} else if err == repo.NoRowsWereAffected {
 		reply(PackageStatusNoRows)
 	} else if err != nil {
 		log.Error(err)
@@ -119,59 +118,8 @@ func packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard
 		reply(PackageStatusDeletionSuccess)
 	} else {
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
-		packName := formatPackageName(uid, name)
+		packName := repo.FormatPackageName(uid, name)
 		urlPath := url.QueryEscape(base64.StdEncoding.EncodeToString([]byte(packName)))
 		reqenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, reqenv.Bot.GetName(), urlPath))
 	}
-}
-
-func createPackage(ctx context.Context, db *sql.DB, uid int64, name string, aliases []string) error {
-	var (
-		tx  *sql.Tx
-		err error
-	)
-	if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err == nil {
-		if err = createPackageImpl(ctx, db, tx, uid, name, aliases); err == nil {
-			err = tx.Commit()
-		}
-	}
-	return err
-}
-
-func createPackageImpl(ctx context.Context, db *sql.DB, tx *sql.Tx, uid int64, name string, aliases []string) error {
-	var (
-		packID int
-		res    *sql.Rows
-		err    error
-	)
-	if err = tx.QueryRowContext(ctx, "INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id", uid, name).Scan(&packID); err == nil {
-		aliases = funk.Map(aliases, func(a string) string {
-			return strings.Replace(a, "'", "''", -1)
-		}).([]string)
-		if res, err = db.QueryContext(ctx, fmt.Sprintf("SELECT id FROM aliases WHERE name IN ('%s')", strings.Join(aliases, "', '"))); err == nil {
-			var aliasID int
-			for res.Next() {
-				if err = res.Scan(&aliasID); err == nil {
-					// TODO: this will be optimized in #4 (make use of batch inserts from the pgx module)
-					_, err = tx.ExecContext(ctx, "INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", packID, aliasID)
-				}
-			}
-		}
-	}
-	return err
-}
-
-func deletePackage(ctx context.Context, db *sql.DB, uid int64, name string) error {
-	res, err := db.ExecContext(ctx, "DELETE FROM packages WHERE owner_uid = $1 AND name = $2", uid, name)
-	if err != nil {
-		return err
-	}
-	if !checkRowsWereAffected(res) {
-		return noRowsWereAffected
-	}
-	return nil
-}
-
-func formatPackageName(uid int64, name string) string {
-	return fmt.Sprintf("%d@%s", uid, name)
 }

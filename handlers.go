@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/go-redis/redis/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -35,7 +34,7 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 }
 
 func processMessage(appParams *appParams, msg *tgbotapi.Message) {
-	lang, opts := settings.FetchUserOptions(appParams.ctx, appParams.db, msg.From.ID, msg.From.LanguageCode)
+	lang, opts := appParams.settings.FetchUserOptions(msg.From.ID, msg.From.LanguageCode)
 	lc := locpool.GetContext(string(lang))
 	reqenv := newRequestEnv(appParams, lc, opts)
 
@@ -72,7 +71,7 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 }
 
 func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
-	lang, opts := settings.FetchUserOptions(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
+	lang, opts := appParams.settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(string(lang))
 	reqenv := newRequestEnv(appParams, lc, opts)
 
@@ -86,7 +85,7 @@ func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
 }
 
 func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
-	lang, opts := settings.FetchUserOptions(appParams.ctx, appParams.db, query.From.ID, query.From.LanguageCode)
+	lang, opts := appParams.settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
 	lc := locpool.GetContext(string(lang))
 	reqenv := newRequestEnv(appParams, lc, opts)
 

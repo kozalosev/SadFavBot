@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +44,8 @@ func (StartHandler) CanHandle(msg *tgbotapi.Message) bool {
 }
 
 func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	res, err := reqenv.Database.ExecContext(reqenv.Ctx, "INSERT INTO Users(uid) VALUES ($1) ON CONFLICT DO NOTHING", msg.From.ID)
+	userService := repo.NewUserService(reqenv.Ctx, reqenv.Database)
+	wasCreated, err := userService.Create(msg.From.ID)
 
 	var installingPackage string
 	if err == nil {
@@ -56,7 +58,7 @@ func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	if err != nil {
 		log.Error(err)
 		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(StartStatusFailure))
-	} else if checkRowsWereAffected(res) {
+	} else if wasCreated {
 		w := wizard.NewWizard(handler, 2)
 		w.AddEmptyField(FieldLanguage, wizard.Text)
 		w.AddPrefilledField(FieldInstallingPackage, installingPackage)

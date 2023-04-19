@@ -3,6 +3,8 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 )
@@ -52,7 +54,8 @@ func languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields w
 }
 
 func saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
-	_, err := reqenv.Database.ExecContext(reqenv.Ctx, "UPDATE users SET language = $1 WHERE uid = $2", langFlagToCode(language), msg.From.ID)
+	userService := repo.NewUserService(reqenv.Ctx, reqenv.Database)
+	err := userService.ChangeLanguage(msg.From.ID, settings.LangCode(langFlagToCode(language)))
 	if err != nil {
 		log.Errorln(err)
 		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(LanguageStatusFailure))

@@ -2,49 +2,23 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestCreatePackage(t *testing.T) {
-	insertTestData(db)
-
-	err := createPackage(ctx, db, TestUID, TestPackage, []string{TestAlias2})
-	assert.NoError(t, err)
-
-	packages, err := fetchPackages(ctx, db, TestUID)
-	assert.NoError(t, err)
-	assert.Len(t, packages, 1)
-	assert.Contains(t, packages, formatPackageName(TestUID, TestPackage)+" (1)")
-
-	var aliasID int
-	err = db.QueryRow("SELECT alias_id FROM package_aliases pa JOIN packages p ON p.id = pa.package_id WHERE p.name = $1", TestPackage).Scan(&aliasID)
-	assert.NoError(t, err)
-	assert.Equal(t, TestAlias2ID, aliasID)
-}
-
-func TestDeletePackage(t *testing.T) {
-	insertTestData(db)
-	insertTestPackages(db)
-
-	err := deletePackage(ctx, db, TestUID, TestPackage)
-	assert.NoError(t, err)
-
-	packages, err := fetchPackages(ctx, db, TestUID)
-	assert.NoError(t, err)
-	assert.Len(t, packages, 0)
-}
-
 func TestPackageAction(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 
-	reqenv := buildRequestEnv()
-	msg := buildMessage(TestUID3)
+	reqenv := test.BuildRequestEnv(db)
+	packageService := repo.NewPackageService(reqenv)
+	msg := buildMessage(test.UID3)
 	fields := wizard.Fields{
 		&wizard.Field{
 			Name: FieldName,
-			Data: TestPackage,
+			Data: test.Package,
 		},
 		&wizard.Field{
 			Name: FieldCreateOrDelete,
@@ -52,20 +26,20 @@ func TestPackageAction(t *testing.T) {
 		},
 		&wizard.Field{
 			Name: FieldAliases,
-			Data: TestAlias + "\n" + TestAlias2,
+			Data: test.Alias + "\n" + test.Alias2,
 		},
 	}
 	packageAction(reqenv, msg, fields)
 
-	packages, err := fetchPackages(ctx, db, TestUID3)
+	packages, err := packageService.ListWithCounts(test.UID3)
 	assert.NoError(t, err)
 	assert.Len(t, packages, 1)
-	assert.Contains(t, packages, fmt.Sprintf("%d@%s (2)", TestUID3, TestPackage))
+	assert.Contains(t, packages, fmt.Sprintf("%d@%s (2)", test.UID3, test.Package))
 
 	fields.FindField(FieldCreateOrDelete).Data = Delete
 	packageAction(reqenv, msg, fields)
 
-	packages, err = fetchPackages(ctx, db, TestUID3)
+	packages, err = packageService.ListWithCounts(test.UID3)
 	assert.NoError(t, err)
 	assert.Len(t, packages, 0)
 }

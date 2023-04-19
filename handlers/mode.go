@@ -3,6 +3,7 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -62,7 +63,9 @@ func (handler SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.M
 
 func searchModeAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	substrSearchEnabled := fields.FindField(FieldSubstrSearchEnabled).Data == Yes
-	_, err := reqenv.Database.ExecContext(reqenv.Ctx, "UPDATE Users SET substring_search = $2 WHERE uid = $1", msg.From.ID, substrSearchEnabled)
+
+	userService := repo.NewUserService(reqenv.Ctx, reqenv.Database)
+	err := userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)
 
 	reply := replierFactory(reqenv, msg)
 	if err != nil {

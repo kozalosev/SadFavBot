@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"github.com/go-redis/redis/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers"
 	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/SadFavBot/storage"
@@ -52,6 +53,7 @@ func main() {
 		messageHandlers:  messageHandlers,
 		inlineHandlers:   inlineHandlers,
 		callbackHandlers: callbackHandlers,
+		settings:         repo.NewUserService(ctx, db),
 		api:              api,
 		stateStorage:     stateStorage,
 		db:               db,
@@ -96,7 +98,7 @@ func main() {
 	shutdown(stateStorage, db)
 }
 
-func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *sql.DB) {
+func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *pgxpool.Pool) {
 	commandStateTTL, err := time.ParseDuration(os.Getenv("COMMAND_STATE_TTL"))
 	if err != nil {
 		panic(err)
@@ -112,7 +114,7 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
 		os.Getenv("POSTGRES_DB"))
-	db = storage.ConnectToDatabase(dbConfig)
+	db = storage.ConnectToDatabase(ctx, dbConfig)
 	storage.RunMigrations(dbConfig, os.Getenv("MIGRATIONS_REPO"))
 	return
 }
@@ -162,10 +164,8 @@ func stopListeningForIncomingRequests(srv *http.Server) {
 	}
 }
 
-func shutdown(stateStorage wizard.StateStorage, db *sql.DB) {
-	if err := db.Close(); err != nil {
-		log.Error(err)
-	}
+func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool) {
+	dbPool.Close()
 	if err := stateStorage.Close(); err != nil {
 		log.Error(err)
 	}

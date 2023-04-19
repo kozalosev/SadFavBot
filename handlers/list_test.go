@@ -1,37 +1,64 @@
 package handlers
 
 import (
+	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
-func TestFetchAliases(t *testing.T) {
-	insertTestData(db)
+func TestListActionFavs(t *testing.T) {
+	test.InsertTestData(db)
 
-	aliases, err := fetchAliases(ctx, db, TestUID)
+	reqenv := test.BuildRequestEnv(db)
+	msg := buildMessage(test.UID)
+	fields := wizard.Fields{
+		&wizard.Field{
+			Name: FieldFavsOrPackages,
+			Data: Favs,
+		},
+	}
 
-	assert.NoError(t, err)
-	assert.Len(t, aliases, 2)
-	assert.Contains(t, aliases, TestAlias+" (2)")
-	assert.Contains(t, aliases, TestAlias2+" (1)")
+	listAction(reqenv, msg, fields)
+
+	bot := reqenv.Bot.(*base.FakeBotAPI)
+	sentMessage := bot.GetOutput().(string)
+	lines := strings.Split(sentMessage, "\n")
+
+	heading := lines[0]
+	assert.Contains(t, heading, "favs")
+
+	list := lines[2:]
+	assert.Len(t, list, 2)
+	assert.Contains(t, list[0], test.Alias)
+	assert.Contains(t, list[1], test.Alias2)
 }
 
-func TestFetchPackages(t *testing.T) {
-	insertTestData(db)
-	insertTestPackages(db)
+func TestListActionPackages(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
 
-	packages, err := fetchPackages(ctx, db, TestUID)
+	reqenv := test.BuildRequestEnv(db)
+	msg := buildMessage(test.UID)
+	fields := wizard.Fields{
+		&wizard.Field{
+			Name: FieldFavsOrPackages,
+			Data: Packages,
+		},
+	}
 
-	assert.NoError(t, err)
-	assert.Len(t, packages, 1)
-	assert.Contains(t, packages, formatPackageName(TestUID, TestPackage)+" (1)")
-}
+	listAction(reqenv, msg, fields)
 
-func TestFetchAliasesNoRows(t *testing.T) {
-	insertTestData(db)
+	bot := reqenv.Bot.(*base.FakeBotAPI)
+	sentMessage := bot.GetOutput().(string)
+	lines := strings.Split(sentMessage, "\n")
 
-	aliases, err := fetchAliases(ctx, db, TestUID-1)
+	heading := lines[0]
+	assert.Contains(t, heading, "packages")
 
-	assert.NoError(t, err)
-	assert.Len(t, aliases, 0)
+	list := lines[2:]
+	assert.Len(t, list, 1)
+	assert.Contains(t, list[0], test.PackageFullName)
 }

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.18-alpine as builder
+FROM golang:1.20-alpine as builder
 WORKDIR /app
 
 # Create an unprivileged user
@@ -20,10 +20,11 @@ RUN go mod download
 
 COPY *.go ./
 COPY base/* ./base/
+COPY db/repo/* ./db/repo/
 COPY handlers/ ./handlers/
+COPY settings/* ./settings/
 COPY storage/* ./storage/
 COPY wizard/* ./wizard/
-COPY settings/* ./settings/
 
 # Build without debugging info
 RUN go build -ldflags="-w -s" -o /sadFavBot github.com/kozalosev/SadFavBot

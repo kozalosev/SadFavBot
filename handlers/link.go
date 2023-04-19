@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -49,7 +49,7 @@ func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 			aliases []string
 			alias   string
 		)
-		if res, err := reqenv.Database.QueryContext(reqenv.Ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1", msg.From.ID); err == nil {
+		if res, err := reqenv.Database.Query(reqenv.Ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1", msg.From.ID); err == nil {
 			for res.Next() {
 				if err := res.Scan(&alias); err == nil {
 					aliases = append(aliases, alias)
@@ -103,27 +103,8 @@ func linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 	name := fields.FindField(FieldName).Data.(string)
 	refAlias := fields.FindField(FieldAlias).Data.(string)
 
-	var (
-		tx  *sql.Tx
-		err error
-	)
-	if tx, err = reqenv.Database.BeginTx(reqenv.Ctx, nil); err == nil {
-		var aliasID int
-		if aliasID, err = saveAliasToSeparateTable(reqenv.Ctx, tx, name); err == nil {
-			if _, err = tx.ExecContext(reqenv.Ctx, "INSERT INTO Links(uid, alias_id, linked_alias_id) VALUES ($1, "+
-				"CASE WHEN ($2 > 0) THEN $2 ELSE (SELECT id FROM aliases WHERE name = $3) END, "+
-				"(SELECT id FROM aliases WHERE name = $4))",
-				uid, aliasID, name, refAlias); err == nil {
-				err = tx.Commit()
-			}
-		}
-	}
-
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			log.Error(err)
-		}
-	}
+	linkService := repo.NewLinkService(reqenv)
+	err := linkService.Create(uid, name, refAlias)
 
 	reply := replierFactory(reqenv, msg)
 	if isAttemptToInsertLinkForExistingFav(err) {

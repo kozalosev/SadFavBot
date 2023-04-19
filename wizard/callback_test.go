@@ -25,7 +25,7 @@ func TestCallbackQueryHandler(t *testing.T) {
 		Message: msg,
 	}
 	reqenv := &base.RequestEnv{
-		Bot:  &base.BotAPI{DummyMode: true},
+		Bot:  &base.FakeBotAPI{},
 		Lang: loc.NewPool("en").GetContext("en"),
 	}
 

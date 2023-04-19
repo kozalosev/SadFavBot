@@ -1,22 +1,20 @@
 package handlers
 
 import (
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-const (
-	en = "en"
-	ru = "ru"
-)
+const en = "en"
 
 func TestLanguageFormAction(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 	assertLanguage(t, "ru")
 
-	msg := buildMessage(TestUID)
-	reqenv := buildRequestEnv()
+	msg := buildMessage(test.UID)
+	reqenv := test.BuildRequestEnv(db)
 	fields := wizard.Fields{
 		&wizard.Field{
 			Name: FieldLanguage,
@@ -38,7 +36,7 @@ func TestFlagToCode(t *testing.T) {
 }
 
 func assertLanguage(t *testing.T, expected string) {
-	res := db.QueryRow("SELECT language FROM users WHERE uid = $1", TestUID)
+	res := db.QueryRow(ctx, "SELECT language FROM users WHERE uid = $1", test.UID)
 	var lang string
 	err := res.Scan(&lang)
 

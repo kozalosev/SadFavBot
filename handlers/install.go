@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -62,7 +61,14 @@ func (handler InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 }
 
 func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
-	if items, err := fetchAliasesInPackage(reqenv.Ctx, reqenv.Database, name); err == nil {
+	pkgInfo, err := parsePackageName(name)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	packageService := repo.NewPackageService(reqenv)
+	if items, err := packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
 			escapedItems := funk.Map(items, markdownEscaper.Replace).([]string)
 			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
@@ -73,23 +79,6 @@ func sendCountOfAliasesInPackage(reqenv *base.RequestEnv, msg *tgbotapi.Message,
 	} else {
 		log.Error(err)
 	}
-}
-
-func fetchAliasesInPackage(ctx context.Context, db *sql.DB, name string) (items []string, err error) {
-	var pkgInfo *packageInfo
-	if pkgInfo, err = parsePackageName(name); err == nil {
-		var res *sql.Rows
-		q := "SELECT a.name FROM package_aliases pa JOIN packages p ON p.id = pa.package_id JOIN aliases a ON pa.alias_id = a.id WHERE p.owner_uid = $1 AND p.name = $2"
-		if res, err = db.QueryContext(ctx, q, pkgInfo.uid, pkgInfo.name); err == nil {
-			var item string
-			for res.Next() {
-				if err = res.Scan(&item); err == nil {
-					items = append(items, item)
-				}
-			}
-		}
-	}
-	return
 }
 
 func installPackageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
@@ -103,7 +92,15 @@ func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Me
 	uid := msg.From.ID
 	reply := replierFactory(reqenv, msg)
 
-	if installedAliases, err := installPackage(reqenv.Ctx, reqenv.Database, uid, name); err == noRowsWereAffected {
+	pkgInfo, err := parsePackageName(name)
+	if err != nil {
+		log.Error(err)
+		reply(InstallStatusFailure)
+		return
+	}
+
+	packageService := repo.NewPackageService(reqenv)
+	if installedAliases, err := packageService.Install(uid, pkgInfo); err == repo.NoRowsWereAffected {
 		reply(InstallStatusNoRows)
 	} else if err != nil {
 		log.Error(err)
@@ -117,119 +114,7 @@ func installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Me
 	}
 }
 
-func installPackage(ctx context.Context, db *sql.DB, uid int64, name string) ([]string, error) {
-	var (
-		pkgInfo      *packageInfo
-		tx           *sql.Tx
-		res          *sql.Rows
-		err          error
-		items, links []int
-	)
-	if pkgInfo, err = parsePackageName(name); err == nil {
-		if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err == nil {
-			if items, err = installItems(ctx, tx, uid, pkgInfo); err == nil {
-				if links, err = installLinks(ctx, tx, uid, pkgInfo); err == nil {
-					err = tx.Commit()
-				}
-			}
-		}
-	}
-	aliasIDs := append(items, links...)
-
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			log.Error(err)
-		}
-		return nil, err
-	} else if len(aliasIDs) == 0 {
-		return nil, noRowsWereAffected
-	} else {
-		aliasIDs = removeDuplicates(aliasIDs)
-		aliasIDsAsStr := funk.Reduce(aliasIDs[1:], func(acc string, elem int) string {
-			return acc + "," + strconv.Itoa(elem)
-		}, strconv.Itoa(aliasIDs[0])).(string)
-
-		res, err = db.QueryContext(ctx, "SELECT name FROM aliases WHERE id IN ("+aliasIDsAsStr+")")
-
-		var installedAliases []string
-		if err == nil {
-			var installedAlias string
-			for res.Next() {
-				if err = res.Scan(&installedAlias); err == nil {
-					installedAliases = append(installedAliases, installedAlias)
-				} else {
-					log.Error(err)
-				}
-			}
-		}
-		return installedAliases, err
-	}
-}
-
-func installItems(ctx context.Context, tx *sql.Tx, uid int64, pkgInfo *packageInfo) ([]int, error) {
-	res, err := tx.QueryContext(ctx, "INSERT INTO favs(uid, type, alias_id, file_id, file_unique_id, text_id) "+
-		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id FROM packages p "+
-		"JOIN package_aliases pa ON p.id = pa.package_id "+
-		"JOIN favs f ON f.uid = p.owner_uid AND f.alias_id = pa.alias_id "+
-		"WHERE p.owner_uid = $2 AND p.name = $3 "+
-		"UNION "+
-		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id FROM packages p "+
-		"JOIN package_aliases pa ON p.id = pa.package_id "+
-		"JOIN links l ON l.uid = p.owner_uid AND l.alias_id = pa.alias_id "+
-		"JOIN favs f ON f.uid = p.owner_uid AND f.alias_id = l.linked_alias_id "+
-		"WHERE p.owner_uid = $2 AND p.name = $3 "+
-		"ON CONFLICT DO NOTHING "+
-		"RETURNING alias_id", uid, pkgInfo.uid, pkgInfo.name)
-	if err == nil {
-		var (
-			aliasID  int
-			aliasIDs []int
-		)
-		for res.Next() {
-			if err = res.Scan(&aliasID); err == nil {
-				aliasIDs = append(aliasIDs, aliasID)
-			} else {
-				log.Error(err)
-			}
-		}
-		return aliasIDs, nil
-	} else {
-		return nil, err
-	}
-}
-
-func installLinks(ctx context.Context, tx *sql.Tx, uid int64, pkgInfo *packageInfo) ([]int, error) {
-	res, err := tx.QueryContext(ctx, "INSERT INTO links(uid, alias_id, linked_alias_id) "+
-		"SELECT $1, l.alias_id, l.linked_alias_id FROM packages p "+
-		"JOIN package_aliases pa ON p.id = pa.package_id "+
-		"JOIN links l ON l.uid = p.owner_uid AND l.alias_id = pa.alias_id "+
-		"WHERE p.owner_uid = $2 AND p.name = $3 "+
-		"ON CONFLICT DO NOTHING "+
-		"RETURNING alias_id", uid, pkgInfo.uid, pkgInfo.name)
-	if err == nil {
-		var (
-			aliasID  int
-			aliasIDs []int
-		)
-		for res.Next() {
-			if err = res.Scan(&aliasID); err == nil {
-				aliasIDs = append(aliasIDs, aliasID)
-			} else {
-				log.Error(err)
-			}
-		}
-		return aliasIDs, nil
-	} else {
-		return nil, err
-	}
-}
-
-type packageInfo struct {
-	uid  int64
-	name string
-}
-
-func parsePackageName(s string) (*packageInfo, error) {
+func parsePackageName(s string) (*repo.PackageInfo, error) {
 	arr := strings.Split(s, "@")
 	if len(arr) != 2 {
 		return nil, errors.New("Unexpected package name: " + s)
@@ -238,21 +123,8 @@ func parsePackageName(s string) (*packageInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &packageInfo{
-		uid:  uid,
-		name: arr[1],
+	return &repo.PackageInfo{
+		UID:  uid,
+		Name: arr[1],
 	}, nil
-}
-
-func removeDuplicates(arr []int) []int {
-	type empty struct{}
-	arrMap := make(map[int]empty, len(arr))
-	for _, val := range arr {
-		arrMap[val] = empty{}
-	}
-	arr = make([]int, 0, len(arrMap))
-	for val := range arrMap {
-		arr = append(arr, val)
-	}
-	return arr
 }

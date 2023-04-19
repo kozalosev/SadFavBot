@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -87,23 +86,16 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 
 func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	itemValues, ok := extractItemValues(fields)
+	alias, fav := extractFavInfo(fields)
 
 	replyWith := replierFactory(reqenv, msg)
-	if !ok {
+	if len(alias) == 0 {
 		replyWith(SaveStatusFailure)
 		return
 	}
 
-	var (
-		res sql.Result
-		err error
-	)
-	if itemValues.Type == wizard.Text {
-		res, err = saveText(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, itemValues.Text)
-	} else {
-		res, err = saveFile(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, itemValues.Type, *itemValues.File)
-	}
+	favsService := repo.NewFavsService(reqenv)
+	res, err := favsService.Save(uid, alias, fav)
 
 	if err != nil {
 		if isDuplicateConstraintViolation(err) {
@@ -113,72 +105,13 @@ func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizar
 			replyWith(SaveStatusFailure)
 		}
 	} else {
-		if checkRowsWereAffected(res) {
-			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), reqenv.Bot.GetName(), markdownEscaper.Replace(itemValues.Alias))
+		if res.RowsAffected() > 0 {
+			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), reqenv.Bot.GetName(), markdownEscaper.Replace(alias))
 			reqenv.Bot.ReplyWithMarkdown(msg, answer)
 		} else {
 			log.Warning("No rows were affected!")
 			replyWith(SaveStatusFailure)
 		}
-	}
-}
-
-func saveText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
-	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-	aliasID, err := saveAliasToSeparateTable(ctx, tx, alias)
-	textID, err := saveTextToSeparateTable(ctx, tx, text)
-	if err != nil {
-		return nil, err
-	}
-	res, err := tx.ExecContext(ctx, "INSERT INTO favs (uid, type, alias_id, text_id) VALUES ($1, $2, "+
-		"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
-		"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6) END)",
-		uid, wizard.Text, aliasID, alias, textID, text)
-	if err != nil {
-		return nil, err
-	}
-	return res, tx.Commit()
-}
-
-func saveFile(ctx context.Context, db *sql.DB, uid int64, alias string, fileType wizard.FieldType, file wizard.File) (sql.Result, error) {
-	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-	id, err := saveAliasToSeparateTable(ctx, tx, alias)
-	if err != nil {
-		return nil, err
-	}
-	res, err := tx.ExecContext(ctx, "INSERT INTO favs (uid, type, alias_id, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
-		uid, fileType, id, alias, file.ID, file.UniqueID)
-	if err != nil {
-		return nil, err
-	}
-	return res, tx.Commit()
-}
-
-func saveAliasToSeparateTable(ctx context.Context, tx *sql.Tx, alias string) (int, error) {
-	var id int
-	if err := tx.QueryRowContext(ctx, "INSERT INTO aliases(name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", alias).Scan(&id); err == nil {
-		return id, nil
-	} else if err == sql.ErrNoRows {
-		return 0, nil
-	} else {
-		return 0, err
-	}
-}
-
-func saveTextToSeparateTable(ctx context.Context, tx *sql.Tx, text string) (int, error) {
-	var id int
-	if err := tx.QueryRowContext(ctx, "INSERT INTO texts(text) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", text).Scan(&id); err == nil {
-		return id, nil
-	} else if err == sql.ErrNoRows {
-		return 0, nil
-	} else {
-		return 0, err
 	}
 }
 
