@@ -100,13 +100,13 @@ type CallbackHandler struct {
 	appenv *base.ApplicationEnv
 }
 
-func NewCallbackHandler(appenv *base.ApplicationEnv) CallbackHandler {
-	return CallbackHandler{appenv: appenv}
+func NewCallbackHandler(appenv *base.ApplicationEnv) *CallbackHandler {
+	return &CallbackHandler{appenv: appenv}
 }
 
-func (CallbackHandler) GetCallbackPrefix() string { return callbackDataPrefix }
+func (*CallbackHandler) GetCallbackPrefix() string { return callbackDataPrefix }
 
-func (handler CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery) {
+func (handler *CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery) {
 	messages, ok := helpMessagesByLang[reqenv.Lang.GetLanguage()]
 	if !ok {
 		messages = helpMessagesByLang["en"]
@@ -140,7 +140,7 @@ func (handler CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.C
 	}
 }
 
-func (handler CallbackHandler) sendAdditionalMessagesIfNeeded(reqenv *base.RequestEnv, originMsg *tgbotapi.Message, answer *tgbotapi.Chattable, helpKey helpMessageKey) error {
+func (handler *CallbackHandler) sendAdditionalMessagesIfNeeded(reqenv *base.RequestEnv, originMsg *tgbotapi.Message, answer *tgbotapi.Chattable, helpKey helpMessageKey) error {
 	_, wasUpdated := (*answer).(tgbotapi.EditMessageTextConfig)
 	if wasUpdated && helpKey == inlineHelpKey && len(photoExampleInline) > 0 {
 		media := tgbotapi.NewPhoto(originMsg.Chat.ID, tgbotapi.FileURL(photoExampleInline))

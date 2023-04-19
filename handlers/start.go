@@ -29,8 +29,8 @@ type StartHandler struct {
 	userService *repo.UserService
 }
 
-func NewStartHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage, embeddedHandlers StartEmbeddedHandlers) StartHandler {
-	return StartHandler{
+func NewStartHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage, embeddedHandlers StartEmbeddedHandlers) *StartHandler {
+	return &StartHandler{
 		appenv:           appenv,
 		stateStorage:     stateStorage,
 		embeddedHandlers: embeddedHandlers,
@@ -38,11 +38,11 @@ func NewStartHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStora
 	}
 }
 
-func (handler StartHandler) GetWizardEnv() *wizard.Env {
+func (handler *StartHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(func(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 		handler.embeddedHandlers.Language.languageFormAction(reqenv, msg, fields)
 		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(string))
@@ -59,11 +59,11 @@ func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (StartHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*StartHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "start"
 }
 
-func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	wasCreated, err := handler.userService.Create(msg.From.ID)
 
 	var installingPackage string
@@ -89,7 +89,7 @@ func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 }
 
-func (handler StartHandler) runWizardForInstallation(reqenv *base.RequestEnv, msg *tgbotapi.Message, pkgName string) {
+func (handler *StartHandler) runWizardForInstallation(reqenv *base.RequestEnv, msg *tgbotapi.Message, pkgName string) {
 	sendCountOfAliasesInPackage(handler.embeddedHandlers.InstallPackage, reqenv, msg, pkgName)
 
 	w := wizard.NewWizard(handler.embeddedHandlers.InstallPackage, 2)

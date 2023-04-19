@@ -132,8 +132,8 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 	languageHandler := handlers.NewLanguageHandler(appenv, stateStorage)
 	installPackageHandler := handlers.NewInstallPackageHandler(appenv, stateStorage)
 	startEmbeddedHandlers := handlers.StartEmbeddedHandlers{
-		Language:       &languageHandler,
-		InstallPackage: &installPackageHandler,
+		Language:       languageHandler,
+		InstallPackage: installPackageHandler,
 	}
 
 	messageHandlers = []base.MessageHandler{

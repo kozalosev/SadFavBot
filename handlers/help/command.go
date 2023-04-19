@@ -14,8 +14,8 @@ type CommandHandler struct {
 	appenv *base.ApplicationEnv
 }
 
-func NewCommandHandler(appenv *base.ApplicationEnv) CommandHandler {
-	return CommandHandler{appenv: appenv}
+func NewCommandHandler(appenv *base.ApplicationEnv) *CommandHandler {
+	return &CommandHandler{appenv: appenv}
 }
 
 //go:embed help.md
@@ -24,11 +24,11 @@ var helpMessageEn string
 //go:embed help.ru.md
 var helpMessageRu string
 
-func (CommandHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*CommandHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "help"
 }
 
-func (handler CommandHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *CommandHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	SendHelpMessage(handler.appenv.Bot, reqenv.Lang, msg)
 }
 

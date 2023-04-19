@@ -13,18 +13,18 @@ type CancelHandler struct {
 	stateStorage wizard.StateStorage
 }
 
-func NewCancelHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) CancelHandler {
-	return CancelHandler{
+func NewCancelHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *CancelHandler {
+	return &CancelHandler{
 		appEnv:       appenv,
 		stateStorage: stateStorage,
 	}
 }
 
-func (CancelHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*CancelHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "cancel"
 }
 
-func (c CancelHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (c *CancelHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	err := c.stateStorage.DeleteState(msg.From.ID)
 	var answer string
 	if err != nil {

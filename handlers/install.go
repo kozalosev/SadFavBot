@@ -32,19 +32,19 @@ type InstallPackageHandler struct {
 	packageService *repo.PackageService
 }
 
-func NewInstallPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) InstallPackageHandler {
-	return InstallPackageHandler{
+func NewInstallPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *InstallPackageHandler {
+	return &InstallPackageHandler{
 		appenv:         appenv,
 		stateStorage:   stateStorage,
 		packageService: repo.NewPackageService(appenv),
 	}
 }
 
-func (handler InstallPackageHandler) GetWizardEnv() *wizard.Env {
+func (handler *InstallPackageHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler InstallPackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *InstallPackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.installPackageAction)
 	desc.AddField(FieldName, InstallFieldsTrPrefix+FieldName)
 
@@ -54,16 +54,16 @@ func (handler InstallPackageHandler) GetWizardDescriptor() *wizard.FormDescripto
 	return desc
 }
 
-func (handler InstallPackageHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (handler *InstallPackageHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "install"
 }
 
-func (handler InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	name := base.GetCommandArgument(msg)
 	if len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
-		sendCountOfAliasesInPackage(&handler, reqenv, msg, name)
+		sendCountOfAliasesInPackage(handler, reqenv, msg, name)
 	} else {
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
@@ -91,14 +91,14 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 	}
 }
 
-func (handler InstallPackageHandler) installPackageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *InstallPackageHandler) installPackageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	if fields.FindField(FieldConfirmation).Data == Yes {
 		name := fields.FindField(FieldName).Data.(string)
 		handler.installPackageWithMessageHandling(reqenv, msg, name)
 	}
 }
 
-func (handler InstallPackageHandler) installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
+func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	uid := msg.From.ID
 	reply := replierFactory(handler.appenv, reqenv, msg)
 

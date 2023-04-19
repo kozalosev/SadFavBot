@@ -33,8 +33,8 @@ type LinkHandler struct {
 	aliasService *repo.AliasService
 }
 
-func NewLinkHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) LinkHandler {
-	return LinkHandler{
+func NewLinkHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *LinkHandler {
+	return &LinkHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		linkService:  repo.NewLinkService(appenv),
@@ -42,11 +42,11 @@ func NewLinkHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorag
 	}
 }
 
-func (handler LinkHandler) GetWizardEnv() *wizard.Env {
+func (handler *LinkHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.linkAction)
 
 	nameField := desc.AddField(FieldName, LinkFieldTrPrefix+FieldName)
@@ -70,11 +70,11 @@ func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (handler LinkHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (handler *LinkHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "link" || msg.Command() == "ln"
 }
 
-func (handler LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	if name := base.GetCommandArgument(msg); len(name) > 0 {
 		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
@@ -102,7 +102,7 @@ func (handler LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	w.ProcessNextField(reqenv, msg)
 }
 
-func (handler LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	name := fields.FindField(FieldName).Data.(string)
 	refAlias := fields.FindField(FieldAlias).Data.(string)

@@ -43,19 +43,19 @@ type PackageHandler struct {
 	packageService *repo.PackageService
 }
 
-func NewPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) PackageHandler {
-	return PackageHandler{
+func NewPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *PackageHandler {
+	return &PackageHandler{
 		appenv:         appenv,
 		stateStorage:   stateStorage,
 		packageService: repo.NewPackageService(appenv),
 	}
 }
 
-func (handler PackageHandler) GetWizardEnv() *wizard.Env {
+func (handler *PackageHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.packageAction)
 
 	createOrDeleteDesc := desc.AddField(FieldCreateOrDelete, PackageFieldsTrPrefix+FieldCreateOrDelete)
@@ -78,11 +78,11 @@ func (handler PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (PackageHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*PackageHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "package" || msg.Command() == "pack"
 }
 
-func (handler PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	name := base.GetCommandArgument(msg)
 
 	w := wizard.NewWizard(handler, 3)
@@ -97,7 +97,7 @@ func (handler PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	w.ProcessNextField(reqenv, msg)
 }
 
-func (handler PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	deletion := fields.FindField(FieldCreateOrDelete).Data == Delete
 	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(string), " ", "-")

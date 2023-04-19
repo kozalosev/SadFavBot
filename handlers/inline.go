@@ -42,11 +42,11 @@ func NewGetFavoritesInlineHandler(appenv *base.ApplicationEnv) *GetFavoritesInli
 	}
 }
 
-func (GetFavoritesInlineHandler) CanHandle(*tgbotapi.InlineQuery) bool {
+func (*GetFavoritesInlineHandler) CanHandle(*tgbotapi.InlineQuery) bool {
 	return true
 }
 
-func (handler GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) {
+func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.InlineQuery) {
 	answer := tgbotapi.InlineConfig{
 		InlineQueryID: query.ID,
 		IsPersonal:    true,

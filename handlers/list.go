@@ -33,8 +33,8 @@ type ListHandler struct {
 	packageService *repo.PackageService
 }
 
-func NewListHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) ListHandler {
-	return ListHandler{
+func NewListHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *ListHandler {
+	return &ListHandler{
 		appenv:         appenv,
 		stateStorage:   stateStorage,
 		aliasService:   repo.NewAliasService(appenv),
@@ -42,22 +42,22 @@ func NewListHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorag
 	}
 }
 
-func (handler ListHandler) GetWizardEnv() *wizard.Env {
+func (handler *ListHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.listAction)
 	f := desc.AddField(FieldFavsOrPackages, ListFieldAliasesOrPackagesPromptTr)
 	f.InlineKeyboardAnswers = []string{Favs, Packages}
 	return desc
 }
 
-func (ListHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*ListHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "list"
 }
 
-func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	arg := strings.ToLower(base.GetCommandArgument(msg))
 	if arg == "favs" || arg == "f" || arg == "fav" {
@@ -70,7 +70,7 @@ func (handler ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	w.ProcessNextField(reqenv, msg)
 }
 
-func (handler ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	var (
 		items        []string
 		successTitle string

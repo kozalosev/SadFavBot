@@ -29,30 +29,30 @@ type SearchModeHandler struct {
 	userService *repo.UserService
 }
 
-func NewSearchModeHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) SearchModeHandler {
-	return SearchModeHandler{
+func NewSearchModeHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *SearchModeHandler {
+	return &SearchModeHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		userService:  repo.NewUserService(appenv),
 	}
 }
 
-func (handler SearchModeHandler) GetWizardEnv() *wizard.Env {
+func (handler *SearchModeHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler SearchModeHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *SearchModeHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.searchModeAction)
 	f := desc.AddField(FieldSubstrSearchEnabled, ModeFieldsTrPrefix+FieldSubstrSearchEnabled)
 	f.InlineKeyboardAnswers = []string{Yes, No}
 	return desc
 }
 
-func (SearchModeHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*SearchModeHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "mode" || msg.Command() == "mod"
 }
 
-func (handler SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	var currVal string
 	if reqenv.Options.SubstrSearchEnabled {
 		currVal = Enabled
@@ -72,7 +72,7 @@ func (handler SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.M
 	w.ProcessNextField(reqenv, msg)
 }
 
-func (handler SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	substrSearchEnabled := fields.FindField(FieldSubstrSearchEnabled).Data == Yes
 
 	err := handler.userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)

@@ -26,30 +26,30 @@ type LanguageHandler struct {
 	userService *repo.UserService
 }
 
-func NewLanguageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) LanguageHandler {
-	return LanguageHandler{
+func NewLanguageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *LanguageHandler {
+	return &LanguageHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		userService:  repo.NewUserService(appenv),
 	}
 }
 
-func (handler LanguageHandler) GetWizardEnv() *wizard.Env {
+func (handler *LanguageHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler LanguageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *LanguageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.languageFormAction)
 	f := desc.AddField(FieldLanguage, LangParamPrompt)
 	f.InlineKeyboardAnswers = []string{EnFlag, RuFlag}
 	return desc
 }
 
-func (LanguageHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*LanguageHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "language" || msg.Command() == "lang"
 }
 
-func (handler LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	lang := base.GetCommandArgument(msg)
 	if len(lang) > 0 {
 		handler.saveLangConfig(reqenv, msg, lang)
@@ -60,11 +60,11 @@ func (handler LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 	}
 }
 
-func (handler LanguageHandler) languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *LanguageHandler) languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	handler.saveLangConfig(reqenv, msg, fields.FindField(FieldLanguage).Data.(string))
 }
 
-func (handler LanguageHandler) saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
+func (handler *LanguageHandler) saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
 	err := handler.userService.ChangeLanguage(msg.From.ID, settings.LangCode(langFlagToCode(language)))
 	if err != nil {
 		log.Errorln(err)

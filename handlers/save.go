@@ -40,19 +40,19 @@ type SaveHandler struct {
 	favService *repo.FavService
 }
 
-func NewSaveHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) SaveHandler {
-	return SaveHandler{
+func NewSaveHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *SaveHandler {
+	return &SaveHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		favService:   repo.NewFavsService(appenv),
 	}
 }
 
-func (handler SaveHandler) GetWizardEnv() *wizard.Env {
+func (handler *SaveHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.saveFormAction)
 
 	aliasDesc := desc.AddField(FieldAlias, SaveFieldsTrPrefix+FieldAlias)
@@ -76,11 +76,11 @@ func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "save"
 }
 
-func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	wizardForm := wizard.NewWizard(handler, 2)
 	title := base.GetCommandArgument(msg)
 	if len(title) > 0 {
@@ -97,7 +97,7 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	wizardForm.ProcessNextField(reqenv, msg)
 }
 
-func (handler SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	alias, fav := extractFavInfo(fields)
 

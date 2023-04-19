@@ -29,19 +29,19 @@ type DeleteHandler struct {
 	favService *repo.FavService
 }
 
-func NewDeleteHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) DeleteHandler {
-	return DeleteHandler{
+func NewDeleteHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *DeleteHandler {
+	return &DeleteHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		favService:   repo.NewFavsService(appenv),
 	}
 }
 
-func (handler DeleteHandler) GetWizardEnv() *wizard.Env {
+func (handler *DeleteHandler) GetWizardEnv() *wizard.Env {
 	return wizard.NewEnv(handler.appenv, handler.stateStorage)
 }
 
-func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.deleteFormAction)
 
 	aliasDesc := desc.AddField(FieldAlias, DeleteFieldsTrPrefix+FieldAlias)
@@ -79,11 +79,11 @@ func (handler DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (DeleteHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*DeleteHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "delete" || msg.Command() == "del"
 }
 
-func (handler DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 3)
 	arg := base.GetCommandArgument(msg)
 
@@ -98,7 +98,7 @@ func (handler DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	w.ProcessNextField(reqenv, msg)
 }
 
-func (handler DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	deleteAll := fields.FindField(FieldDeleteAll).Data == Yes
 	alias, fav := extractFavInfo(fields)
