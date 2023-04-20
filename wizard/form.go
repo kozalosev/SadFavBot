@@ -133,6 +133,12 @@ func shouldBeSkipped(field *Field, form *Form) bool {
 
 // SomeHandler -> SomeWizard
 func getWizardName(handler WizardMessageHandler) string {
-	handlerName := reflect.TypeOf(handler).Name()
+	t := reflect.TypeOf(handler)
+	var handlerName string
+	if t.Kind() == reflect.Pointer {
+		handlerName = reflect.Indirect(reflect.ValueOf(handler)).Type().Name()
+	} else {
+		handlerName = t.Name()
+	}
 	return strings.TrimSuffix(handlerName, "Handler") + "Wizard"
 }
