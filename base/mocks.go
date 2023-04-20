@@ -14,9 +14,9 @@ const (
 // FakeBotAPI is a mock for the [BotAPI] struct.
 // Use the GetOutput() method to get either the text of the sent message, or the request itself.
 type FakeBotAPI struct {
-	sentMessage string
-	sentRequest tgbotapi.Chattable
-	callType    callType
+	sentMessages []string
+	sentRequests []tgbotapi.Chattable
+	callType     callType
 }
 
 func (bot *FakeBotAPI) GetName() string {
@@ -37,12 +37,12 @@ func (bot *FakeBotAPI) ReplyWithInlineKeyboard(_ *tgbotapi.Message, text string,
 
 func (bot *FakeBotAPI) reply(text string) {
 	bot.callType = message
-	bot.sentMessage = text
+	bot.sentMessages = append(bot.sentMessages, text)
 }
 
 func (bot *FakeBotAPI) Request(c tgbotapi.Chattable) error {
 	bot.callType = request
-	bot.sentRequest = c
+	bot.sentRequests = append(bot.sentRequests, c)
 	return nil
 }
 
@@ -50,10 +50,16 @@ func (bot *FakeBotAPI) Request(c tgbotapi.Chattable) error {
 func (bot *FakeBotAPI) GetOutput() interface{} {
 	switch bot.callType {
 	case message:
-		return bot.sentMessage
+		return bot.sentMessages
 	case request:
-		return bot.sentRequest
+		return bot.sentRequests
 	default:
 		return nil
 	}
+}
+
+// ClearOutput deletes all data from internal buffers.
+func (bot *FakeBotAPI) ClearOutput() {
+	bot.sentMessages = []string{}
+	bot.sentRequests = []tgbotapi.Chattable{}
 }

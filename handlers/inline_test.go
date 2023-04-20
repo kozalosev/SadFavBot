@@ -37,7 +37,9 @@ func TestGetFavoritesInlineHandler_Handle(t *testing.T) {
 	handler.Handle(reqenv, query)
 
 	bot := appenv.Bot.(*base.FakeBotAPI)
-	c := bot.GetOutput().(tgbotapi.InlineConfig)
+	cc := bot.GetOutput().([]tgbotapi.Chattable)
+	assert.Len(t, cc, 1)
+	c := cc[0].(tgbotapi.InlineConfig)
 	assert.Len(t, c.Results, 2)
 
 	sticker1 := c.Results[0].(tgbotapi.InlineQueryResultCachedSticker)
