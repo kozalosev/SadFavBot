@@ -19,6 +19,17 @@ func TestFavService_Find(t *testing.T) {
 	assert.Equal(t, test.FileID2, objects[1].File.ID)
 }
 
+func TestFavService_Find_Text(t *testing.T) {
+	test.InsertTestData(db)
+
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
+	objects, err := favsService.Find(test.UID2, test.Alias2, false)
+
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+	assert.Equal(t, test.Text, *objects[0].Text)
+}
+
 func TestFavService_Find_bySubstring(t *testing.T) {
 	test.InsertTestData(db)
 

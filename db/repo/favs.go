@@ -73,10 +73,14 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*Fav,
 	}
 	for rows.Next() {
 		row := NewFav()
-		err = rows.Scan(&row.ID, &row.Type, &row.File.ID, &row.Text)
+		var fileID *string
+		err = rows.Scan(&row.ID, &row.Type, &fileID, &row.Text)
 		if err != nil {
 			log.Error("Error occurred while fetching from database: ", err)
 			continue
+		}
+		if fileID != nil {
+			row.File = &wizard.File{ID: *fileID}
 		}
 		result = append(result, row)
 	}
