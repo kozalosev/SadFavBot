@@ -21,6 +21,8 @@ const (
 )
 
 type LanguageHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -28,11 +30,13 @@ type LanguageHandler struct {
 }
 
 func NewLanguageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *LanguageHandler {
-	return &LanguageHandler{
+	h := &LanguageHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		userService:  repo.NewUserService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *LanguageHandler) GetWizardEnv() *wizard.Env {
@@ -46,8 +50,8 @@ func (handler *LanguageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*LanguageHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "language" || msg.Command() == "lang"
+func (*LanguageHandler) GetCommands() []string {
+	return languageCommands
 }
 
 func (handler *LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

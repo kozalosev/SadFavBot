@@ -2,6 +2,7 @@ package base
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/loctools/go-l10n/loc"
 )
 
 type callType byte
@@ -19,10 +20,8 @@ type FakeBotAPI struct {
 	callType     callType
 }
 
-func (bot *FakeBotAPI) GetName() string {
-	return "TestMockBotAPI"
-}
-
+func (bot *FakeBotAPI) GetName() string                                   { return "TestMockBotAPI" }
+func (bot *FakeBotAPI) SetCommands(*loc.Pool, []string, []CommandHandler) {}
 func (bot *FakeBotAPI) ReplyWithMessageCustomizer(_ *tgbotapi.Message, text string, _ MessageCustomizer) {
 	bot.reply(text)
 }

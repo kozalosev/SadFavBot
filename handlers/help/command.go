@@ -10,12 +10,18 @@ import (
 
 const ruCode = "ru"
 
+var helpCommands = []string{"help"}
+
 type CommandHandler struct {
+	base.CommandHandlerTrait
+
 	appenv *base.ApplicationEnv
 }
 
 func NewCommandHandler(appenv *base.ApplicationEnv) *CommandHandler {
-	return &CommandHandler{appenv: appenv}
+	h := &CommandHandler{appenv: appenv}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 //go:embed help.md
@@ -24,8 +30,8 @@ var helpMessageEn string
 //go:embed help.ru.md
 var helpMessageRu string
 
-func (*CommandHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "help"
+func (*CommandHandler) GetCommands() []string {
+	return helpCommands
 }
 
 func (handler *CommandHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

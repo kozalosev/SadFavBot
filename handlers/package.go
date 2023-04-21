@@ -38,6 +38,8 @@ const (
 )
 
 type PackageHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -45,11 +47,13 @@ type PackageHandler struct {
 }
 
 func NewPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *PackageHandler {
-	return &PackageHandler{
+	h := &PackageHandler{
 		appenv:         appenv,
 		stateStorage:   stateStorage,
 		packageService: repo.NewPackageService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *PackageHandler) GetWizardEnv() *wizard.Env {
@@ -79,8 +83,8 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*PackageHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "package" || msg.Command() == "pack"
+func (*PackageHandler) GetCommands() []string {
+	return packageCommands
 }
 
 func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

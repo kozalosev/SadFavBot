@@ -24,6 +24,8 @@ const (
 )
 
 type SearchModeHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -31,11 +33,13 @@ type SearchModeHandler struct {
 }
 
 func NewSearchModeHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *SearchModeHandler {
-	return &SearchModeHandler{
+	h := &SearchModeHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		userService:  repo.NewUserService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *SearchModeHandler) GetWizardEnv() *wizard.Env {
@@ -49,8 +53,8 @@ func (handler *SearchModeHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*SearchModeHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "mode" || msg.Command() == "mod"
+func (*SearchModeHandler) GetCommands() []string {
+	return modeCommands
 }
 
 func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

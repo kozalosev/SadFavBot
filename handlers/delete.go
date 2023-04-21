@@ -24,6 +24,8 @@ const (
 )
 
 type DeleteHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -31,11 +33,13 @@ type DeleteHandler struct {
 }
 
 func NewDeleteHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *DeleteHandler {
-	return &DeleteHandler{
+	h := &DeleteHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		favService:   repo.NewFavsService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *DeleteHandler) GetWizardEnv() *wizard.Env {
@@ -84,8 +88,8 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*DeleteHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "delete" || msg.Command() == "del"
+func (*DeleteHandler) GetCommands() []string {
+	return deleteCommands
 }
 
 func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

@@ -15,6 +15,12 @@ type MessageHandler interface {
 	Handle(reqenv *RequestEnv, msg *tgbotapi.Message)
 }
 
+type CommandHandler interface {
+	MessageHandler
+
+	GetCommands() []string
+}
+
 // InlineHandler is a handler for the [tgbotapi.InlineQuery] update type.
 type InlineHandler interface {
 	CanHandle(query *tgbotapi.InlineQuery) bool
@@ -27,10 +33,18 @@ type CallbackHandler interface {
 	Handle(reqenv *RequestEnv, query *tgbotapi.CallbackQuery)
 }
 
+// MessageCustomizer is a function that can change the message before it will be sent to Telegram.
+// See [BotAPI.ReplyWithMessageCustomizer] for more information.
+type MessageCustomizer func(msgConfig *tgbotapi.MessageConfig)
+
 // ExtendedBotAPI is a set of more convenient methods to work with Telegram Bot API.
 type ExtendedBotAPI interface {
 	// GetName returns the name of the bot got from the getMe() request.
 	GetName() string
+	// SetCommands for the bot. Use [ConvertHandlersToCommands] to pass [MessageHandler] as argument for this method.
+	// Descriptions must be provided as keys for [loc.Context] in the format "commands.%s.description".
+	// https://core.telegram.org/bots/api#setmycommands
+	SetCommands(locpool *loc.Pool, langCodes []string, handlers []CommandHandler)
 	// ReplyWithMessageCustomizer is the most common method to send text messages as a reply. Use this method if you want
 	// to change several options like a message in Markdown with an inline keyboard.
 	ReplyWithMessageCustomizer(*tgbotapi.Message, string, MessageCustomizer)
@@ -45,6 +59,10 @@ type ExtendedBotAPI interface {
 	ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, buttons []tgbotapi.InlineKeyboardButton)
 	// Request is the most common method that can be used to send any request to Telegram.
 	Request(tgbotapi.Chattable) error
+}
+
+type CommandHandlerTrait struct {
+	HandlerRefForTrait CommandHandler
 }
 
 // BotAPI is a wrapper around the original [tgbotapi.BotAPI] struct.

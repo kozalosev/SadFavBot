@@ -28,7 +28,10 @@ const (
 	DefaultMessageOnCommandTr = "commands.default.message.on.command"
 )
 
-var locpool = loc.NewPool("en")
+var (
+	locpool            = loc.NewPool("en")
+	supportedLanguages = []string{"en", "ru"}
+)
 
 func main() {
 	// the application is listening for the SIGTERM signal to exit
@@ -55,6 +58,7 @@ func main() {
 	}
 
 	messageHandlers, inlineHandlers, callbackHandlers := initHandlers(appenv, stateStorage)
+	api.SetCommands(locpool, supportedLanguages, base.ConvertHandlersToCommands(messageHandlers))
 
 	appParams := &appParams{
 		ctx:              ctx,

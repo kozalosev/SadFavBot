@@ -28,6 +28,8 @@ const (
 )
 
 type InstallPackageHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -35,11 +37,13 @@ type InstallPackageHandler struct {
 }
 
 func NewInstallPackageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *InstallPackageHandler {
-	return &InstallPackageHandler{
+	h := &InstallPackageHandler{
 		appenv:         appenv,
 		stateStorage:   stateStorage,
 		packageService: repo.NewPackageService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *InstallPackageHandler) GetWizardEnv() *wizard.Env {
@@ -56,8 +60,8 @@ func (handler *InstallPackageHandler) GetWizardDescriptor() *wizard.FormDescript
 	return desc
 }
 
-func (handler *InstallPackageHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "install"
+func (*InstallPackageHandler) GetCommands() []string {
+	return installCommands
 }
 
 func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

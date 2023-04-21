@@ -27,6 +27,8 @@ const (
 )
 
 type ListHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -35,12 +37,14 @@ type ListHandler struct {
 }
 
 func NewListHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *ListHandler {
-	return &ListHandler{
+	h := &ListHandler{
 		appenv:         appenv,
 		stateStorage:   stateStorage,
 		aliasService:   repo.NewAliasService(appenv),
 		packageService: repo.NewPackageService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *ListHandler) GetWizardEnv() *wizard.Env {
@@ -54,8 +58,8 @@ func (handler *ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*ListHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "list"
+func (*ListHandler) GetCommands() []string {
+	return listCommands
 }
 
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

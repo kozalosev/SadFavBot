@@ -35,6 +35,8 @@ var (
 )
 
 type SaveHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -42,11 +44,13 @@ type SaveHandler struct {
 }
 
 func NewSaveHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *SaveHandler {
-	return &SaveHandler{
+	h := &SaveHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		favService:   repo.NewFavsService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *SaveHandler) GetWizardEnv() *wizard.Env {
@@ -77,8 +81,8 @@ func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "save"
+func (*SaveHandler) GetCommands() []string {
+	return saveCommands
 }
 
 func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
