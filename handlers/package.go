@@ -7,6 +7,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -121,7 +122,10 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else if err == repo.NoRowsWereAffected {
 		reply(PackageStatusNoRows)
 	} else if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "PackageHandler").
+			WithField(logconst.FieldMethod, "packageAction").
+			WithField(logconst.FieldCalledObject, "PackageService").
+			Error(err)
 		reply(PackageStatusFailure)
 	} else if deletion {
 		reply(PackageStatusDeletionSuccess)

@@ -2,6 +2,7 @@ package base
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"strings"
@@ -36,7 +37,9 @@ func (bot *BotAPI) GetName() string {
 
 func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string, customizer MessageCustomizer) {
 	if len(text) == 0 {
-		log.Error("Empty reply for the message: " + msg.Text)
+		log.WithField(logconst.FieldObject, "BotAPI").
+			WithField(logconst.FieldMethod, "ReplyWithMessageCustomizer").
+			Error("Empty reply for the message: " + msg.Text)
 		return
 	}
 
@@ -44,7 +47,11 @@ func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string
 	reply.ReplyToMessageID = msg.MessageID
 	customizer(&reply)
 	if _, err := bot.internal.Send(reply); err != nil {
-		log.Errorln(err)
+		log.WithField(logconst.FieldObject, "BotAPI").
+			WithField(logconst.FieldMethod, "ReplyWithMessageCustomizer").
+			WithField(logconst.FieldCalledObject, "internal").
+			WithField(logconst.FieldCalledMethod, "Send").
+			Error(err)
 	}
 }
 

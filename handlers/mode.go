@@ -4,6 +4,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -79,7 +80,11 @@ func (handler *SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg 
 
 	reply := replierFactory(handler.appenv, reqenv, msg)
 	if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "SearchModeHandler").
+			WithField(logconst.FieldMethod, "searchModeAction").
+			WithField(logconst.FieldCalledObject, "UserService").
+			WithField(logconst.FieldCalledMethod, "ChangeSubstringMode").
+			Error(err)
 		reply(ModeStatusFailure)
 	} else {
 		reply(ModeStatusSuccess)

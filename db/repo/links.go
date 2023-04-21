@@ -2,10 +2,11 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
+	log "github.com/sirupsen/logrus"
 )
 
 // LinkService is a simple "create" service for the Link entity.
@@ -41,8 +42,12 @@ func (service *LinkService) Create(uid int64, name, refAlias string) error {
 	}
 
 	if err != nil {
-		if rbErr := tx.Rollback(service.ctx); rbErr != nil {
-			return errors.Join(err, rbErr)
+		if err := tx.Rollback(service.ctx); err != nil {
+			log.WithField(logconst.FieldService, "LinkService").
+				WithField(logconst.FieldMethod, "Create").
+				WithField(logconst.FieldCalledObject, "Tx").
+				WithField(logconst.FieldCalledMethod, "Rollback").
+				Error(err)
 		}
 	}
 	return err

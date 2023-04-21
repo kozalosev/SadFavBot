@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -62,7 +63,11 @@ func (handler *LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	aliasField.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
 		aliases, err := handler.aliasService.ListForFavsOnly(msg.From.ID)
 		if err != nil {
-			log.Error(err)
+			log.WithField(logconst.FieldHandler, "LinkHandler").
+				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
+				WithField(logconst.FieldCalledObject, "AliasService").
+				WithField(logconst.FieldCalledMethod, "ListForFavsOnly").
+				Error(err)
 		}
 		return aliases
 	}
@@ -117,7 +122,11 @@ func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 	} else if isAttemptToLinkNonExistingAlias(err) {
 		reply(LinkStatusNoAlias)
 	} else if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "LinkHandler").
+			WithField(logconst.FieldMethod, "linkAction").
+			WithField(logconst.FieldCalledObject, "LinkService").
+			WithField(logconst.FieldCalledMethod, "Create").
+			Error(err)
 		reply(LinkStatusFailure)
 	} else {
 		reply(LinkStatusSuccess)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -51,7 +52,9 @@ func (fs Fields) FindField(name string) *Field {
 		return nil
 	}
 	if len(found) > 1 {
-		log.Warning("More than needed: ", found)
+		log.WithField(logconst.FieldObject, "Fields").
+			WithField(logconst.FieldCalledMethod, "FindField").
+			Warning("More than needed: ", found)
 	}
 	return found[0]
 }

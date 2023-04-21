@@ -2,10 +2,10 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"regexp"
@@ -55,10 +55,14 @@ func (service *AliasService) ListWithCounts(uid int64) ([]string, error) {
 					aliases = append(aliases, fmt.Sprintf("%s (%d)", alias, *count))
 				}
 			} else {
-				log.Error("Error occurred while fetching from database: ", err)
+				log.WithField(logconst.FieldService, "AliasService").
+					WithField(logconst.FieldMethod, "ListWithCounts").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
 			}
 		}
-		return aliases, nil
+		return aliases, rows.Err()
 	} else {
 		return nil, err
 	}
@@ -81,13 +85,17 @@ func (service *AliasService) ListForFavsOnly(uid int64) ([]string, error) {
 			alias   string
 		)
 		for res.Next() {
-			if e := res.Scan(&alias); err == nil {
+			if err := res.Scan(&alias); err == nil {
 				aliases = append(aliases, alias)
 			} else {
-				err = errors.Join(err, e)
+				log.WithField(logconst.FieldService, "AliasService").
+					WithField(logconst.FieldMethod, "ListForFavsOnly").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
 			}
 		}
-		return aliases, err
+		return aliases, res.Err()
 	} else {
 		return nil, err
 	}

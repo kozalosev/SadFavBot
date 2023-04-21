@@ -6,6 +6,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -74,7 +75,10 @@ func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
+			WithField(logconst.FieldMethod, "sendCountOfAliasesInPackage").
+			WithField(logconst.FieldCalledFunc, "parsePackageName").
+			Error(err)
 		return
 	}
 
@@ -84,10 +88,16 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
 			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
 		} else {
-			log.Warning("Empty package: " + name)
+			log.WithField(logconst.FieldHandler, "InstallPackageHandler").
+				WithField(logconst.FieldMethod, "sendCountOfAliasesInPackage").
+				Warning("Empty package: " + name)
 		}
 	} else {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
+			WithField(logconst.FieldMethod, "sendCountOfAliasesInPackage").
+			WithField(logconst.FieldCalledObject, "PackageService").
+			WithField(logconst.FieldCalledFunc, "ListAliases").
+			Error(err)
 	}
 }
 
@@ -104,7 +114,10 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
+			WithField(logconst.FieldMethod, "installPackageWithMessageHandling").
+			WithField(logconst.FieldCalledFunc, "parsePackageName").
+			Error(err)
 		reply(InstallStatusFailure)
 		return
 	}
@@ -112,7 +125,11 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 	if installedAliases, err := handler.packageService.Install(uid, pkgInfo); err == repo.NoRowsWereAffected {
 		reply(InstallStatusNoRows)
 	} else if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
+			WithField(logconst.FieldMethod, "installPackageWithMessageHandling").
+			WithField(logconst.FieldCalledObject, "PackageService").
+			WithField(logconst.FieldCalledMethod, "Install").
+			Error(err)
 		reply(InstallStatusFailure)
 	} else {
 		if len(installedAliases) > 0 {

@@ -4,6 +4,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -89,7 +90,10 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 	replyWith := replierFactory(handler.appenv, reqenv, msg)
 	if err != nil {
-		log.Errorln(err)
+		log.WithField(logconst.FieldHandler, "ListHandler").
+			WithField(logconst.FieldMethod, "listAction").
+			WithField(logconst.FieldCalledMethod, "ListWithCounts").
+			Error(err)
 		replyWith(ListStatusFailure)
 	} else if len(items) == 0 {
 		replyWith(noRowsTitle)

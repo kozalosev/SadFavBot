@@ -3,6 +3,7 @@ package wizard
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"reflect"
 	"strings"
@@ -78,9 +79,12 @@ start:
 		currentField.WasRequested = true
 	}
 
-	err := form.resources.stateStorage.SaveState(msg.From.ID, form)
-	if err != nil {
-		log.Error(err)
+	if err := form.resources.stateStorage.SaveState(msg.From.ID, form); err != nil {
+		log.WithField(logconst.FieldObject, "Form").
+			WithField(logconst.FieldMethod, "ProcessNextField").
+			WithField(logconst.FieldCalledObject, "StateStorage").
+			WithField(logconst.FieldCalledMethod, "SaveState").
+			Error(err)
 	}
 }
 

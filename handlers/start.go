@@ -6,6 +6,7 @@ import (
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/help"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,7 +76,9 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	}
 
 	if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "StartHandler").
+			WithField(logconst.FieldMethod, "Handle").
+			Error(err)
 		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(StartStatusFailure))
 	} else if wasCreated {
 		w := wizard.NewWizard(handler, 2)

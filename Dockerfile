@@ -22,6 +22,7 @@ COPY *.go ./
 COPY base/* ./base/
 COPY db/repo/* ./db/repo/
 COPY handlers/ ./handlers/
+COPY logconst/* ./logconst/
 COPY settings/* ./settings/
 COPY storage/* ./storage/
 COPY wizard/* ./wizard/

@@ -2,6 +2,7 @@ package wizard
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -122,7 +123,9 @@ func (f *Field) restoreExtractor(msg *tgbotapi.Message) {
 	case Document:
 		f.extractor = documentExtractor
 	default:
-		log.Warningf("No action was found for %+v", msg)
+		log.WithField(logconst.FieldObject, "Field").
+			WithField(logconst.FieldCalledMethod, "restoreExtractor").
+			Warningf("No action was found for %+v", msg)
 		f.extractor = nilExtractor
 	}
 }

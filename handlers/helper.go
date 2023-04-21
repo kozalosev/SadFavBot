@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -22,7 +23,8 @@ func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
 
 	alias, ok := aliasField.Data.(string)
 	if !ok {
-		log.Errorf("Invalid type for alias: %T %+v", aliasField, aliasField)
+		log.WithField(logconst.FieldFunc, "extractFavInfo").
+			Errorf("Invalid type for alias: %T %+v", aliasField, aliasField)
 		return "", nil
 	}
 
@@ -37,13 +39,15 @@ func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
 	if objectField.Type == wizard.Text {
 		text, ok = objectField.Data.(string)
 		if !ok {
-			log.Errorf("Invalid type: string was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+			log.WithField(logconst.FieldFunc, "extractFavInfo").
+				Errorf("Invalid type: string was expected but '%T %+v' is got", objectField.Data, objectField.Data)
 			return "", nil
 		}
 	} else {
 		file, ok = objectField.Data.(wizard.File)
 		if !ok {
-			log.Errorf("Invalid type: File was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+			log.WithField(logconst.FieldFunc, "extractFavInfo").
+				Errorf("Invalid type: File was expected but '%T %+v' is got", objectField.Data, objectField.Data)
 			return "", nil
 		}
 	}

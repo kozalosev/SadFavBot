@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/settings"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,7 +36,11 @@ func (service *UserService) FetchUserOptions(uid int64, defaultLang string) (set
 		opts settings.UserOptions
 	)
 	if err := service.db.QueryRow(service.ctx, "SELECT language, substring_search FROM users WHERE uid = $1", uid).Scan(&lang, &opts.SubstrSearchEnabled); err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldService, "UserService").
+			WithField(logconst.FieldMethod, "FetchUserOptions").
+			WithField(logconst.FieldCalledObject, "Row").
+			WithField(logconst.FieldCalledMethod, "Scan").
+			Error(err)
 		return settings.LangCode(defaultLang), &opts
 	} else if lang != nil && len(*lang) > 0 {
 		return settings.LangCode(*lang), &opts

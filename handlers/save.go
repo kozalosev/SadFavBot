@@ -6,6 +6,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -113,7 +114,11 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 		if isDuplicateConstraintViolation(err) {
 			replyWith(SaveStatusDuplicate)
 		} else {
-			log.Errorln(err.Error())
+			log.WithField(logconst.FieldHandler, "SaveHandler").
+				WithField(logconst.FieldMethod, "saveFormAction").
+				WithField(logconst.FieldCalledObject, "FavService").
+				WithField(logconst.FieldCalledMethod, "Save").
+				Error(err)
 			replyWith(SaveStatusFailure)
 		}
 	} else {
@@ -121,7 +126,9 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), markdownEscaper.Replace(alias))
 			handler.appenv.Bot.ReplyWithMarkdown(msg, answer)
 		} else {
-			log.Warning("No rows were affected!")
+			log.WithField(logconst.FieldHandler, "SaveHandler").
+				WithField(logconst.FieldMethod, "saveFormAction").
+				Warning("No rows were affected!")
 			replyWith(SaveStatusFailure)
 		}
 	}

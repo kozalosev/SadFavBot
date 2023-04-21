@@ -4,6 +4,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +24,9 @@ var inlineAnswerCacheTime int
 
 func init() {
 	if cacheTime, err := strconv.Atoi(os.Getenv("INLINE_CACHE_TIME")); err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldFunc, "init").
+			WithField(logconst.FieldConst, "INLINE_CACHE_TIME").
+			Error(err)
 		inlineAnswerCacheTime = 300 // default
 	} else {
 		inlineAnswerCacheTime = cacheTime
@@ -56,11 +59,19 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		if objects, err := handler.favService.Find(query.From.ID, query.Query, reqenv.Options.SubstrSearchEnabled); err == nil {
 			answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
 		} else {
-			log.Error(err)
+			log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
+				WithField(logconst.FieldMethod, "Handle").
+				WithField(logconst.FieldCalledObject, "FavService").
+				WithField(logconst.FieldCalledMethod, "Find").
+				Error(err)
 		}
 	}
 	if err := handler.appenv.Bot.Request(answer); err != nil {
-		log.Error("error while processing inline query: ", err)
+		log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
+			WithField(logconst.FieldMethod, "Handle").
+			WithField(logconst.FieldCalledObject, "BotAPI").
+			WithField(logconst.FieldCalledMethod, "Request").
+			Error("Telegram Bot API request error: ", err)
 	}
 }
 
@@ -85,7 +96,8 @@ func generateMapper(lc *loc.Context) func(object *repo.Fav) interface{} {
 		case wizard.Document:
 			return tgbotapi.NewInlineQueryResultCachedDocument(object.ID, object.File.ID, caser.String(lc.Tr("document")))
 		default:
-			log.Warning("Unsupported type: ", object)
+			log.WithField(logconst.FieldFunc, "generateMapper").
+				Warning("Unsupported type: ", object)
 			return tgbotapi.NewInlineQueryResultArticle(object.ID, lc.Tr(ErrorTitleTr), lc.Tr(UnknownTypeTr))
 		}
 	}

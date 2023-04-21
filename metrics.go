@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -61,7 +62,8 @@ func inc(name string) {
 	if ok {
 		counter.Inc()
 	} else {
-		log.Warning("Counter " + name + " is missing!")
+		log.WithField(logconst.FieldFunc, "inc").
+			Warning("Counter " + name + " is missing!")
 	}
 }
 

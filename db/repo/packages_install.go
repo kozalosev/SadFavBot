@@ -2,6 +2,7 @@ package repo
 
 import (
 	"github.com/jackc/pgx/v5"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"strconv"
@@ -32,7 +33,11 @@ func (service *PackageService) Install(uid int64, pkgInfo *PackageInfo) ([]strin
 
 	if err != nil {
 		if err := tx.Rollback(service.ctx); err != nil {
-			log.Error(err)
+			log.WithField(logconst.FieldService, "PackageService").
+				WithField(logconst.FieldMethod, "Install").
+				WithField(logconst.FieldCalledObject, "Tx").
+				WithField(logconst.FieldCalledMethod, "Rollback").
+				Error(err)
 		}
 		return nil, err
 	} else if len(aliasIDs) == 0 {
@@ -52,9 +57,14 @@ func (service *PackageService) Install(uid int64, pkgInfo *PackageInfo) ([]strin
 				if err = res.Scan(&installedAlias); err == nil {
 					installedAliases = append(installedAliases, installedAlias)
 				} else {
-					log.Error(err)
+					log.WithField(logconst.FieldService, "PackageService").
+						WithField(logconst.FieldMethod, "Install").
+						WithField(logconst.FieldCalledObject, "Rows").
+						WithField(logconst.FieldCalledMethod, "Scan").
+						Error(err)
 				}
 			}
+			err = res.Err()
 		}
 		return installedAliases, err
 	}
@@ -83,10 +93,14 @@ func (service *PackageService) installItems(tx pgx.Tx, uid int64, pkgInfo *Packa
 			if err = res.Scan(&aliasID); err == nil {
 				aliasIDs = append(aliasIDs, aliasID)
 			} else {
-				log.Error(err)
+				log.WithField(logconst.FieldService, "PackageService").
+					WithField(logconst.FieldMethod, "installItems").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
 			}
 		}
-		return aliasIDs, nil
+		return aliasIDs, res.Err()
 	} else {
 		return nil, err
 	}
@@ -109,10 +123,14 @@ func (service *PackageService) installLinks(tx pgx.Tx, uid int64, pkgInfo *Packa
 			if err = res.Scan(&aliasID); err == nil {
 				aliasIDs = append(aliasIDs, aliasID)
 			} else {
-				log.Error(err)
+				log.WithField(logconst.FieldService, "PackageService").
+					WithField(logconst.FieldMethod, "installLinks").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
 			}
 		}
-		return aliasIDs, nil
+		return aliasIDs, res.Err()
 	} else {
 		return nil, err
 	}

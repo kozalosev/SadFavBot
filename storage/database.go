@@ -8,6 +8,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
@@ -37,14 +38,19 @@ func NewDatabaseConfig(host, port, username, password, dbName string) *DatabaseC
 func ConnectToDatabase(ctx context.Context, config *DatabaseConfig) *pgxpool.Pool {
 	intPort, err := strconv.ParseInt(config.port, 10, strconv.IntSize)
 	if err != nil {
-		log.Fatal(err)
+		log.WithField(logconst.FieldFunc, "ConnectToDatabase").
+			WithField(logconst.FieldCalledFunc, "ParseInt").
+			Fatal(err)
 	}
 
 	connURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
 		config.user, config.password, config.host, intPort, config.dbName)
 	conn, err := pgxpool.New(ctx, connURL)
 	if err != nil {
-		log.Fatal(err)
+		log.WithField(logconst.FieldFunc, "ConnectToDatabase").
+			WithField(logconst.FieldCalledObject, "Pool").
+			WithField(logconst.FieldCalledMethod, "New").
+			Fatal(err)
 	}
 
 	if err := conn.Ping(ctx); err != nil {
@@ -63,7 +69,8 @@ func RunMigrations(config *DatabaseConfig, migrationsRepo string) {
 	} else if _, err := os.Stat("../../" + migrationsPath); err == nil {
 		sourceURL = "file://../../" + migrationsPath
 	} else {
-		log.Warning("Run migrations from the repository")
+		log.WithField(logconst.FieldFunc, "RunMigrations").
+			Warning("Run migrations from the repository")
 		sourceURL = "github://" + migrationsRepo + "/" + migrationsPath
 	}
 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
@@ -71,9 +78,14 @@ func RunMigrations(config *DatabaseConfig, migrationsRepo string) {
 
 	m, err := migrate.New(sourceURL, databaseURL)
 	if err != nil {
-		log.Fatal(err)
+		log.WithField(logconst.FieldFunc, "RunMigrations").
+			WithField(logconst.FieldCalledFunc, "migrate.New").
+			Fatal(err)
 	}
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatal(err)
+		log.WithField(logconst.FieldFunc, "RunMigrations").
+			WithField(logconst.FieldCalledObject, "Migrate").
+			WithField(logconst.FieldCalledMethod, "Up").
+			Fatal(err)
 	}
 }

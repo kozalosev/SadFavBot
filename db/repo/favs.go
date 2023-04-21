@@ -2,11 +2,11 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -68,15 +68,18 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*Fav,
 
 	var result []*Fav
 	if err != nil {
-		log.Error("error occurred: ", err)
-		return result, nil
+		return result, err
 	}
 	for rows.Next() {
 		row := NewFav()
 		var fileID *string
 		err = rows.Scan(&row.ID, &row.Type, &fileID, &row.Text)
 		if err != nil {
-			log.Error("Error occurred while fetching from database: ", err)
+			log.WithField(logconst.FieldService, "FavService").
+				WithField(logconst.FieldMethod, "Find").
+				WithField(logconst.FieldCalledObject, "Rows").
+				WithField(logconst.FieldCalledMethod, "Scan").
+				Error(err)
 			continue
 		}
 		if fileID != nil {
@@ -84,7 +87,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*Fav,
 		}
 		result = append(result, row)
 	}
-	return result, nil
+	return result, rows.Err()
 }
 
 // Save a fav associated with the user and alias.
@@ -99,12 +102,24 @@ func (service *FavService) Save(uid int64, alias string, fav *Fav) (RowsAffected
 	} else {
 		res, err = service.saveFile(tx, uid, alias, fav.Type, *fav.File)
 	}
+	if err != nil {
+		if err := tx.Rollback(service.ctx); err != nil {
+			log.WithField(logconst.FieldService, "FavService").
+				WithField(logconst.FieldMethod, "Save").
+				WithField(logconst.FieldCalledObject, "Tx").
+				WithField(logconst.FieldCalledMethod, "Rollback").
+				Error(err)
+		}
+		return &res, err
+	}
 	return &res, tx.Commit(service.ctx)
 }
 
 // DeleteByAlias deletes all of the user's favs associated with alias.
 func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedAware, error) {
-	log.Infof("Deletion of favs and/or links with uid '%d' and alias '%s'", uid, alias)
+	log.WithField(logconst.FieldService, "FavService").
+		WithField(logconst.FieldMethod, "DeleteByAlias").
+		Infof("Deletion of favs and/or links with uid '%d' and alias '%s'", uid, alias)
 	var (
 		tx       pgx.Tx
 		res      pgconn.CommandTag
@@ -120,8 +135,12 @@ func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedA
 			}
 		}
 		if err != nil {
-			if rbErr := tx.Rollback(service.ctx); rbErr != nil {
-				err = errors.Join(err, rbErr)
+			if err := tx.Rollback(service.ctx); err != nil {
+				log.WithField(logconst.FieldService, "FavService").
+					WithField(logconst.FieldMethod, "DeleteByAlias").
+					WithField(logconst.FieldCalledObject, "Tx").
+					WithField(logconst.FieldCalledMethod, "Rollback").
+					Error(err)
 			}
 		}
 	}
@@ -164,14 +183,18 @@ func (service *FavService) saveFile(tx pgx.Tx, uid int64, alias string, fileType
 }
 
 func (service *FavService) deleteByText(uid int64, alias, text string) (RowsAffectedAware, error) {
-	log.Infof("Deletion of fav with uid '%d', alias '%s' and text '%s'", uid, alias, text)
+	log.WithField(logconst.FieldService, "FavService").
+		WithField(logconst.FieldMethod, "deleteByText").
+		Infof("Deletion of fav with uid '%d', alias '%s' and text '%s'", uid, alias, text)
 	return service.db.Exec(service.ctx,
 		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3)",
 		uid, alias, text)
 }
 
 func (service *FavService) deleteByFileID(uid int64, alias string, file wizard.File) (RowsAffectedAware, error) {
-	log.Infof("Deletion of fav with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
+	log.WithField(logconst.FieldService, "FavService").
+		WithField(logconst.FieldMethod, "deleteByFileID").
+		Infof("Deletion of fav with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
 	return service.db.Exec(service.ctx,
 		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3",
 		uid, alias, file.UniqueID)

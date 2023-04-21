@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"strings"
@@ -47,12 +48,16 @@ func (service *PackageService) ListWithCounts(uid int64) ([]string, error) {
 			if err = rows.Scan(&pkg, &count); err == nil {
 				packages = append(packages, fmt.Sprintf("%s (%d)", pkg, count))
 			} else {
-				log.Error("Error occurred while fetching from database: ", err)
+				log.WithField(logconst.FieldService, "PackageService").
+					WithField(logconst.FieldMethod, "ListWithCounts").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
 			}
 		}
 		return funk.Map(packages, func(s string) string {
 			return FormatPackageName(uid, s)
-		}).([]string), nil
+		}).([]string), rows.Err()
 	} else {
 		return nil, err
 	}
@@ -65,10 +70,17 @@ func (service *PackageService) ListAliases(pkgInfo *PackageInfo) (items []string
 	if res, err = service.db.Query(service.ctx, q, pkgInfo.UID, pkgInfo.Name); err == nil {
 		var item string
 		for res.Next() {
-			if err = res.Scan(&item); err == nil {
+			if err := res.Scan(&item); err == nil {
 				items = append(items, item)
+			} else {
+				log.WithField(logconst.FieldService, "PackageService").
+					WithField(logconst.FieldMethod, "ListAliases").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
 			}
 		}
+		err = res.Err()
 	}
 	return
 }
@@ -106,7 +118,11 @@ func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, 
 				if err = res.Scan(&aliasID); err == nil {
 					b.Queue("INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", packID, aliasID)
 				} else {
-					log.Error(err)
+					log.WithField(logconst.FieldService, "PackageService").
+						WithField(logconst.FieldMethod, "createPackage").
+						WithField(logconst.FieldCalledObject, "Rows").
+						WithField(logconst.FieldCalledMethod, "Scan").
+						Error(err)
 				}
 			}
 			batchRes := tx.SendBatch(service.ctx, &b)

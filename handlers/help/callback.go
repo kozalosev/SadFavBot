@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -115,7 +116,9 @@ func (handler *CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.
 	helpKey := strings.TrimPrefix(query.Data, callbackDataPrefix)
 	var msg string
 	if msg, ok = messages[helpMessageKey(helpKey)]; !ok {
-		log.Error("Unexpected help key: ", helpKey)
+		log.WithField(logconst.FieldHandler, "help.CallbackHandler").
+			WithField(logconst.FieldMethod, "Handle").
+			Error("Unexpected help key: ", helpKey)
 		msg = messages[startHelpMessage]
 	}
 
@@ -136,7 +139,11 @@ func (handler *CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.
 		err = handler.sendAdditionalMessagesIfNeeded(reqenv, query.Message, &answer, helpMessageKey(helpKey))
 	}
 	if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "help.CallbackHandler").
+			WithField(logconst.FieldMethod, "Handle").
+			WithField(logconst.FieldCalledObject, "BotAPI").
+			WithField(logconst.FieldCalledMethod, "Request").
+			Error(err)
 	}
 }
 

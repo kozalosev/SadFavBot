@@ -9,6 +9,7 @@ import (
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers"
 	"github.com/kozalosev/SadFavBot/handlers/help"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/storage"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
@@ -67,7 +68,8 @@ func main() {
 	}
 
 	if wasPopulated := wizard.PopulateWizardDescriptors(messageHandlers); !wasPopulated {
-		log.Warning("Wizard actions map already has been populated; skipping...")
+		log.WithField(logconst.FieldFunc, "main").
+			Warning("Wizard actions map already has been populated; skipping...")
 	}
 
 	var (
@@ -164,7 +166,10 @@ func startServer(port string) *http.Server {
 	srv := &http.Server{Addr: ":" + port}
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatal(err)
+			log.WithField(logconst.FieldFunc, "startServer").
+				WithField(logconst.FieldCalledObject, "Server").
+				WithField(logconst.FieldCalledMethod, "ListenAndServe").
+				Fatal(err)
 		}
 	}()
 	return srv
@@ -174,13 +179,19 @@ func stopListeningForIncomingRequests(srv *http.Server) {
 	ctx, c := context.WithTimeout(context.Background(), time.Minute)
 	defer c()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldFunc, "stopListeningForIncomingRequests").
+			WithField(logconst.FieldCalledObject, "Server").
+			WithField(logconst.FieldCalledMethod, "Shutdown").
+			Error(err)
 	}
 }
 
 func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool) {
 	dbPool.Close()
 	if err := stateStorage.Close(); err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldFunc, "shutdown").
+			WithField(logconst.FieldCalledObject, "StateStorage").
+			WithField(logconst.FieldCalledMethod, "Close").
+			Error(err)
 	}
 }

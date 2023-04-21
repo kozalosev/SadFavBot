@@ -6,6 +6,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -56,7 +57,11 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		aliasService := repo.NewAliasService(handler.appenv)
 		aliases, err := aliasService.List(msg.From.ID)
 		if err != nil {
-			log.Error(err)
+			log.WithField(logconst.FieldHandler, "DeleteHandler").
+				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
+				WithField(logconst.FieldCalledObject, "AliasService").
+				WithField(logconst.FieldCalledMethod, "List").
+				Error(err)
 		}
 		return aliases
 	}
@@ -120,7 +125,10 @@ func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgb
 	}
 
 	if err != nil {
-		log.Errorln(err.Error())
+		log.WithField(logconst.FieldHandler, "DeleteHandler").
+			WithField(logconst.FieldMethod, "deleteFormAction").
+			WithField(logconst.FieldCalledObject, "FavService").
+			Error(err)
 		replyWith(DeleteStatusFailure)
 	} else {
 		if res.RowsAffected() > 0 {

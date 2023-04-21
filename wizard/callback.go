@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -43,7 +44,10 @@ func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery
 	if err != nil {
 		c = tgbotapi.NewCallbackWithAlert(query.ID, reqenv.Lang.Tr(callbackDataErrorTr))
 		if err = resources.appEnv.Bot.Request(c); err != nil {
-			log.Error(err)
+			log.WithField(logconst.FieldHandler, "wizard.CallbackQueryHandler").
+				WithField(logconst.FieldCalledObject, "BotAPI").
+				WithField(logconst.FieldCalledMethod, "Request").
+				Error(err)
 		}
 	} else {
 		chosenValue := reqenv.Lang.Tr(fieldValue)
@@ -54,6 +58,9 @@ func CallbackQueryHandler(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery
 		form.ProcessNextField(reqenv, msg)
 	}
 	if err := resources.appEnv.Bot.Request(c); err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "wizard.CallbackQueryHandler").
+			WithField(logconst.FieldCalledObject, "BotAPI").
+			WithField(logconst.FieldCalledMethod, "Request").
+			Error(err)
 	}
 }
