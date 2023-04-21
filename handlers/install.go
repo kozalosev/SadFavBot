@@ -15,13 +15,14 @@ import (
 )
 
 const (
-	InstallFieldsTrPrefix       = "commands.install.fields."
-	InstallStatusTrPrefix       = "commands.install.status."
-	InstallStatusSuccess        = InstallStatusTrPrefix + StatusSuccess
-	InstallStatusSuccessNoNames = InstallStatusTrPrefix + StatusSuccess + ".no.names"
-	InstallStatusFailure        = InstallStatusTrPrefix + StatusFailure
-	InstallStatusNoRows         = InstallStatusTrPrefix + StatusNoRows
-	PackageItems                = "commands.install.message.package.favs"
+	InstallFieldsTrPrefix         = "commands.install.fields."
+	InstallStatusTrPrefix         = "commands.install.status."
+	InstallStatusSuccess          = InstallStatusTrPrefix + StatusSuccess
+	InstallStatusSuccessNoNames   = InstallStatusTrPrefix + StatusSuccess + ".no.names"
+	InstallStatusFailure          = InstallStatusTrPrefix + StatusFailure
+	InstallStatusNoRows           = InstallStatusTrPrefix + StatusNoRows
+	InstallStatusLinkToExisingFav = InstallStatusTrPrefix + "link.existing.fav"
+	PackageItems                  = "commands.install.message.package.favs"
 
 	FieldConfirmation = "confirmation"
 )
@@ -124,6 +125,8 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 
 	if installedAliases, err := handler.packageService.Install(uid, pkgInfo); err == repo.NoRowsWereAffected {
 		reply(InstallStatusNoRows)
+	} else if isAttemptToInsertLinkForExistingFav(err) {
+		reply(InstallStatusLinkToExisingFav)
 	} else if err != nil {
 		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
 			WithField(logconst.FieldMethod, "installPackageWithMessageHandling").
