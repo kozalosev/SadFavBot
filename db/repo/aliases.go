@@ -72,7 +72,7 @@ func (service *AliasService) ListWithCounts(uid int64) ([]string, error) {
 func (service *AliasService) List(uid int64) ([]string, error) {
 	res, err := service.ListWithCounts(uid)
 	if err == nil {
-		res = funk.Map(res, trimCountSuffix).([]string)
+		res = funk.Map(res, trimSuffix).([]string)
 	}
 	return res, err
 }
@@ -107,4 +107,18 @@ func trimCountSuffix(s string) string {
 	} else {
 		return s
 	}
+}
+
+func trimLinkSuffix(s string) string {
+	if i := strings.Index(s, "→"); i >= 0 {
+		return strings.TrimSpace(s[:i])
+	} else {
+		return s
+	}
+}
+
+func trimSuffix(s string) string {
+	s = trimCountSuffix(s)
+	s = trimLinkSuffix(s)
+	return s
 }
