@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -96,11 +97,17 @@ func InitMessages(maxAliasLen, maxPackageNameLen int, reservedSymbols string) {
 	}
 }
 
-type CallbackHandler struct{}
+type CallbackHandler struct {
+	appenv *base.ApplicationEnv
+}
 
-func (CallbackHandler) GetCallbackPrefix() string { return callbackDataPrefix }
+func NewCallbackHandler(appenv *base.ApplicationEnv) *CallbackHandler {
+	return &CallbackHandler{appenv: appenv}
+}
 
-func (handler CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery) {
+func (*CallbackHandler) GetCallbackPrefix() string { return callbackDataPrefix }
+
+func (handler *CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery) {
 	messages, ok := helpMessagesByLang[reqenv.Lang.GetLanguage()]
 	if !ok {
 		messages = helpMessagesByLang["en"]
@@ -109,7 +116,9 @@ func (handler CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.C
 	helpKey := strings.TrimPrefix(query.Data, callbackDataPrefix)
 	var msg string
 	if msg, ok = messages[helpMessageKey(helpKey)]; !ok {
-		log.Error("Unexpected help key: ", helpKey)
+		log.WithField(logconst.FieldHandler, "help.CallbackHandler").
+			WithField(logconst.FieldMethod, "Handle").
+			Error("Unexpected help key: ", helpKey)
 		msg = messages[startHelpMessage]
 	}
 
@@ -126,21 +135,25 @@ func (handler CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.C
 		answer = a
 	}
 
-	if err = reqenv.Bot.Request(answer); err == nil {
-		err = sendAdditionalMessagesIfNeeded(reqenv, query.Message, &answer, helpMessageKey(helpKey))
+	if err = handler.appenv.Bot.Request(answer); err == nil {
+		err = handler.sendAdditionalMessagesIfNeeded(reqenv, query.Message, &answer, helpMessageKey(helpKey))
 	}
 	if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "help.CallbackHandler").
+			WithField(logconst.FieldMethod, "Handle").
+			WithField(logconst.FieldCalledObject, "BotAPI").
+			WithField(logconst.FieldCalledMethod, "Request").
+			Error(err)
 	}
 }
 
-func sendAdditionalMessagesIfNeeded(reqenv *base.RequestEnv, originMsg *tgbotapi.Message, answer *tgbotapi.Chattable, helpKey helpMessageKey) error {
+func (handler *CallbackHandler) sendAdditionalMessagesIfNeeded(reqenv *base.RequestEnv, originMsg *tgbotapi.Message, answer *tgbotapi.Chattable, helpKey helpMessageKey) error {
 	_, wasUpdated := (*answer).(tgbotapi.EditMessageTextConfig)
 	if wasUpdated && helpKey == inlineHelpKey && len(photoExampleInline) > 0 {
 		media := tgbotapi.NewPhoto(originMsg.Chat.ID, tgbotapi.FileURL(photoExampleInline))
 		media.Caption = reqenv.Lang.Tr(helpCallbackCaptionInline)
 		media.ReplyToMessageID = originMsg.MessageID
-		return reqenv.Bot.Request(media)
+		return handler.appenv.Bot.Request(media)
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -22,22 +23,31 @@ func init() {
 
 func registerMessageHandlerCounters(handlers ...base.MessageHandler) {
 	for _, h := range handlers {
-		registerCounter(reflect.TypeOf(h).Name(), "used_message_handler_")
+		registerCounter(resolveHandlerName(h), "used_message_handler_")
 	}
 }
 
 func incMessageHandlerCounter(handler base.MessageHandler) {
-	inc(reflect.TypeOf(handler).Name())
+	inc(resolveHandlerName(handler))
 }
 
 func registerInlineHandlerCounters(handlers ...base.InlineHandler) {
 	for _, h := range handlers {
-		registerCounter(reflect.TypeOf(h).Name(), "used_inline_handler_")
+		registerCounter(resolveHandlerName(h), "used_inline_handler_")
 	}
 }
 
 func incInlineHandlerCounter(handler base.InlineHandler) {
-	inc(reflect.TypeOf(handler).Name())
+	inc(resolveHandlerName(handler))
+}
+
+func resolveHandlerName(handler any) string {
+	t := reflect.TypeOf(handler)
+	if t.Kind() == reflect.Pointer {
+		return reflect.Indirect(reflect.ValueOf(handler)).Type().Name()
+	} else {
+		return t.Name()
+	}
 }
 
 func registerCounter(name, metricPrefix string) {
@@ -52,7 +62,8 @@ func inc(name string) {
 	if ok {
 		counter.Inc()
 	} else {
-		log.Warning("Counter " + name + " is missing!")
+		log.WithField(logconst.FieldFunc, "inc").
+			Warning("Counter " + name + " is missing!")
 	}
 }
 

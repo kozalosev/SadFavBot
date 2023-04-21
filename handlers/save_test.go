@@ -1,44 +1,47 @@
 package handlers
 
 import (
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestSaveFormAction(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 
-	msg := buildMessage(TestUID3)
-	reqenv := buildRequestEnv()
+	msg := buildMessage(test.UID3)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	fieldsFile := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias},
-		&wizard.Field{Name: FieldObject, Type: TestType, Data: wizard.File{
-			ID:       TestFileID,
-			UniqueID: TestUniqueFileID,
+		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{
+			ID:       test.FileID,
+			UniqueID: test.UniqueFileID,
 		}},
 	}
 
-	saveFormAction(reqenv, msg, fieldsFile)
+	handler := NewSaveHandler(appenv, nil)
+	handler.saveFormAction(reqenv, msg, fieldsFile)
 
-	checkRowsCount(t, 1, TestUID3, nil)
-	itemFile := fetchItem(t, TestType)
-	assert.Equal(t, TestFileID, *itemFile.FileID)
-	assert.Equal(t, TestUniqueFileID, *itemFile.FileUniqueID)
+	test.CheckRowsCount(t, db, 1, test.UID3, nil)
+	itemFile := fetchItem(t, test.Type)
+	assert.Equal(t, test.FileID, *itemFile.FileID)
+	assert.Equal(t, test.UniqueFileID, *itemFile.FileUniqueID)
 	assert.Nil(t, itemFile.Text)
 
 	fieldsText := fieldsFile
 	objField := fieldsText.FindField(FieldObject)
 	objField.Type = wizard.Text
-	objField.Data = TestText
+	objField.Data = test.Text
 
-	saveFormAction(reqenv, msg, fieldsText)
+	handler.saveFormAction(reqenv, msg, fieldsText)
 
-	checkRowsCount(t, 2, TestUID3, nil)
+	test.CheckRowsCount(t, db, 2, test.UID3, nil)
 	itemText := fetchItem(t, wizard.Text)
 	assert.Nil(t, itemText.FileID)
 	assert.Nil(t, itemText.FileUniqueID)
-	assert.Equal(t, TestText, *itemText.Text)
+	assert.Equal(t, test.Text, *itemText.Text)
 }
 
 type queryResult struct {
@@ -50,11 +53,11 @@ type queryResult struct {
 }
 
 func fetchItem(t *testing.T, fieldType wizard.FieldType) *queryResult {
-	itemsRes := db.QueryRow("SELECT a.name, type, file_id, file_unique_id, t.text FROM items i JOIN aliases a ON i.alias = a.id LEFT JOIN texts t on t.id = i.text WHERE uid = $1 AND type = $2", TestUID3, fieldType)
+	itemsRes := db.QueryRow(ctx, "SELECT a.name, type, file_id, file_unique_id, t.text FROM favs f JOIN aliases a ON f.alias_id = a.id LEFT JOIN texts t on t.id = f.text_id WHERE uid = $1 AND type = $2", test.UID3, fieldType)
 	var item queryResult
 	err := itemsRes.Scan(&item.Name, &item.Type, &item.FileID, &item.FileUniqueID, &item.Text)
 	assert.NoError(t, err)
-	assert.Equal(t, TestAlias, item.Name)
+	assert.Equal(t, test.Alias, item.Name)
 	assert.Equal(t, fieldType, item.Type)
 	return &item
 }

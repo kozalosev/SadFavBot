@@ -28,8 +28,10 @@ services:
     expose:
       - ${APP_PORT}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - postgres-network
       - redis-network
@@ -65,6 +67,15 @@ services:
   redis:
     image: redis:6.2-alpine
     container_name: sadfavbot-redis
+    environment:
+      - REDIS_PORT
+      - REDIS_PASSWORD
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p $$REDIS_PORT -a $$REDIS_PASSWORD ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
     expose:
       - ${REDIS_PORT}

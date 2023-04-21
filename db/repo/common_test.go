@@ -1,12 +1,10 @@
-package settings
+package repo
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/storage"
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"os"
@@ -25,39 +23,11 @@ const (
 
 var (
 	container testcontainers.Container
-	db        *sql.DB
+	db        *pgxpool.Pool
 	ctx       = context.Background()
 )
 
-func TestFetchLanguage(t *testing.T) {
-	clearDatabase(t)
-
-	lang, _ := FetchUserOptions(ctx, db, TestUID, "en")
-	assert.Equal(t, LangCode("en"), lang)
-
-	res, err := db.Exec("INSERT INTO users(uid, language) VALUES ($1, 'ru')", TestUID)
-	assert.NoError(t, err)
-	assert.True(t, checkRowsWereAffected(res))
-
-	lang, _ = FetchUserOptions(ctx, db, TestUID, "en")
-	assert.Equal(t, LangCode("ru"), lang)
-}
-
-func TestFetchUserOptions(t *testing.T) {
-	clearDatabase(t)
-
-	_, opts := FetchUserOptions(ctx, db, TestUID, "")
-	assert.False(t, opts.SubstrSearchEnabled)
-
-	res, err := db.Exec("INSERT INTO users(uid, substring_search) VALUES ($1, true)", TestUID)
-	assert.NoError(t, err)
-	assert.True(t, checkRowsWereAffected(res))
-
-	_, opts = FetchUserOptions(ctx, db, TestUID, "")
-	assert.True(t, opts.SubstrSearchEnabled)
-}
-
-//TestMain controls main for the tests and allows for setup and shutdown of tests
+// TestMain controls main for the tests and allows for setup and shutdown of tests
 func TestMain(m *testing.M) {
 	//Catching all panics to once again make sure that shutDown is successfully run
 	defer func() {
@@ -99,34 +69,12 @@ func setup() {
 	port := strings.TrimSuffix(string(containerPort), "/tcp")
 
 	dbConfig := storage.NewDatabaseConfig(host, port, TestUser, TestPassword, TestDB)
-	db = storage.ConnectToDatabase(dbConfig)
+	db = storage.ConnectToDatabase(ctx, dbConfig)
 	storage.RunMigrations(dbConfig, "")
 }
 
 func shutDown() {
 	if err := container.Terminate(ctx); err != nil {
 		panic(fmt.Sprintf("failed to terminate container: %s", err.Error()))
-	}
-}
-
-func clearDatabase(t *testing.T) {
-	//goland:noinspection SqlWithoutWhere
-	_, err := db.Exec("DELETE FROM users")
-	assert.NoError(t, err)
-}
-
-func checkRowsWereAffected(res sql.Result) bool {
-	var (
-		rowsAffected int64
-		err          error
-	)
-	if rowsAffected, err = res.RowsAffected(); err != nil {
-		log.Errorln(err)
-		rowsAffected = -1 // logs but ignores
-	}
-	if rowsAffected == 0 {
-		return false
-	} else {
-		return true
 	}
 }

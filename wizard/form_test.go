@@ -36,9 +36,10 @@ func TestForm_AddPrefilledField(t *testing.T) {
 func TestRestorationOfFunctions(t *testing.T) {
 	wizard := NewWizard(testHandler{}, 1)
 	wizard.AddEmptyField(TestName, Text)
-	wizard.PopulateRestored(&tgbotapi.Message{}, nil)
 
 	form := wizard.(*Form)
+	form.PopulateRestored(&tgbotapi.Message{}, nil)
+
 	assert.Equal(t, getFuncPtr(tAction), getFuncPtr(form.descriptor.action))
 	assert.Equal(t, getFuncPtr(textExtractor), getFuncPtr(form.Fields[form.Index].extractor))
 	assert.Equal(t, TestPromptDesc, form.Fields[form.Index].descriptor.promptDescription)
@@ -52,7 +53,6 @@ func TestForm_ProcessNextField(t *testing.T) {
 		From:      &tgbotapi.User{ID: TestID},
 	}
 	reqenv := &base.RequestEnv{
-		Bot:  &base.BotAPI{DummyMode: true},
 		Lang: loc.NewPool("en").GetContext("en"),
 	}
 
@@ -107,9 +107,14 @@ type testHandler struct{}
 
 func (testHandler) CanHandle(*tgbotapi.Message) bool           { return false }
 func (testHandler) Handle(*base.RequestEnv, *tgbotapi.Message) {}
-func (testHandler) GetWizardName() string                      { return TestWizardName }
 func (testHandler) GetWizardAction() FormAction                { return tAction }
-func (testHandler) GetWizardStateStorage() StateStorage        { return nil }
+
+func (testHandler) GetWizardEnv() *Env {
+	return NewEnv(&base.ApplicationEnv{
+		Bot: &base.FakeBotAPI{},
+		Ctx: ctx,
+	}, nil)
+}
 
 func (h testHandler) GetWizardDescriptor() *FormDescriptor {
 	desc := NewWizardDescriptor(tAction)
@@ -120,8 +125,6 @@ func (h testHandler) GetWizardDescriptor() *FormDescriptor {
 type testHandler2 struct {
 	testHandler
 }
-
-func (testHandler2) GetWizardName() string { return TestWizardName + "2" }
 
 type flagContainer struct {
 	flag bool
@@ -153,8 +156,11 @@ func (handler testHandlerWithAction) GetWizardDescriptor() *FormDescriptor {
 	return desc
 }
 
-func (handler testHandlerWithAction) GetWizardStateStorage() StateStorage {
-	return handler.stateStorage
+func (handler testHandlerWithAction) GetWizardEnv() *Env {
+	return NewEnv(&base.ApplicationEnv{
+		Bot: &base.FakeBotAPI{},
+		Ctx: ctx,
+	}, handler.stateStorage)
 }
 
 type fakeStorage struct{}

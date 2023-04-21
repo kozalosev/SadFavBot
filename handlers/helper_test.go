@@ -2,73 +2,59 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
-	"github.com/kozalosev/SadFavBot/settings"
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/SadFavBot/wizard"
-	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestExtractItemValues_File(t *testing.T) {
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias},
-		&wizard.Field{Name: FieldObject, Type: TestType, Data: wizard.File{
-			ID:       TestFileID,
-			UniqueID: TestUniqueFileID,
+		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{
+			ID:       test.FileID,
+			UniqueID: test.UniqueFileID,
 		}},
 	}
 
-	res, ok := extractItemValues(fields)
+	alias, fav := extractFavInfo(fields)
 
-	assert.True(t, ok)
-	assert.Equal(t, TestAlias, res.Alias)
-	assert.Equal(t, TestType, res.Type)
-	assert.Equal(t, TestFileID, res.File.ID)
-	assert.Equal(t, TestUniqueFileID, res.File.UniqueID)
-	assert.Empty(t, res.Text)
+	assert.Equal(t, test.Alias, alias)
+	assert.Equal(t, test.Type, fav.Type)
+	assert.Equal(t, test.FileID, fav.File.ID)
+	assert.Equal(t, test.UniqueFileID, fav.File.UniqueID)
+	assert.Empty(t, fav.Text)
 }
 
 func TestExtractItemValues_Text(t *testing.T) {
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias},
-		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: TestText},
+		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: test.Text},
 	}
 
-	res, ok := extractItemValues(fields)
+	alias, fav := extractFavInfo(fields)
 
-	assert.True(t, ok)
-	assert.Equal(t, TestAlias, res.Alias)
-	assert.Equal(t, wizard.Text, res.Type)
-	assert.Equal(t, TestText, res.Text)
-	assert.Empty(t, res.File.ID)
-	assert.Empty(t, res.File.UniqueID)
+	assert.Equal(t, test.Alias, alias)
+	assert.Equal(t, wizard.Text, fav.Type)
+	assert.Equal(t, test.Text, *fav.Text)
+	assert.Empty(t, fav.File.ID)
+	assert.Empty(t, fav.File.UniqueID)
 }
 
 func TestExtractItemValues_MismatchError(t *testing.T) {
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias},
-		&wizard.Field{Name: FieldObject, Type: TestType, Data: TestText},
+		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		&wizard.Field{Name: FieldObject, Type: test.Type, Data: test.Text},
 	}
 
-	res, ok := extractItemValues(fields)
+	alias, fav := extractFavInfo(fields)
 
-	assert.False(t, ok)
-	assert.Nil(t, res)
+	assert.Empty(t, alias)
+	assert.Nil(t, fav)
 }
 
 func buildMessage(uid int64) *tgbotapi.Message {
 	return &tgbotapi.Message{
 		From: &tgbotapi.User{ID: uid},
-	}
-}
-
-func buildRequestEnv() *base.RequestEnv {
-	return &base.RequestEnv{
-		Database: db,
-		Bot:      &base.BotAPI{DummyMode: true},
-		Lang:     loc.NewPool("en").GetContext("en"),
-		Ctx:      ctx,
-		Options:  &settings.UserOptions{},
 	}
 }

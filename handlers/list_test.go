@@ -1,37 +1,57 @@
 package handlers
 
 import (
+	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
-func TestFetchAliases(t *testing.T) {
-	insertTestData(db)
+func TestListActionFavs(t *testing.T) {
+	test.InsertTestData(db)
 
-	aliases, err := fetchAliases(ctx, db, TestUID)
-
-	assert.NoError(t, err)
-	assert.Len(t, aliases, 2)
-	assert.Contains(t, aliases, TestAlias+" (2)")
-	assert.Contains(t, aliases, TestAlias2+" (1)")
+	testListActionImpl(t, Favs, func(list []string) {
+		assert.Len(t, list, 2)
+		assert.Contains(t, list[0], test.Alias)
+		assert.Contains(t, list[1], test.Alias2)
+	})
 }
 
-func TestFetchPackages(t *testing.T) {
-	insertTestData(db)
-	insertTestPackages(db)
+func TestListActionPackages(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
 
-	packages, err := fetchPackages(ctx, db, TestUID)
-
-	assert.NoError(t, err)
-	assert.Len(t, packages, 1)
-	assert.Contains(t, packages, formatPackageName(TestUID, TestPackage)+" (1)")
+	testListActionImpl(t, Packages, func(list []string) {
+		assert.Len(t, list, 1)
+		assert.Contains(t, list[0], test.PackageFullName)
+	})
 }
 
-func TestFetchAliasesNoRows(t *testing.T) {
-	insertTestData(db)
+func testListActionImpl(t *testing.T, favsOrPackages string, assertionsFunc func(list []string)) {
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
+	msg := buildMessage(test.UID)
+	fields := wizard.Fields{
+		&wizard.Field{
+			Name: FieldFavsOrPackages,
+			Data: favsOrPackages,
+		},
+	}
 
-	aliases, err := fetchAliases(ctx, db, TestUID-1)
+	handler := NewListHandler(appenv, nil)
+	handler.listAction(reqenv, msg, fields)
 
-	assert.NoError(t, err)
-	assert.Len(t, aliases, 0)
+	bot := appenv.Bot.(*base.FakeBotAPI)
+	sentMessages := bot.GetOutput().([]string)
+	assert.Len(t, sentMessages, 1)
+	sentMessage := sentMessages[0]
+	lines := strings.Split(sentMessage, "\n")
+
+	heading := lines[0]
+	assert.Contains(t, heading, strings.ToLower(favsOrPackages))
+
+	list := lines[2:]
+	assertionsFunc(list)
 }

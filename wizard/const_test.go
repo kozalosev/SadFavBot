@@ -14,7 +14,7 @@ const (
 	TestPromptDesc = "TestPromptDesc"
 	TestValue      = "TestValue"
 
-	TestWizardName = "TestWizardName"
+	TestWizardName = "testWizard"
 
 	TestTTL = 5 * time.Minute
 )

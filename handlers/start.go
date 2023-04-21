@@ -4,7 +4,9 @@ import (
 	"encoding/base64"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/help"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 )
@@ -14,23 +16,42 @@ const (
 	FieldInstallingPackage = "installingPackage"
 )
 
-type StartHandler struct {
-	StateStorage          wizard.StateStorage
-	InstallPackageHandler *InstallPackageHandler
+type StartEmbeddedHandlers struct {
+	Language       *LanguageHandler
+	InstallPackage *InstallPackageHandler
 }
 
-func (StartHandler) GetWizardName() string                              { return "StartWizard" }
-func (handler StartHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+type StartHandler struct {
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
 
-func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	embeddedHandlers StartEmbeddedHandlers
+
+	userService *repo.UserService
+}
+
+func NewStartHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage, embeddedHandlers StartEmbeddedHandlers) *StartHandler {
+	return &StartHandler{
+		appenv:           appenv,
+		stateStorage:     stateStorage,
+		embeddedHandlers: embeddedHandlers,
+		userService:      repo.NewUserService(appenv),
+	}
+}
+
+func (handler *StartHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
+
+func (handler *StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(func(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-		languageFormAction(reqenv, msg, fields)
+		handler.embeddedHandlers.Language.languageFormAction(reqenv, msg, fields)
 		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(string))
 		reqenv.Lang = reqenv.Lang.GetContext(newLang)
-		help.SendHelpMessage(reqenv, msg)
+		help.SendHelpMessage(handler.appenv.Bot, reqenv.Lang, msg)
 
 		if installingPackage := fields.FindField(FieldInstallingPackage).Data.(string); len(installingPackage) > 0 {
-			runWizardForInstallation(reqenv, msg, &handler, installingPackage)
+			handler.runWizardForInstallation(reqenv, msg, installingPackage)
 		}
 	})
 	f := desc.AddField(FieldLanguage, LangParamPrompt)
@@ -39,12 +60,12 @@ func (handler StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (StartHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*StartHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "start"
 }
 
-func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	res, err := reqenv.Database.ExecContext(reqenv.Ctx, "INSERT INTO Users(uid) VALUES ($1) ON CONFLICT DO NOTHING", msg.From.ID)
+func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	wasCreated, err := handler.userService.Create(msg.From.ID)
 
 	var installingPackage string
 	if err == nil {
@@ -55,24 +76,26 @@ func (handler StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 
 	if err != nil {
-		log.Error(err)
-		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(StartStatusFailure))
-	} else if checkRowsWereAffected(res) {
+		log.WithField(logconst.FieldHandler, "StartHandler").
+			WithField(logconst.FieldMethod, "Handle").
+			Error(err)
+		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(StartStatusFailure))
+	} else if wasCreated {
 		w := wizard.NewWizard(handler, 2)
 		w.AddEmptyField(FieldLanguage, wizard.Text)
 		w.AddPrefilledField(FieldInstallingPackage, installingPackage)
 		w.ProcessNextField(reqenv, msg)
 	} else if len(installingPackage) > 0 {
-		runWizardForInstallation(reqenv, msg, &handler, installingPackage)
+		handler.runWizardForInstallation(reqenv, msg, installingPackage)
 	} else {
-		help.SendHelpMessage(reqenv, msg)
+		help.SendHelpMessage(handler.appenv.Bot, reqenv.Lang, msg)
 	}
 }
 
-func runWizardForInstallation(reqenv *base.RequestEnv, msg *tgbotapi.Message, handler *StartHandler, pkgName string) {
-	sendCountOfAliasesInPackage(reqenv, msg, pkgName)
+func (handler *StartHandler) runWizardForInstallation(reqenv *base.RequestEnv, msg *tgbotapi.Message, pkgName string) {
+	sendCountOfAliasesInPackage(handler.embeddedHandlers.InstallPackage, reqenv, msg, pkgName)
 
-	w := wizard.NewWizard(handler.InstallPackageHandler, 2)
+	w := wizard.NewWizard(handler.embeddedHandlers.InstallPackage, 2)
 	w.AddPrefilledField(FieldName, pkgName)
 	w.AddEmptyField(FieldConfirmation, wizard.Text)
 	w.ProcessNextField(reqenv, msg)

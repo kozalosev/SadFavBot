@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
@@ -14,17 +14,23 @@ type appParams struct {
 	messageHandlers  []base.MessageHandler
 	inlineHandlers   []base.InlineHandler
 	callbackHandlers []base.CallbackHandler
+	settings         settings.OptionsFetcher
 	api              *base.BotAPI
 	stateStorage     wizard.StateStorage
-	db               *sql.DB
+	db               *pgxpool.Pool
 }
 
-func newRequestEnv(params *appParams, langCtx *loc.Context, opts *settings.UserOptions) *base.RequestEnv {
-	return &base.RequestEnv{
+func newAppEnv(params *appParams) *base.ApplicationEnv {
+	return &base.ApplicationEnv{
 		Bot:      params.api,
-		Lang:     langCtx,
 		Database: params.db,
 		Ctx:      params.ctx,
-		Options:  opts,
+	}
+}
+
+func newRequestEnv(langCtx *loc.Context, opts *settings.UserOptions) *base.RequestEnv {
+	return &base.RequestEnv{
+		Lang:    langCtx,
+		Options: opts,
 	}
 }

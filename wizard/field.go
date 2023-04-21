@@ -4,6 +4,7 @@ import (
 	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -12,13 +13,15 @@ import (
 
 const ValidErrNotInListTr = "errors.validation.option.not.in.list"
 
+// FieldValidator is, obviously, a validation function. Returned error will be sent to the user and may be a key for
+// the translation mechanism.
 type FieldValidator func(msg *tgbotapi.Message, lc *loc.Context) error
 
 type Fields []*Field
 type FieldType string
 
 const (
-	Auto      FieldType = "<auto>"
+	Auto      FieldType = "<auto>" // will be automatically resolved from the type of message sent by the user
 	Text      FieldType = "text"
 	Sticker   FieldType = "sticker"
 	Image     FieldType = "image"
@@ -32,27 +35,31 @@ const (
 
 type Field struct {
 	Name         string      `json:"name"`
-	Data         interface{} `json:"data,omitempty"`
+	Data         interface{} `json:"data,omitempty"` // the value
 	WasRequested bool        `json:"wasRequested"`
 	Type         FieldType   `json:"type"`
 
 	Form *Form `json:"-"`
 
-	extractor  FieldExtractor
+	extractor  fieldExtractor
 	descriptor *FieldDescriptor
 }
 
+// FindField is useful in a [FormAction] function to get values of the fields.
 func (fs Fields) FindField(name string) *Field {
 	found := funk.Filter(fs, func(f *Field) bool { return f.Name == name }).([]*Field)
 	if len(found) == 0 {
 		return nil
 	}
 	if len(found) > 1 {
-		log.Warning("More than needed: ", found)
+		log.WithField(logconst.FieldObject, "Fields").
+			WithField(logconst.FieldCalledMethod, "FindField").
+			Warning("More than needed: ", found)
 	}
 	return found[0]
 }
 
+// Send a prompt message to the user.
 func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	promptDescription := reqenv.Lang.Tr(f.descriptor.promptDescription)
 	if len(f.descriptor.InlineKeyboardAnswers) > 0 {
@@ -66,11 +73,11 @@ func (f *Field) askUser(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 			}
 			return btn
 		}).([]tgbotapi.InlineKeyboardButton)
-		reqenv.Bot.ReplyWithInlineKeyboard(msg, promptDescription, inlineAnswers)
+		f.Form.resources.appEnv.Bot.ReplyWithInlineKeyboard(msg, promptDescription, inlineAnswers)
 	} else if f.descriptor.ReplyKeyboardBuilder != nil {
-		reqenv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardBuilder(reqenv, msg))
+		f.Form.resources.appEnv.Bot.ReplyWithKeyboard(msg, promptDescription, f.descriptor.ReplyKeyboardBuilder(reqenv, msg))
 	} else {
-		reqenv.Bot.Reply(msg, promptDescription)
+		f.Form.resources.appEnv.Bot.Reply(msg, promptDescription)
 	}
 }
 

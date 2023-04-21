@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -35,14 +35,26 @@ var (
 )
 
 type SaveHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	favService *repo.FavService
 }
 
-func (SaveHandler) GetWizardName() string                              { return "SaveWizard" }
-func (handler SaveHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func NewSaveHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *SaveHandler {
+	return &SaveHandler{
+		appenv:       appenv,
+		stateStorage: stateStorage,
+		favService:   repo.NewFavsService(appenv),
+	}
+}
 
-func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(saveFormAction)
+func (handler *SaveHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
+
+func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	desc := wizard.NewWizardDescriptor(handler.saveFormAction)
 
 	aliasDesc := desc.AddField(FieldAlias, SaveFieldsTrPrefix+FieldAlias)
 	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
@@ -65,16 +77,16 @@ func (handler SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*SaveHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "save"
 }
 
-func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	wizardForm := wizard.NewWizard(handler, 2)
 	title := base.GetCommandArgument(msg)
 	if len(title) > 0 {
 		if err := verifyNoReservedSymbols(title, reqenv.Lang, SaveStatusErrorForbiddenSymbolsInAlias); err != nil {
-			reqenv.Bot.ReplyWithMarkdown(msg, err.Error())
+			handler.appenv.Bot.ReplyWithMarkdown(msg, err.Error())
 			wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 		} else {
 			wizardForm.AddPrefilledField(FieldAlias, title)
@@ -86,100 +98,39 @@ func (handler SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	wizardForm.ProcessNextField(reqenv, msg)
 }
 
-func saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	itemValues, ok := extractItemValues(fields)
+	alias, fav := extractFavInfo(fields)
 
-	replyWith := replierFactory(reqenv, msg)
-	if !ok {
+	replyWith := replierFactory(handler.appenv, reqenv, msg)
+	if len(alias) == 0 {
 		replyWith(SaveStatusFailure)
 		return
 	}
 
-	var (
-		res sql.Result
-		err error
-	)
-	if itemValues.Type == wizard.Text {
-		res, err = saveText(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, itemValues.Text)
-	} else {
-		res, err = saveFile(reqenv.Ctx, reqenv.Database, uid, itemValues.Alias, itemValues.Type, *itemValues.File)
-	}
+	res, err := handler.favService.Save(uid, alias, fav)
 
 	if err != nil {
 		if isDuplicateConstraintViolation(err) {
 			replyWith(SaveStatusDuplicate)
 		} else {
-			log.Errorln(err.Error())
+			log.WithField(logconst.FieldHandler, "SaveHandler").
+				WithField(logconst.FieldMethod, "saveFormAction").
+				WithField(logconst.FieldCalledObject, "FavService").
+				WithField(logconst.FieldCalledMethod, "Save").
+				Error(err)
 			replyWith(SaveStatusFailure)
 		}
 	} else {
-		if checkRowsWereAffected(res) {
-			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), reqenv.Bot.GetName(), itemValues.Alias)
-			reqenv.Bot.ReplyWithMarkdown(msg, answer)
+		if res.RowsAffected() > 0 {
+			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), markdownEscaper.Replace(alias))
+			handler.appenv.Bot.ReplyWithMarkdown(msg, answer)
 		} else {
-			log.Warning("No rows were affected!")
+			log.WithField(logconst.FieldHandler, "SaveHandler").
+				WithField(logconst.FieldMethod, "saveFormAction").
+				Warning("No rows were affected!")
 			replyWith(SaveStatusFailure)
 		}
-	}
-}
-
-func saveText(ctx context.Context, db *sql.DB, uid int64, alias, text string) (sql.Result, error) {
-	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-	aliasID, err := saveAliasToSeparateTable(ctx, tx, alias)
-	textID, err := saveTextToSeparateTable(ctx, tx, text)
-	if err != nil {
-		return nil, err
-	}
-	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, text) VALUES ($1, $2, "+
-		"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
-		"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6) END)",
-		uid, wizard.Text, aliasID, alias, textID, text)
-	if err != nil {
-		return nil, err
-	}
-	return res, tx.Commit()
-}
-
-func saveFile(ctx context.Context, db *sql.DB, uid int64, alias string, fileType wizard.FieldType, file wizard.File) (sql.Result, error) {
-	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-	id, err := saveAliasToSeparateTable(ctx, tx, alias)
-	if err != nil {
-		return nil, err
-	}
-	res, err := tx.ExecContext(ctx, "INSERT INTO items (uid, type, alias, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
-		uid, fileType, id, alias, file.ID, file.UniqueID)
-	if err != nil {
-		return nil, err
-	}
-	return res, tx.Commit()
-}
-
-func saveAliasToSeparateTable(ctx context.Context, tx *sql.Tx, alias string) (int, error) {
-	var id int
-	if err := tx.QueryRowContext(ctx, "INSERT INTO aliases(name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", alias).Scan(&id); err == nil {
-		return id, nil
-	} else if err == sql.ErrNoRows {
-		return 0, nil
-	} else {
-		return 0, err
-	}
-}
-
-func saveTextToSeparateTable(ctx context.Context, tx *sql.Tx, text string) (int, error) {
-	var id int
-	if err := tx.QueryRowContext(ctx, "INSERT INTO texts(text) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", text).Scan(&id); err == nil {
-		return id, nil
-	} else if err == sql.ErrNoRows {
-		return 0, nil
-	} else {
-		return 0, err
 	}
 }
 

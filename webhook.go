@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -10,6 +11,8 @@ import (
 	"sync"
 )
 
+// Read comments in the `.env` file and
+// https://github.com/kozalosev/SadFavBot/wiki/Run-and-configuration#on-a-server-production-mode
 type webhookParams struct {
 	host    string
 	port    string
@@ -30,7 +33,8 @@ func addHttpHandlerForWebhook(bot *tgbotapi.BotAPI, appParams *appParams, wg *sy
 	whParams := getWebhookParamsFromEnv()
 	path := fmt.Sprintf("/%s/%s", whParams.path, bot.Token)
 	whURL := fmt.Sprintf("https://%s:%s/%s%s", whParams.host, whParams.port, whParams.appPath, path)
-	log.Info("Webhook URL: ", whURL[:len(bot.Token)], "/***")
+	log.WithField(logconst.FieldFunc, "addHttpHandlerForWebhook").
+		Info("Webhook URL: ", whURL[:len(bot.Token)], "/***")
 	wh, err := tgbotapi.NewWebhook(whURL)
 	if err != nil {
 		panic(err)
@@ -41,7 +45,10 @@ func addHttpHandlerForWebhook(bot *tgbotapi.BotAPI, appParams *appParams, wg *sy
 	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		upd, err := bot.HandleUpdate(r)
 		if err != nil {
-			log.Error(err)
+			log.WithField(logconst.FieldFunc, "addHttpHandlerForWebhook").
+				WithField(logconst.FieldCalledObject, "BotAPI").
+				WithField(logconst.FieldCalledMethod, "HandleUpdate").
+				Error(err)
 		} else {
 			handleUpdate(appParams, wg, upd)
 		}

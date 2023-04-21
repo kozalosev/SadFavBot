@@ -2,11 +2,16 @@ package base
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"strings"
 )
 
+// GetCommandArgument extracts a command argument from the text of a message.
+// For example:
+//   - "/foo bar" will result in "bar"
+//   - "/foo" will result in ""
 func GetCommandArgument(msg *tgbotapi.Message) string {
 	return strings.TrimSpace(strings.TrimPrefix(msg.Text, "/"+msg.Command()))
 }
@@ -15,6 +20,8 @@ func NewBotAPI(api *tgbotapi.BotAPI) *BotAPI {
 	return &BotAPI{internal: api}
 }
 
+// MessageCustomizer is a function that can change the message before it will be sent to Telegram.
+// See [BotAPI.ReplyWithMessageCustomizer] for more information.
 type MessageCustomizer func(msgConfig *tgbotapi.MessageConfig)
 
 var (
@@ -25,18 +32,14 @@ var (
 )
 
 func (bot *BotAPI) GetName() string {
-	if bot.DummyMode {
-		return "DummyMode"
-	}
 	return bot.internal.Self.UserName
 }
 
 func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string, customizer MessageCustomizer) {
-	if bot.DummyMode {
-		return
-	}
 	if len(text) == 0 {
-		log.Error("Empty reply for the message: " + msg.Text)
+		log.WithField(logconst.FieldObject, "BotAPI").
+			WithField(logconst.FieldMethod, "ReplyWithMessageCustomizer").
+			Error("Empty reply for the message: " + msg.Text)
 		return
 	}
 
@@ -44,7 +47,11 @@ func (bot *BotAPI) ReplyWithMessageCustomizer(msg *tgbotapi.Message, text string
 	reply.ReplyToMessageID = msg.MessageID
 	customizer(&reply)
 	if _, err := bot.internal.Send(reply); err != nil {
-		log.Errorln(err)
+		log.WithField(logconst.FieldObject, "BotAPI").
+			WithField(logconst.FieldMethod, "ReplyWithMessageCustomizer").
+			WithField(logconst.FieldCalledObject, "internal").
+			WithField(logconst.FieldCalledMethod, "Send").
+			Error(err)
 	}
 }
 
@@ -78,10 +85,8 @@ func (bot *BotAPI) ReplyWithInlineKeyboard(msg *tgbotapi.Message, text string, b
 	})
 }
 
+// Request is a simple wrapper around [tgbotapi.BotAPI.Request].
 func (bot *BotAPI) Request(c tgbotapi.Chattable) error {
-	if bot.DummyMode {
-		return nil
-	}
 	_, err := bot.internal.Request(c)
 	return err
 }

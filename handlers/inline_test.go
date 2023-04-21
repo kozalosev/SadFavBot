@@ -2,85 +2,53 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
 
-func TestFindObjects(t *testing.T) {
-	insertTestData(db)
-
-	query := buildInlineQuery()
-	reqenv := buildRequestEnv()
-	objects := findObjects(reqenv, query)
-
-	assert.Len(t, objects, 2)
-	assert.Equal(t, TestFileID, *objects[0].FileID)
-	assert.Equal(t, TestFileID2, *objects[1].FileID)
-}
-
-func TestFindObjectsBySubstring(t *testing.T) {
-	insertTestData(db)
-
-	query := buildInlineQuery()
-	query.Query = "a"
-	reqenv := buildRequestEnv()
-
-	objects := findObjects(reqenv, query)
-
-	assert.Len(t, objects, 0)
-
-	reqenv.Options.SubstrSearchEnabled = true
-	objects = findObjects(reqenv, query)
-
-	assert.Len(t, objects, 2)
-	assert.Equal(t, TestFileID, *objects[0].FileID)
-	assert.Equal(t, TestFileID2, *objects[1].FileID)
-}
-
-func TestFindObjectsEscaping(t *testing.T) {
-	insertTestData(db)
-
-	query := buildInlineQuery()
-	query.Query = "%a%"
-	reqenv := buildRequestEnv()
-
-	objects := findObjects(reqenv, query)
-
-	assert.Len(t, objects, 0)
-}
-
-func TestFindObjectsByLink(t *testing.T) {
-	insertTestData(db)
-
-	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID, TestAliasID)
-	assert.NoError(t, err)
-	_, err = db.Exec("INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", TestUID, TestAliasID, TestAlias2ID)
-	assert.NoError(t, err)
-
-	query := buildInlineQuery()
-	reqenv := buildRequestEnv()
-	objects := findObjects(reqenv, query)
-
-	assert.Len(t, objects, 1)
-	assert.Equal(t, TestFileID, *objects[0].FileID)
-}
-
 func TestMapper(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 
-	query := buildInlineQuery()
-	reqenv := buildRequestEnv()
-	objects := findObjects(reqenv, query)
+	query := test.BuildInlineQuery()
+	appenv := test.BuildApplicationEnv(db)
+
+	favsService := repo.NewFavsService(appenv)
+	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	assert.NoError(t, err)
 
 	inlineAnswer := generateMapper(loc.NewPool("en").GetContext("en"))(objects[0])
 	assert.Equal(t, "InlineQueryResultCachedSticker", reflect.TypeOf(inlineAnswer).Name())
 }
 
-func buildInlineQuery() *tgbotapi.InlineQuery {
-	return &tgbotapi.InlineQuery{
-		From:  &tgbotapi.User{ID: TestUID},
-		Query: TestAliasCI,
-	}
+func TestGetFavoritesInlineHandler_Handle(t *testing.T) {
+	test.InsertTestData(db)
+
+	query := test.BuildInlineQuery()
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
+
+	handler := NewGetFavoritesInlineHandler(appenv)
+	assert.True(t, handler.CanHandle(query))
+	handler.Handle(reqenv, query)
+
+	bot := appenv.Bot.(*base.FakeBotAPI)
+	cc := bot.GetOutput().([]tgbotapi.Chattable)
+	assert.Len(t, cc, 1)
+	c := cc[0].(tgbotapi.InlineConfig)
+	assert.Len(t, c.Results, 2)
+
+	sticker1 := c.Results[0].(tgbotapi.InlineQueryResultCachedSticker)
+	assert.NotEmpty(t, sticker1.ID)
+	assert.Equal(t, string(test.Type), sticker1.Type)
+	assert.Equal(t, test.FileID, sticker1.StickerID)
+
+	sticker2 := c.Results[1].(tgbotapi.InlineQueryResultCachedSticker)
+	assert.NotEmpty(t, sticker2.ID)
+	assert.Equal(t, string(test.Type), sticker2.Type)
+	assert.Equal(t, test.FileID2, sticker2.StickerID)
 }

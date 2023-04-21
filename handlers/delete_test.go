@@ -1,81 +1,79 @@
 package handlers
 
 import (
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestDeleteFormAction(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 
-	msg := buildMessage(TestUID)
-	reqenv := buildRequestEnv()
+	msg := buildMessage(test.UID)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias},
+		&wizard.Field{Name: FieldAlias, Data: test.Alias},
 		&wizard.Field{Name: FieldDeleteAll, Data: No},
-		&wizard.Field{Name: FieldObject, Type: TestType, Data: wizard.File{UniqueID: TestUniqueFileID}},
+		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{UniqueID: test.UniqueFileID}},
 	}
 
-	deleteFormAction(reqenv, msg, fields)
+	handler := NewDeleteHandler(test.BuildApplicationEnv(db), nil)
+	handler.deleteFormAction(reqenv, msg, fields)
 
-	testAlias := TestAlias
-	checkRowsCount(t, 1, TestUID, &testAlias) // row with FileID_2 is on its place
-	checkRowsCount(t, 2, TestUID, nil)        // rows with alias2 and alias+FileID_2
+	testAlias := test.Alias
+	test.CheckRowsCount(t, db, 1, test.UID, &testAlias) // row with FileID_2 is on its place
+	test.CheckRowsCount(t, db, 2, test.UID, nil)        // rows with alias2 and alias+FileID_2
 
 	fields.FindField(FieldDeleteAll).Data = Yes
-	deleteFormAction(reqenv, msg, fields)
+	handler.deleteFormAction(reqenv, msg, fields)
 
-	checkRowsCount(t, 0, TestUID, &testAlias)
+	test.CheckRowsCount(t, db, 0, test.UID, &testAlias)
 }
 
 func TestDeleteFormActionText(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 
-	msg := buildMessage(TestUID2)
-	reqenv := buildRequestEnv()
+	msg := buildMessage(test.UID2)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias2},
+		&wizard.Field{Name: FieldAlias, Data: test.Alias2},
 		&wizard.Field{Name: FieldDeleteAll, Data: No},
-		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: TestText},
+		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: test.Text},
 	}
 
-	deleteFormAction(reqenv, msg, fields)
+	handler := NewDeleteHandler(test.BuildApplicationEnv(db), nil)
+	handler.deleteFormAction(reqenv, msg, fields)
 
-	alias := TestAlias2
-	checkRowsCount(t, 0, TestUID2, &alias) // row with TestFileID is on its place
+	alias := test.Alias2
+	test.CheckRowsCount(t, db, 0, test.UID2, &alias) // row with TestFileID is on its place
 }
 
 func TestDeleteFormActionLink(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 
-	_, err := db.Exec("DELETE FROM items WHERE uid = $1 AND alias = $2", TestUID2, TestAlias2ID)
+	_, err := db.Exec(ctx, "DELETE FROM favs WHERE uid = $1 AND alias_id = $2", test.UID2, test.Alias2ID)
 	assert.NoError(t, err)
-	_, err = db.Exec("INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", TestUID2, TestAlias2ID, TestAliasID)
+	_, err = db.Exec(ctx, "INSERT INTO links(uid, alias_id, linked_alias_id) VALUES ($1, $2, $3)", test.UID2, test.Alias2ID, test.AliasID)
 	assert.NoError(t, err)
 
-	msg := buildMessage(TestUID2)
-	reqenv := buildRequestEnv()
+	msg := buildMessage(test.UID2)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: TestAlias2},
+		&wizard.Field{Name: FieldAlias, Data: test.Alias2},
 		&wizard.Field{Name: FieldDeleteAll, Data: Yes},
 		&wizard.Field{Name: FieldObject},
 	}
 
-	assert.Equal(t, 1, checkLinksRowsCount(TestUID2))
-	deleteFormAction(reqenv, msg, fields)
-	assert.Equal(t, 0, checkLinksRowsCount(TestUID2))
-}
-
-func TestTrimCountSuffix(t *testing.T) {
-	assert.Equal(t, TestAlias, trimCountSuffix(TestAlias+" (1)"))
-	assert.Equal(t, TestAlias, trimCountSuffix(TestAlias))
-	assert.Equal(t, TestAlias+" (test)", trimCountSuffix(TestAlias+" (test)"))
+	assert.Equal(t, 1, checkLinksRowsCount(test.UID2))
+	handler := NewDeleteHandler(test.BuildApplicationEnv(db), nil)
+	handler.deleteFormAction(reqenv, msg, fields)
+	assert.Equal(t, 0, checkLinksRowsCount(test.UID2))
 }
 
 func checkLinksRowsCount(uid int64) int {
 	var linksRowsCount int
-	if err := db.QueryRow("SELECT count(id) FROM links WHERE uid = $1", uid).Scan(&linksRowsCount); err == nil {
+	if err := db.QueryRow(ctx, "SELECT count(id) FROM links WHERE uid = $1", uid).Scan(&linksRowsCount); err == nil {
 		return linksRowsCount
 	} else {
 		return -1

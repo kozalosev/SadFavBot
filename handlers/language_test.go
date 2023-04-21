@@ -1,22 +1,21 @@
 package handlers
 
 import (
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-const (
-	en = "en"
-	ru = "ru"
-)
+const en = "en"
 
 func TestLanguageFormAction(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 	assertLanguage(t, "ru")
 
-	msg := buildMessage(TestUID)
-	reqenv := buildRequestEnv()
+	msg := buildMessage(test.UID)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
 		&wizard.Field{
 			Name: FieldLanguage,
@@ -24,11 +23,12 @@ func TestLanguageFormAction(t *testing.T) {
 		},
 	}
 
-	languageFormAction(reqenv, msg, fields)
+	handler := NewLanguageHandler(appenv, nil)
+	handler.languageFormAction(reqenv, msg, fields)
 	assertLanguage(t, en)
 
 	fields.FindField(FieldLanguage).Data = "au" // unsupported
-	languageFormAction(reqenv, msg, fields)
+	handler.languageFormAction(reqenv, msg, fields)
 	assertLanguage(t, en)
 }
 
@@ -38,7 +38,7 @@ func TestFlagToCode(t *testing.T) {
 }
 
 func assertLanguage(t *testing.T, expected string) {
-	res := db.QueryRow("SELECT language FROM users WHERE uid = $1", TestUID)
+	res := db.QueryRow(ctx, "SELECT language FROM users WHERE uid = $1", test.UID)
 	var lang string
 	err := res.Scan(&lang)
 

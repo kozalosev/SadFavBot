@@ -1,34 +1,35 @@
 package handlers
 
 import (
-	"database/sql"
 	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
-type itemValues struct {
-	Alias string
-	Type  wizard.FieldType
-	Text  string
-	File  *wizard.File
-}
+var markdownEscaper = strings.NewReplacer(
+	"*", "\\*",
+	"_", "\\_",
+	"`", "\\`")
 
-func extractItemValues(fields wizard.Fields) (*itemValues, bool) {
+func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
 	aliasField := fields.FindField(FieldAlias)
 	objectField := fields.FindField(FieldObject)
 
 	alias, ok := aliasField.Data.(string)
 	if !ok {
-		log.Errorf("Invalid type for alias: %T %+v", aliasField, aliasField)
-		return nil, false
+		log.WithField(logconst.FieldFunc, "extractFavInfo").
+			Errorf("Invalid type for alias: %T %+v", aliasField, aliasField)
+		return "", nil
 	}
 
 	if objectField.Data == nil {
-		return &itemValues{Alias: alias}, true
+		return alias, &repo.Fav{}
 	}
 
 	var (
@@ -38,38 +39,23 @@ func extractItemValues(fields wizard.Fields) (*itemValues, bool) {
 	if objectField.Type == wizard.Text {
 		text, ok = objectField.Data.(string)
 		if !ok {
-			log.Errorf("Invalid type: string was expected but '%T %+v' is got", objectField.Data, objectField.Data)
-			return nil, false
+			log.WithField(logconst.FieldFunc, "extractFavInfo").
+				Errorf("Invalid type: string was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+			return "", nil
 		}
 	} else {
 		file, ok = objectField.Data.(wizard.File)
 		if !ok {
-			log.Errorf("Invalid type: File was expected but '%T %+v' is got", objectField.Data, objectField.Data)
-			return nil, false
+			log.WithField(logconst.FieldFunc, "extractFavInfo").
+				Errorf("Invalid type: File was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+			return "", nil
 		}
 	}
 
-	return &itemValues{
-		Alias: alias,
-		Type:  objectField.Type,
-		Text:  text,
-		File:  &file,
-	}, true
-}
-
-func checkRowsWereAffected(res sql.Result) bool {
-	var (
-		rowsAffected int64
-		err          error
-	)
-	if rowsAffected, err = res.RowsAffected(); err != nil {
-		log.Errorln(err)
-		rowsAffected = -1 // logs but ignores
-	}
-	if rowsAffected == 0 {
-		return false
-	} else {
-		return true
+	return alias, &repo.Fav{
+		Type: objectField.Type,
+		Text: &text,
+		File: &file,
 	}
 }
 
@@ -78,8 +64,8 @@ func isDuplicateConstraintViolation(err error) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode
 }
 
-func replierFactory(reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
+func replierFactory(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
 	return func(statusKey string) {
-		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(statusKey))
+		appenv.Bot.Reply(msg, reqenv.Lang.Tr(statusKey))
 	}
 }

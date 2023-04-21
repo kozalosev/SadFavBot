@@ -1,28 +1,33 @@
 package handlers
 
 import (
-	"github.com/kozalosev/SadFavBot/settings"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestSearchModeAction(t *testing.T) {
-	insertTestData(db)
+	test.InsertTestData(db)
 
-	_, opts := settings.FetchUserOptions(ctx, db, TestUID, "")
+	appenv := test.BuildApplicationEnv(db)
+	userService := repo.NewUserService(appenv)
+
+	_, opts := userService.FetchUserOptions(test.UID, "")
 	assert.False(t, opts.SubstrSearchEnabled)
 
-	reqenv := buildRequestEnv()
-	msg := buildMessage(TestUID)
+	reqenv := test.BuildRequestEnv()
+	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
 		&wizard.Field{
 			Name: FieldSubstrSearchEnabled,
 			Data: Yes,
 		},
 	}
-	searchModeAction(reqenv, msg, fields)
+	handler := NewSearchModeHandler(appenv, nil)
+	handler.searchModeAction(reqenv, msg, fields)
 
-	_, opts = settings.FetchUserOptions(ctx, db, TestUID, "")
+	_, opts = userService.FetchUserOptions(test.UID, "")
 	assert.True(t, opts.SubstrSearchEnabled)
 }

@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -26,14 +27,28 @@ const (
 )
 
 type LinkHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	linkService  *repo.LinkService
+	aliasService *repo.AliasService
 }
 
-func (LinkHandler) GetWizardName() string                              { return "LinkWizard" }
-func (handler LinkHandler) GetWizardStateStorage() wizard.StateStorage { return handler.StateStorage }
+func NewLinkHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *LinkHandler {
+	return &LinkHandler{
+		appenv:       appenv,
+		stateStorage: stateStorage,
+		linkService:  repo.NewLinkService(appenv),
+		aliasService: repo.NewAliasService(appenv),
+	}
+}
 
-func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(linkAction)
+func (handler *LinkHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
+
+func (handler *LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	desc := wizard.NewWizardDescriptor(handler.linkAction)
 
 	nameField := desc.AddField(FieldName, LinkFieldTrPrefix+FieldName)
 	nameField.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
@@ -46,20 +61,13 @@ func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	aliasField := desc.AddField(FieldAlias, LinkFieldTrPrefix+FieldAlias)
 	aliasField.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
-		var (
-			aliases []string
-			alias   string
-		)
-		if res, err := reqenv.Database.QueryContext(reqenv.Ctx, "SELECT DISTINCT a.name FROM items i JOIN aliases a on a.id = i.alias WHERE i.uid = $1", msg.From.ID); err == nil {
-			for res.Next() {
-				if err := res.Scan(&alias); err == nil {
-					aliases = append(aliases, alias)
-				} else {
-					log.Error(err)
-				}
-			}
-		} else {
-			log.Error(err)
+		aliases, err := handler.aliasService.ListForFavsOnly(msg.From.ID)
+		if err != nil {
+			log.WithField(logconst.FieldHandler, "LinkHandler").
+				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
+				WithField(logconst.FieldCalledObject, "AliasService").
+				WithField(logconst.FieldCalledMethod, "ListForFavsOnly").
+				Error(err)
 		}
 		return aliases
 	}
@@ -67,11 +75,11 @@ func (handler LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (handler LinkHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (handler *LinkHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "link" || msg.Command() == "ln"
 }
 
-func (handler LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	if name := base.GetCommandArgument(msg); len(name) > 0 {
 		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
@@ -99,34 +107,14 @@ func (handler LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	w.ProcessNextField(reqenv, msg)
 }
 
-func linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	name := fields.FindField(FieldName).Data.(string)
 	refAlias := fields.FindField(FieldAlias).Data.(string)
 
-	var (
-		tx  *sql.Tx
-		err error
-	)
-	if tx, err = reqenv.Database.BeginTx(reqenv.Ctx, nil); err == nil {
-		var aliasID int
-		if aliasID, err = saveAliasToSeparateTable(reqenv.Ctx, tx, name); err == nil {
-			if _, err = tx.ExecContext(reqenv.Ctx, "INSERT INTO Links(uid, alias_id, linked_alias_id) VALUES ($1, "+
-				"CASE WHEN ($2 > 0) THEN $2 ELSE (SELECT id FROM aliases WHERE name = $3) END, "+
-				"(SELECT id FROM aliases WHERE name = $4))",
-				uid, aliasID, name, refAlias); err == nil {
-				err = tx.Commit()
-			}
-		}
-	}
+	err := handler.linkService.Create(uid, name, refAlias)
 
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			log.Error(err)
-		}
-	}
-
-	reply := replierFactory(reqenv, msg)
+	reply := replierFactory(handler.appenv, reqenv, msg)
 	if isAttemptToInsertLinkForExistingFav(err) {
 		reply(LinkStatusDuplicateFav)
 	} else if isDuplicateConstraintViolation(err) {
@@ -134,7 +122,11 @@ func linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fi
 	} else if isAttemptToLinkNonExistingAlias(err) {
 		reply(LinkStatusNoAlias)
 	} else if err != nil {
-		log.Error(err)
+		log.WithField(logconst.FieldHandler, "LinkHandler").
+			WithField(logconst.FieldMethod, "linkAction").
+			WithField(logconst.FieldCalledObject, "LinkService").
+			WithField(logconst.FieldCalledMethod, "Create").
+			Error(err)
 		reply(LinkStatusFailure)
 	} else {
 		reply(LinkStatusSuccess)

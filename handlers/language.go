@@ -3,6 +3,9 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/logconst"
+	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,29 +21,39 @@ const (
 )
 
 type LanguageHandler struct {
-	StateStorage wizard.StateStorage
+	appenv       *base.ApplicationEnv
+	stateStorage wizard.StateStorage
+
+	userService *repo.UserService
 }
 
-func (LanguageHandler) GetWizardName() string { return "LanguageWizard" }
-func (handler LanguageHandler) GetWizardStateStorage() wizard.StateStorage {
-	return handler.StateStorage
+func NewLanguageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *LanguageHandler {
+	return &LanguageHandler{
+		appenv:       appenv,
+		stateStorage: stateStorage,
+		userService:  repo.NewUserService(appenv),
+	}
 }
 
-func (LanguageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
-	desc := wizard.NewWizardDescriptor(languageFormAction)
+func (handler *LanguageHandler) GetWizardEnv() *wizard.Env {
+	return wizard.NewEnv(handler.appenv, handler.stateStorage)
+}
+
+func (handler *LanguageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
+	desc := wizard.NewWizardDescriptor(handler.languageFormAction)
 	f := desc.AddField(FieldLanguage, LangParamPrompt)
 	f.InlineKeyboardAnswers = []string{EnFlag, RuFlag}
 	return desc
 }
 
-func (LanguageHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*LanguageHandler) CanHandle(msg *tgbotapi.Message) bool {
 	return msg.Command() == "language" || msg.Command() == "lang"
 }
 
-func (handler LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+func (handler *LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	lang := base.GetCommandArgument(msg)
 	if len(lang) > 0 {
-		saveLangConfig(reqenv, msg, lang)
+		handler.saveLangConfig(reqenv, msg, lang)
 	} else {
 		w := wizard.NewWizard(handler, 1)
 		w.AddEmptyField(FieldLanguage, wizard.Text)
@@ -48,17 +61,21 @@ func (handler LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 	}
 }
 
-func languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	saveLangConfig(reqenv, msg, fields.FindField(FieldLanguage).Data.(string))
+func (handler *LanguageHandler) languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
+	handler.saveLangConfig(reqenv, msg, fields.FindField(FieldLanguage).Data.(string))
 }
 
-func saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
-	_, err := reqenv.Database.ExecContext(reqenv.Ctx, "UPDATE users SET language = $1 WHERE uid = $2", langFlagToCode(language), msg.From.ID)
+func (handler *LanguageHandler) saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
+	err := handler.userService.ChangeLanguage(msg.From.ID, settings.LangCode(langFlagToCode(language)))
 	if err != nil {
-		log.Errorln(err)
-		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(LanguageStatusFailure))
+		log.WithField(logconst.FieldHandler, "LanguageHandler").
+			WithField(logconst.FieldMethod, "saveLangConfig").
+			WithField(logconst.FieldCalledObject, "UserService").
+			WithField(logconst.FieldCalledMethod, "ChangeLanguage").
+			Error(err)
+		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(LanguageStatusFailure))
 	} else {
-		reqenv.Bot.Reply(msg, reqenv.Lang.Tr(SuccessTr))
+		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(SuccessTr))
 	}
 }
 
