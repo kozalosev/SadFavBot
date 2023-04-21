@@ -27,6 +27,8 @@ const (
 )
 
 type LinkHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -35,12 +37,14 @@ type LinkHandler struct {
 }
 
 func NewLinkHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *LinkHandler {
-	return &LinkHandler{
+	h := &LinkHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		linkService:  repo.NewLinkService(appenv),
 		aliasService: repo.NewAliasService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *LinkHandler) GetWizardEnv() *wizard.Env {
@@ -75,8 +79,8 @@ func (handler *LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (handler *LinkHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "link" || msg.Command() == "ln"
+func (*LinkHandler) GetCommands() []string {
+	return linkCommands
 }
 
 func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

@@ -9,19 +9,23 @@ import (
 const SuccessTr = "success"
 
 type CancelHandler struct {
+	base.CommandHandlerTrait
+
 	appEnv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 }
 
 func NewCancelHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *CancelHandler {
-	return &CancelHandler{
+	h := &CancelHandler{
 		appEnv:       appenv,
 		stateStorage: stateStorage,
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
-func (*CancelHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "cancel"
+func (*CancelHandler) GetCommands() []string {
+	return cancelCommands
 }
 
 func (c *CancelHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {

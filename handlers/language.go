@@ -8,6 +8,7 @@ import (
 	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -20,7 +21,11 @@ const (
 	RuFlag = "🇷🇺"
 )
 
+var supportedLangCodes = []string{EnFlag, EnCode, RuFlag, RuCode}
+
 type LanguageHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
@@ -28,11 +33,13 @@ type LanguageHandler struct {
 }
 
 func NewLanguageHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *LanguageHandler {
-	return &LanguageHandler{
+	h := &LanguageHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		userService:  repo.NewUserService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *LanguageHandler) GetWizardEnv() *wizard.Env {
@@ -46,8 +53,8 @@ func (handler *LanguageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*LanguageHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "language" || msg.Command() == "lang"
+func (*LanguageHandler) GetCommands() []string {
+	return languageCommands
 }
 
 func (handler *LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
@@ -62,7 +69,13 @@ func (handler *LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Me
 }
 
 func (handler *LanguageHandler) languageFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	handler.saveLangConfig(reqenv, msg, fields.FindField(FieldLanguage).Data.(string))
+	var lang string
+	if slices.Contains(supportedLangCodes, msg.Text) {
+		lang = msg.Text
+	} else {
+		lang = fields.FindField(FieldLanguage).Data.(string)
+	}
+	handler.saveLangConfig(reqenv, msg, lang)
 }
 
 func (handler *LanguageHandler) saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {

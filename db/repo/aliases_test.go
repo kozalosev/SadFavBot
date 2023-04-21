@@ -14,6 +14,17 @@ func TestTrimCountSuffix(t *testing.T) {
 	assert.Equal(t, testAlias+" (test)", trimCountSuffix(testAlias+" (test)"))
 }
 
+func TestTrimLinkSuffix(t *testing.T) {
+	assert.Equal(t, testAlias, trimLinkSuffix(testAlias+" → "+testAlias))
+	assert.Equal(t, testAlias, trimLinkSuffix(testAlias))
+}
+
+func TestTrimSuffix(t *testing.T) {
+	assert.Equal(t, testAlias, trimSuffix(testAlias+" (1)"))
+	assert.Equal(t, testAlias, trimSuffix(testAlias+" → "+testAlias))
+	assert.Equal(t, testAlias, trimSuffix(testAlias))
+}
+
 func TestAliasService_ListWithCounts(t *testing.T) {
 	test.InsertTestData(db)
 

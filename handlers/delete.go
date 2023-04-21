@@ -24,18 +24,24 @@ const (
 )
 
 type DeleteHandler struct {
+	base.CommandHandlerTrait
+
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
-	favService *repo.FavService
+	favService   *repo.FavService
+	aliasService *repo.AliasService
 }
 
 func NewDeleteHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *DeleteHandler {
-	return &DeleteHandler{
+	h := &DeleteHandler{
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		favService:   repo.NewFavsService(appenv),
+		aliasService: repo.NewAliasService(appenv),
 	}
+	h.HandlerRefForTrait = h
+	return h
 }
 
 func (handler *DeleteHandler) GetWizardEnv() *wizard.Env {
@@ -54,8 +60,7 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		return nil
 	}
 	aliasDesc.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
-		aliasService := repo.NewAliasService(handler.appenv)
-		aliases, err := aliasService.List(msg.From.ID)
+		aliases, err := handler.aliasService.List(msg.From.ID)
 		if err != nil {
 			log.WithField(logconst.FieldHandler, "DeleteHandler").
 				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
@@ -84,8 +89,8 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*DeleteHandler) CanHandle(msg *tgbotapi.Message) bool {
-	return msg.Command() == "delete" || msg.Command() == "del"
+func (*DeleteHandler) GetCommands() []string {
+	return deleteCommands
 }
 
 func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
