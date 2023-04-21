@@ -17,13 +17,14 @@ import (
 )
 
 const (
-	PackageFieldsTrPrefix        = "commands.package.fields."
-	PackageStatusTrPrefix        = "commands.package.status."
-	PackageStatusCreationSuccess = PackageStatusTrPrefix + StatusSuccess + ".creation"
-	PackageStatusDeletionSuccess = PackageStatusTrPrefix + StatusSuccess + ".deletion"
-	PackageStatusFailure         = PackageStatusTrPrefix + StatusFailure
-	PackageStatusDuplicate       = PackageStatusTrPrefix + StatusDuplicate
-	PackageStatusNoRows          = PackageStatusTrPrefix + StatusNoRows
+	PackageFieldsTrPrefix          = "commands.package.fields."
+	PackageStatusTrPrefix          = "commands.package.status."
+	PackageStatusCreationSuccess   = PackageStatusTrPrefix + StatusSuccess + ".creation"
+	PackageStatusDeletionSuccess   = PackageStatusTrPrefix + StatusSuccess + ".deletion"
+	PackageStatusRecreationSuccess = PackageStatusTrPrefix + StatusSuccess + ".recreation"
+	PackageStatusFailure           = PackageStatusTrPrefix + StatusFailure
+	PackageStatusDuplicate         = PackageStatusTrPrefix + StatusDuplicate
+	PackageStatusNoRows            = PackageStatusTrPrefix + StatusNoRows
 
 	PackageStatusErrorForbiddenSymbolsInName = PackageFieldsTrPrefix + FieldName + FieldValidationErrorTrInfix + "forbidden.symbols"
 
@@ -31,8 +32,9 @@ const (
 	FieldName           = "name"
 	FieldAliases        = FieldAlias + "es"
 
-	Create = "Create"
-	Delete = "Delete"
+	Create   = "Create"
+	Recreate = "Recreate"
+	Delete   = "Delete"
 
 	MaxPackageNameLen = 256
 )
@@ -64,7 +66,7 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.packageAction)
 
 	createOrDeleteDesc := desc.AddField(FieldCreateOrDelete, PackageFieldsTrPrefix+FieldCreateOrDelete)
-	createOrDeleteDesc.InlineKeyboardAnswers = []string{Create, Delete}
+	createOrDeleteDesc.InlineKeyboardAnswers = []string{Create, Recreate, Delete}
 
 	nameDesc := desc.AddField(FieldName, PackageFieldsTrPrefix+FieldName)
 	nameDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
@@ -104,11 +106,11 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 
 func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	deletion := fields.FindField(FieldCreateOrDelete).Data == Delete
+	intent := fields.FindField(FieldCreateOrDelete).Data
 	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(string), " ", "-")
 
 	var err error
-	if deletion {
+	if intent == Delete {
 		err = handler.packageService.Delete(uid, name)
 	} else {
 		aliasesStr := fields.FindField(FieldAliases).Data.(string)
@@ -117,7 +119,11 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 			return strings.TrimPrefix(a, LinePrefix)
 		}).([]string)
 
-		err = handler.packageService.Create(uid, name, aliases)
+		if intent == Recreate {
+			err = handler.packageService.Recreate(uid, name, aliases)
+		} else {
+			err = handler.packageService.Create(uid, name, aliases)
+		}
 	}
 
 	reply := replierFactory(handler.appenv, reqenv, msg)
@@ -131,10 +137,15 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 			WithField(logconst.FieldCalledObject, "PackageService").
 			Error(err)
 		reply(PackageStatusFailure)
-	} else if deletion {
+	} else if intent == Delete {
 		reply(PackageStatusDeletionSuccess)
 	} else {
-		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
+		var template string
+		if intent == Recreate {
+			template = reqenv.Lang.Tr(PackageStatusRecreationSuccess)
+		} else {
+			template = reqenv.Lang.Tr(PackageStatusCreationSuccess)
+		}
 		packName := repo.FormatPackageName(uid, name)
 		urlPath := url.QueryEscape(base64.StdEncoding.EncodeToString([]byte(packName)))
 		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, handler.appenv.Bot.GetName(), urlPath))

@@ -39,6 +39,15 @@ func TestPackageAction(t *testing.T) {
 	assert.Len(t, packages, 1)
 	assert.Contains(t, packages, fmt.Sprintf("%d@%s (2)", test.UID3, test.Package))
 
+	fields.FindField(FieldCreateOrDelete).Data = Recreate
+	fields.FindField(FieldAliases).Data = test.Alias
+	handler.packageAction(reqenv, msg, fields)
+
+	packages, err = packageService.ListWithCounts(test.UID3)
+	assert.NoError(t, err)
+	assert.Len(t, packages, 1)
+	assert.Contains(t, packages, fmt.Sprintf("%d@%s (1)", test.UID3, test.Package))
+
 	fields.FindField(FieldCreateOrDelete).Data = Delete
 	handler.packageAction(reqenv, msg, fields)
 

@@ -99,6 +99,34 @@ func (service *PackageService) Create(uid int64, name string, aliases []string) 
 	return err
 }
 
+// Delete some package.
+func (service *PackageService) Delete(uid int64, name string) error {
+	res, err := service.db.Exec(service.ctx, "DELETE FROM packages WHERE owner_uid = $1 AND name = $2", uid, name)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() < 1 {
+		return NoRowsWereAffected
+	}
+	return nil
+}
+
+// Recreate is a combination of Delete and Create executing in one transaction.
+func (service *PackageService) Recreate(uid int64, name string, aliases []string) error {
+	var (
+		tx  pgx.Tx
+		err error
+	)
+	if tx, err = service.db.Begin(service.ctx); err == nil {
+		if err = service.Delete(uid, name); err == nil {
+			if err = service.createPackage(tx, uid, name, aliases); err == nil {
+				err = tx.Commit(service.ctx)
+			}
+		}
+	}
+	return err
+}
+
 func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, aliases []string) error {
 	var (
 		packID int
@@ -130,18 +158,6 @@ func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, 
 		}
 	}
 	return err
-}
-
-// Delete some package.
-func (service *PackageService) Delete(uid int64, name string) error {
-	res, err := service.db.Exec(service.ctx, "DELETE FROM packages WHERE owner_uid = $1 AND name = $2", uid, name)
-	if err != nil {
-		return err
-	}
-	if res.RowsAffected() < 1 {
-		return NoRowsWereAffected
-	}
-	return nil
 }
 
 // FormatPackageName returns the full name of the package.

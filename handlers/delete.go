@@ -29,7 +29,8 @@ type DeleteHandler struct {
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
 
-	favService *repo.FavService
+	favService   *repo.FavService
+	aliasService *repo.AliasService
 }
 
 func NewDeleteHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) *DeleteHandler {
@@ -37,6 +38,7 @@ func NewDeleteHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStor
 		appenv:       appenv,
 		stateStorage: stateStorage,
 		favService:   repo.NewFavsService(appenv),
+		aliasService: repo.NewAliasService(appenv),
 	}
 	h.HandlerRefForTrait = h
 	return h
@@ -58,8 +60,7 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		return nil
 	}
 	aliasDesc.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
-		aliasService := repo.NewAliasService(handler.appenv)
-		aliases, err := aliasService.List(msg.From.ID)
+		aliases, err := handler.aliasService.List(msg.From.ID)
 		if err != nil {
 			log.WithField(logconst.FieldHandler, "DeleteHandler").
 				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
