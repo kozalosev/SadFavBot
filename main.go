@@ -5,27 +5,24 @@ import (
 	"github.com/go-redis/redis/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kozalosev/SadFavBot/app"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers"
 	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/SadFavBot/logconst"
+	"github.com/kozalosev/SadFavBot/metrics"
+	"github.com/kozalosev/SadFavBot/server"
 	"github.com/kozalosev/SadFavBot/storage"
 	"github.com/kozalosev/SadFavBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
-)
-
-const (
-	DefaultMessageTr          = "commands.default.message"
-	DefaultMessageOnCommandTr = "commands.default.message.on.command"
 )
 
 var (
@@ -38,8 +35,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	addHttpHandlerForMetrics()
-	srv := startServer(os.Getenv("APP_PORT"))
+	metrics.AddHttpHandlerForMetrics()
+	srv := server.Start(os.Getenv("APP_PORT"))
 
 	stateStorage, db := establishConnections(ctx)
 
@@ -60,15 +57,16 @@ func main() {
 	messageHandlers, inlineHandlers, callbackHandlers := initHandlers(appenv, stateStorage)
 	api.SetCommands(locpool, supportedLanguages, base.ConvertHandlersToCommands(messageHandlers))
 
-	appParams := &appParams{
-		ctx:              ctx,
-		messageHandlers:  messageHandlers,
-		inlineHandlers:   inlineHandlers,
-		callbackHandlers: callbackHandlers,
-		settings:         repo.NewUserService(appenv),
-		api:              api,
-		stateStorage:     stateStorage,
-		db:               db,
+	appParams := &app.Params{
+		Ctx:              ctx,
+		MessageHandlers:  messageHandlers,
+		InlineHandlers:   inlineHandlers,
+		CallbackHandlers: callbackHandlers,
+		Settings:         repo.NewUserService(appenv),
+		LangPool:         locpool,
+		API:              api,
+		StateStorage:     stateStorage,
+		DB:               db,
 	}
 
 	if wasPopulated := wizard.PopulateWizardDescriptors(messageHandlers); !wasPopulated {
@@ -99,12 +97,12 @@ func main() {
 				}
 			default:
 			}
-			handleUpdate(appParams, &wg, &upd)
+			app.HandleUpdate(appParams, &wg, &upd)
 		}
 	} else {
-		addHttpHandlerForWebhook(bot, appParams, &wg)
+		server.AddHttpHandlerForWebhook(bot, appParams, &wg)
 		<-ctx.Done()
-		stopListeningForIncomingRequests(srv)
+		server.StopListeningForIncomingRequests(srv)
 	}
 
 	wg.Wait() // wait until all executing goroutines finish
@@ -161,33 +159,9 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 	callbackHandlers = []base.CallbackHandler{
 		help.NewCallbackHandler(appenv),
 	}
-	registerMessageHandlerCounters(messageHandlers...)
-	registerInlineHandlerCounters(inlineHandlers...)
+	metrics.RegisterMessageHandlerCounters(messageHandlers...)
+	metrics.RegisterInlineHandlerCounters(inlineHandlers...)
 	return
-}
-
-func startServer(port string) *http.Server {
-	srv := &http.Server{Addr: ":" + port}
-	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.WithField(logconst.FieldFunc, "startServer").
-				WithField(logconst.FieldCalledObject, "Server").
-				WithField(logconst.FieldCalledMethod, "ListenAndServe").
-				Fatal(err)
-		}
-	}()
-	return srv
-}
-
-func stopListeningForIncomingRequests(srv *http.Server) {
-	ctx, c := context.WithTimeout(context.Background(), time.Minute)
-	defer c()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.WithField(logconst.FieldFunc, "stopListeningForIncomingRequests").
-			WithField(logconst.FieldCalledObject, "Server").
-			WithField(logconst.FieldCalledMethod, "Shutdown").
-			Error(err)
-	}
 }
 
 func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool) {

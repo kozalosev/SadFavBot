@@ -4,6 +4,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/logconst"
+	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -36,6 +37,13 @@ func ConvertHandlersToCommands(handlers []MessageHandler) []CommandHandler {
 		}
 	}
 	return commands
+}
+
+func NewRequestEnv(langCtx *loc.Context, opts *settings.UserOptions) *RequestEnv {
+	return &RequestEnv{
+		Lang:    langCtx,
+		Options: opts,
+	}
 }
 
 func (t CommandHandlerTrait) CanHandle(msg *tgbotapi.Message) bool {

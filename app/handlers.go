@@ -1,16 +1,24 @@
-package main
+package app
 
 import (
 	"github.com/go-redis/redis/v8"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/logconst"
+	"github.com/kozalosev/SadFavBot/metrics"
 	"github.com/kozalosev/SadFavBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 )
 
-func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update) {
+const (
+	defaultMessageTr          = "commands.default.message"
+	defaultMessageOnCommandTr = "commands.default.message.on.command"
+)
+
+// HandleUpdate is the main router function for processing of [tgbotapi.Update].
+func HandleUpdate(appParams *Params, wg *sync.WaitGroup, upd *tgbotapi.Update) {
 	if upd.InlineQuery != nil {
 		wg.Add(1)
 		go func(query tgbotapi.InlineQuery) {
@@ -18,7 +26,7 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 			processInline(appParams, &query)
 		}(*upd.InlineQuery) // copy by value
 	} else if upd.ChosenInlineResult != nil {
-		inc(chosenInlineResultCounter)
+		metrics.Inc(metrics.ChosenInlineResultCounter)
 	} else if upd.Message != nil {
 		wg.Add(1)
 		go func(msg tgbotapi.Message) {
@@ -34,16 +42,16 @@ func handleUpdate(appParams *appParams, wg *sync.WaitGroup, upd *tgbotapi.Update
 	}
 }
 
-func processMessage(appParams *appParams, msg *tgbotapi.Message) {
-	lang, opts := appParams.settings.FetchUserOptions(msg.From.ID, msg.From.LanguageCode)
-	lc := locpool.GetContext(string(lang))
-	reqenv := newRequestEnv(lc, opts)
-	appenv := newAppEnv(appParams)
+func processMessage(appParams *Params, msg *tgbotapi.Message) {
+	lang, opts := appParams.Settings.FetchUserOptions(msg.From.ID, msg.From.LanguageCode)
+	lc := appParams.LangPool.GetContext(string(lang))
+	reqenv := base.NewRequestEnv(lc, opts)
+	appenv := NewAppEnv(appParams)
 
 	// for commands and other handlers
-	for _, handler := range appParams.messageHandlers {
+	for _, handler := range appParams.MessageHandlers {
 		if handler.CanHandle(msg) {
-			incMessageHandlerCounter(handler)
+			metrics.IncMessageHandlerCounter(handler)
 			handler.Handle(reqenv, msg)
 			return
 		}
@@ -51,9 +59,9 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 
 	// If no handler was chosen, check if this is a parameter for some previously created form.
 	var form wizard.Form
-	err := appParams.stateStorage.GetCurrentState(msg.From.ID, &form)
+	err := appParams.StateStorage.GetCurrentState(msg.From.ID, &form)
 	if err == nil {
-		resources := wizard.NewEnv(appenv, appParams.stateStorage)
+		resources := wizard.NewEnv(appenv, appParams.StateStorage)
 		form.PopulateRestored(msg, resources)
 		form.ProcessNextField(reqenv, msg)
 		return
@@ -65,33 +73,33 @@ func processMessage(appParams *appParams, msg *tgbotapi.Message) {
 	}
 
 	// fallback/default handler
-	var defaultMessageTr string
+	var defMsgTr string
 	if msg.IsCommand() {
-		defaultMessageTr = DefaultMessageOnCommandTr
+		defMsgTr = defaultMessageOnCommandTr
 	} else {
-		defaultMessageTr = DefaultMessageTr
+		defMsgTr = defaultMessageTr
 	}
-	appenv.Bot.Reply(msg, reqenv.Lang.Tr(defaultMessageTr))
+	appenv.Bot.Reply(msg, reqenv.Lang.Tr(defMsgTr))
 }
 
-func processInline(appParams *appParams, query *tgbotapi.InlineQuery) {
-	lang, opts := appParams.settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
-	lc := locpool.GetContext(string(lang))
-	reqenv := newRequestEnv(lc, opts)
+func processInline(appParams *Params, query *tgbotapi.InlineQuery) {
+	lang, opts := appParams.Settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
+	lc := appParams.LangPool.GetContext(string(lang))
+	reqenv := base.NewRequestEnv(lc, opts)
 
-	for _, handler := range appParams.inlineHandlers {
+	for _, handler := range appParams.InlineHandlers {
 		if handler.CanHandle(query) {
-			incInlineHandlerCounter(handler)
+			metrics.IncInlineHandlerCounter(handler)
 			handler.Handle(reqenv, query)
 			return
 		}
 	}
 }
 
-func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
-	lang, opts := appParams.settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
-	lc := locpool.GetContext(string(lang))
-	reqenv := newRequestEnv(lc, opts)
+func processCallbackQuery(appParams *Params, query *tgbotapi.CallbackQuery) {
+	lang, opts := appParams.Settings.FetchUserOptions(query.From.ID, query.From.LanguageCode)
+	lc := appParams.LangPool.GetContext(string(lang))
+	reqenv := base.NewRequestEnv(lc, opts)
 
 	splitData := strings.SplitN(query.Data, ":", 2)
 	if len(splitData) < 2 {
@@ -103,10 +111,10 @@ func processCallbackQuery(appParams *appParams, query *tgbotapi.CallbackQuery) {
 
 	// special case for the wizard callback, otherwise check other [base.CallbackHandler]s
 	if prefix == wizard.CallbackDataFieldPrefix {
-		resources := wizard.NewEnv(newAppEnv(appParams), appParams.stateStorage)
+		resources := wizard.NewEnv(NewAppEnv(appParams), appParams.StateStorage)
 		wizard.CallbackQueryHandler(reqenv, query, resources)
 	} else {
-		for _, handler := range appParams.callbackHandlers {
+		for _, handler := range appParams.CallbackHandlers {
 			if prefix == handler.GetCallbackPrefix() {
 				handler.Handle(reqenv, query)
 				return
