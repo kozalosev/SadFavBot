@@ -1,6 +1,6 @@
 package test
 
-import "github.com/kozalosev/SadFavBot/wizard"
+import "github.com/kozalosev/goSadTgBot/wizard"
 
 const (
 	User          = "test"

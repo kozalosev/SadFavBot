@@ -1,8 +1,8 @@
 package repo
 
 import (
-	"github.com/kozalosev/SadFavBot/settings"
 	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/goSadTgBot/settings"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

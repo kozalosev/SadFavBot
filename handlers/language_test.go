@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/kozalosev/SadFavBot/test"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

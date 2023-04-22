@@ -3,7 +3,7 @@ package help
 import (
 	_ "embed"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/loctools/go-l10n/loc"
 	"strings"
 )

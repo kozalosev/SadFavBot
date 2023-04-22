@@ -2,7 +2,7 @@ package repo
 
 import (
 	"github.com/jackc/pgx/v5"
-	"github.com/kozalosev/SadFavBot/logconst"
+	"github.com/kozalosev/goSadTgBot/logconst"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"strconv"
