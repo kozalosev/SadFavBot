@@ -2,6 +2,8 @@
 package metrics
 
 import (
+	"github.com/IBM/pgxpoolprometheus"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/logconst"
 	"github.com/prometheus/client_golang/prometheus"
@@ -57,6 +59,12 @@ func Inc(name string) {
 		log.WithField(logconst.FieldFunc, "Inc").
 			Warning("Counter " + name + " is missing!")
 	}
+}
+
+// RegisterMetricsForPgxPoolStat registers metrics for [pgxpool.Stat] with prefix "pgxpool_*".
+func RegisterMetricsForPgxPoolStat(pool *pgxpool.Pool, dbName string) {
+	collector := pgxpoolprometheus.NewCollector(pool, map[string]string{"db_name": dbName})
+	prometheus.MustRegister(collector)
 }
 
 // AddHttpHandlerForMetrics adds a global route /metrics to the server by using [http.Handle].
