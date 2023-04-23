@@ -19,6 +19,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY *.go ./
+COPY db/dto/* ./db/dto/
 COPY db/repo/* ./db/repo/
 COPY handlers/ ./handlers/
 

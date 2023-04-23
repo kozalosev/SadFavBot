@@ -2,6 +2,7 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -56,7 +57,8 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		CacheTime:     inlineAnswerCacheTime,
 	}
 	if len(query.Query) > 0 {
-		if objects, err := handler.favService.Find(query.From.ID, query.Query, reqenv.Options.SubstrSearchEnabled); err == nil {
+		opts := reqenv.Options.(*dto.UserOptions)
+		if objects, err := handler.favService.Find(query.From.ID, query.Query, opts.SubstrSearchEnabled); err == nil {
 			answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
 		} else {
 			log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
@@ -75,9 +77,9 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 	}
 }
 
-func generateMapper(lc *loc.Context) func(object *repo.Fav) interface{} {
+func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 	caser := cases.Title(language.Make(lc.GetLanguage()))
-	return func(object *repo.Fav) interface{} {
+	return func(object *dto.Fav) interface{} {
 		switch object.Type {
 		case wizard.Text:
 			return tgbotapi.NewInlineQueryResultArticle(object.ID, *object.Text, *object.Text)

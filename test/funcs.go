@@ -5,8 +5,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/goSadTgBot/base"
-	"github.com/kozalosev/goSadTgBot/settings"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
@@ -77,7 +77,7 @@ func BuildApplicationEnv(db *pgxpool.Pool) *base.ApplicationEnv {
 func BuildRequestEnv() *base.RequestEnv {
 	return &base.RequestEnv{
 		Lang:    loc.NewPool("en").GetContext("en"),
-		Options: &settings.UserOptions{},
+		Options: &dto.UserOptions{},
 	}
 }
 

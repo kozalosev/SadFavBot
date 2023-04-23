@@ -2,6 +2,7 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -59,7 +60,8 @@ func (*SearchModeHandler) GetCommands() []string {
 
 func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	var currVal string
-	if reqenv.Options.SubstrSearchEnabled {
+	opts := reqenv.Options.(*dto.UserOptions)
+	if opts.SubstrSearchEnabled {
 		currVal = Enabled
 	} else {
 		currVal = Disabled

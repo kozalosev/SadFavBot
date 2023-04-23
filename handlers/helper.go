@@ -4,7 +4,7 @@ import (
 	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -17,7 +17,7 @@ var markdownEscaper = strings.NewReplacer(
 	"_", "\\_",
 	"`", "\\`")
 
-func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
+func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	aliasField := fields.FindField(FieldAlias)
 	objectField := fields.FindField(FieldObject)
 
@@ -29,7 +29,7 @@ func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
 	}
 
 	if objectField.Data == nil {
-		return alias, &repo.Fav{}
+		return alias, &dto.Fav{}
 	}
 
 	var (
@@ -52,7 +52,7 @@ func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
 		}
 	}
 
-	return alias, &repo.Fav{
+	return alias, &dto.Fav{
 		Type: objectField.Type,
 		Text: &text,
 		File: &file,
