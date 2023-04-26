@@ -51,7 +51,6 @@ services:
     expose:
       - ${POSTGRES_PORT}
     volumes:
-      - ./db:/docker-entrypoint-initdb.d
       - ./data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
@@ -70,6 +69,7 @@ services:
     environment:
       - REDIS_PORT
       - REDIS_PASSWORD
+      - REDISCLI_AUTH=${REDIS_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -p $$REDIS_PORT -a $$REDIS_PASSWORD ping"]
       interval: 10s

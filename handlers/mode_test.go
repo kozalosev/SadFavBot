@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/test"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -15,7 +16,7 @@ func TestSearchModeAction(t *testing.T) {
 	userService := repo.NewUserService(appenv)
 
 	_, opts := userService.FetchUserOptions(test.UID, "")
-	assert.False(t, opts.SubstrSearchEnabled)
+	assert.False(t, opts.(*dto.UserOptions).SubstrSearchEnabled)
 
 	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
@@ -29,5 +30,5 @@ func TestSearchModeAction(t *testing.T) {
 	handler.searchModeAction(reqenv, msg, fields)
 
 	_, opts = userService.FetchUserOptions(test.UID, "")
-	assert.True(t, opts.SubstrSearchEnabled)
+	assert.True(t, opts.(*dto.UserOptions).SubstrSearchEnabled)
 }

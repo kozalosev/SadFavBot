@@ -3,7 +3,7 @@ package handlers
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/test"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

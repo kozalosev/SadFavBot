@@ -3,11 +3,11 @@ package handlers
 import (
 	"encoding/base64"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/help"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -60,7 +60,7 @@ func (handler *StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*StartHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*StartHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
 	return msg.Command() == "start"
 }
 

@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/storage"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -126,8 +127,8 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 		}
 	}
 
-	reply := replierFactory(handler.appenv, reqenv, msg)
-	if isDuplicateConstraintViolation(err) {
+	reply := base.NewReplier(handler.appenv, reqenv, msg)
+	if storage.DuplicateConstraintViolation(err) {
 		reply(PackageStatusDuplicate)
 	} else if err == repo.NoRowsWereAffected {
 		reply(PackageStatusNoRows)

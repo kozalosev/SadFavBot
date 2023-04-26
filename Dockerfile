@@ -19,13 +19,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY *.go ./
-COPY base/* ./base/
+COPY db/dto/* ./db/dto/
 COPY db/repo/* ./db/repo/
 COPY handlers/ ./handlers/
-COPY logconst/* ./logconst/
-COPY settings/* ./settings/
-COPY storage/* ./storage/
-COPY wizard/* ./wizard/
 
 # Build without debugging info
 RUN go build -ldflags="-w -s" -o /sadFavBot github.com/kozalosev/SadFavBot

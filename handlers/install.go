@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"strconv"
@@ -115,7 +115,7 @@ func (handler *InstallPackageHandler) installPackageAction(reqenv *base.RequestE
 
 func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	uid := msg.From.ID
-	reply := replierFactory(handler.appenv, reqenv, msg)
+	reply := base.NewReplier(handler.appenv, reqenv, msg)
 
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {

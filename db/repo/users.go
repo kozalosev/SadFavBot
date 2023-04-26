@@ -3,9 +3,10 @@ package repo
 import (
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kozalosev/SadFavBot/base"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/settings"
+	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/settings"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,10 +31,10 @@ func (service *UserService) Create(uid int64) (bool, error) {
 }
 
 // FetchUserOptions from the database if they exist.
-func (service *UserService) FetchUserOptions(uid int64, defaultLang string) (settings.LangCode, *settings.UserOptions) {
+func (service *UserService) FetchUserOptions(uid int64, defaultLang string) (settings.LangCode, settings.UserOptions) {
 	var (
 		lang *string
-		opts settings.UserOptions
+		opts dto.UserOptions
 	)
 	if err := service.db.QueryRow(service.ctx, "SELECT language, substring_search FROM users WHERE uid = $1", uid).Scan(&lang, &opts.SubstrSearchEnabled); err != nil {
 		log.WithField(logconst.FieldService, "UserService").

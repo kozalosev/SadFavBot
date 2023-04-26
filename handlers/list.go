@@ -2,10 +2,10 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
 	"github.com/kozalosev/SadFavBot/db/repo"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -92,7 +92,7 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		noRowsTitle = ListStatusNoRowsFavs
 	}
 
-	replyWith := replierFactory(handler.appenv, reqenv, msg)
+	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "ListHandler").
 			WithField(logconst.FieldMethod, "listAction").

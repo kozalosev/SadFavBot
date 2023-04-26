@@ -1,13 +1,9 @@
 package handlers
 
 import (
-	"errors"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/kozalosev/SadFavBot/base"
-	"github.com/kozalosev/SadFavBot/db/repo"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -17,7 +13,7 @@ var markdownEscaper = strings.NewReplacer(
 	"_", "\\_",
 	"`", "\\`")
 
-func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
+func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	aliasField := fields.FindField(FieldAlias)
 	objectField := fields.FindField(FieldObject)
 
@@ -29,7 +25,7 @@ func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
 	}
 
 	if objectField.Data == nil {
-		return alias, &repo.Fav{}
+		return alias, &dto.Fav{}
 	}
 
 	var (
@@ -52,20 +48,9 @@ func extractFavInfo(fields wizard.Fields) (string, *repo.Fav) {
 		}
 	}
 
-	return alias, &repo.Fav{
+	return alias, &dto.Fav{
 		Type: objectField.Type,
 		Text: &text,
 		File: &file,
-	}
-}
-
-func isDuplicateConstraintViolation(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode
-}
-
-func replierFactory(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
-	return func(statusKey string) {
-		appenv.Bot.Reply(msg, reqenv.Lang.Tr(statusKey))
 	}
 }

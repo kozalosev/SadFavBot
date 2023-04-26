@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kozalosev/SadFavBot/base"
-	"github.com/kozalosev/SadFavBot/logconst"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
 	log "github.com/sirupsen/logrus"
 )
 

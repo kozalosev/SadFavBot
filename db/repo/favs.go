@@ -5,9 +5,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kozalosev/SadFavBot/base"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -18,19 +19,6 @@ var sqlEscaper = strings.NewReplacer(
 
 type RowsAffectedAware interface {
 	RowsAffected() int64
-}
-
-// Fav is a favorite.
-// https://github.com/kozalosev/SadFavBot/wiki/Glossary#fav
-type Fav struct {
-	ID   string
-	Type wizard.FieldType
-	File *wizard.File
-	Text *string
-}
-
-func NewFav() *Fav {
-	return &Fav{File: &wizard.File{}}
 }
 
 // FavService is a common CRUD service for Favs, Aliases and Texts tables.
@@ -49,7 +37,7 @@ func NewFavsService(appenv *base.ApplicationEnv) *FavService {
 
 // Find is a method to search for favs in the database.
 // The search can be performed either by exact match or by substring match.
-func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*Fav, error) {
+func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.Fav, error) {
 	query = sqlEscaper.Replace(query)
 	if bySubstr {
 		query = "%" + query + "%"
@@ -66,12 +54,12 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*Fav,
 		"LIMIT 50"
 	rows, err := service.db.Query(service.ctx, q, uid, query)
 
-	var result []*Fav
+	var result []*dto.Fav
 	if err != nil {
 		return result, err
 	}
 	for rows.Next() {
-		row := NewFav()
+		row := dto.NewFav()
 		var fileID *string
 		err = rows.Scan(&row.ID, &row.Type, &fileID, &row.Text)
 		if err != nil {
@@ -91,7 +79,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*Fav,
 }
 
 // Save a fav associated with the user and alias.
-func (service *FavService) Save(uid int64, alias string, fav *Fav) (RowsAffectedAware, error) {
+func (service *FavService) Save(uid int64, alias string, fav *dto.Fav) (RowsAffectedAware, error) {
 	tx, err := service.db.Begin(service.ctx)
 	if err != nil {
 		return nil, err
@@ -148,7 +136,7 @@ func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedA
 }
 
 // DeleteFav deletes a specific fav of the user.
-func (service *FavService) DeleteFav(uid int64, alias string, fav *Fav) (RowsAffectedAware, error) {
+func (service *FavService) DeleteFav(uid int64, alias string, fav *dto.Fav) (RowsAffectedAware, error) {
 	if fav.Type == wizard.Text {
 		return service.deleteByText(uid, alias, *fav.Text)
 	} else {

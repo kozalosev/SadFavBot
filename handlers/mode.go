@@ -2,10 +2,11 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/base"
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
-	"github.com/kozalosev/SadFavBot/logconst"
-	"github.com/kozalosev/SadFavBot/wizard"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -59,7 +60,8 @@ func (*SearchModeHandler) GetCommands() []string {
 
 func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	var currVal string
-	if reqenv.Options.SubstrSearchEnabled {
+	opts := reqenv.Options.(*dto.UserOptions)
+	if opts.SubstrSearchEnabled {
 		currVal = Enabled
 	} else {
 		currVal = Disabled
@@ -82,7 +84,7 @@ func (handler *SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg 
 
 	err := handler.userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)
 
-	reply := replierFactory(handler.appenv, reqenv, msg)
+	reply := base.NewReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "SearchModeHandler").
 			WithField(logconst.FieldMethod, "searchModeAction").
