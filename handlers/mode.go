@@ -84,7 +84,7 @@ func (handler *SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg 
 
 	err := handler.userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)
 
-	reply := replierFactory(handler.appenv, reqenv, msg)
+	reply := base.NewReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "SearchModeHandler").
 			WithField(logconst.FieldMethod, "searchModeAction").

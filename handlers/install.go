@@ -115,7 +115,7 @@ func (handler *InstallPackageHandler) installPackageAction(reqenv *base.RequestE
 
 func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	uid := msg.From.ID
-	reply := replierFactory(handler.appenv, reqenv, msg)
+	reply := base.NewReplier(handler.appenv, reqenv, msg)
 
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {

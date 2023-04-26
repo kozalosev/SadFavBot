@@ -8,6 +8,7 @@ import (
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -118,10 +119,10 @@ func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 	err := handler.linkService.Create(uid, name, refAlias)
 
-	reply := replierFactory(handler.appenv, reqenv, msg)
+	reply := base.NewReplier(handler.appenv, reqenv, msg)
 	if isAttemptToInsertLinkForExistingFav(err) {
 		reply(LinkStatusDuplicateFav)
-	} else if isDuplicateConstraintViolation(err) {
+	} else if storage.DuplicateConstraintViolation(err) {
 		reply(LinkStatusDuplicate)
 	} else if isAttemptToLinkNonExistingAlias(err) {
 		reply(LinkStatusNoAlias)

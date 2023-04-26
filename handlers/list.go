@@ -92,7 +92,7 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		noRowsTitle = ListStatusNoRowsFavs
 	}
 
-	replyWith := replierFactory(handler.appenv, reqenv, msg)
+	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "ListHandler").
 			WithField(logconst.FieldMethod, "listAction").

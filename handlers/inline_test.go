@@ -33,7 +33,7 @@ func TestGetFavoritesInlineHandler_Handle(t *testing.T) {
 	reqenv := test.BuildRequestEnv()
 
 	handler := NewGetFavoritesInlineHandler(appenv)
-	assert.True(t, handler.CanHandle(query))
+	assert.True(t, handler.CanHandle(reqenv, query))
 	handler.Handle(reqenv, query)
 
 	bot := appenv.Bot.(*base.FakeBotAPI)

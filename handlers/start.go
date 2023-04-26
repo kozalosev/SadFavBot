@@ -60,7 +60,7 @@ func (handler *StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	return desc
 }
 
-func (*StartHandler) CanHandle(msg *tgbotapi.Message) bool {
+func (*StartHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
 	return msg.Command() == "start"
 }
 

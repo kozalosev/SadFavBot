@@ -46,7 +46,7 @@ func NewGetFavoritesInlineHandler(appenv *base.ApplicationEnv) *GetFavoritesInli
 	}
 }
 
-func (*GetFavoritesInlineHandler) CanHandle(*tgbotapi.InlineQuery) bool {
+func (*GetFavoritesInlineHandler) CanHandle(*base.RequestEnv, *tgbotapi.InlineQuery) bool {
 	return true
 }
 

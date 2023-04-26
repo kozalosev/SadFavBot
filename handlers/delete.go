@@ -113,7 +113,7 @@ func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgb
 	deleteAll := fields.FindField(FieldDeleteAll).Data == Yes
 	alias, fav := extractFavInfo(fields)
 
-	replyWith := replierFactory(handler.appenv, reqenv, msg)
+	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
 	if len(alias) == 0 {
 		replyWith(DeleteStatusFailure)
 		return

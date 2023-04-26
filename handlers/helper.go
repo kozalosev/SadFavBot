@@ -1,11 +1,7 @@
 package handlers
 
 import (
-	"errors"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/db/dto"
-	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
@@ -56,16 +52,5 @@ func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 		Type: objectField.Type,
 		Text: &text,
 		File: &file,
-	}
-}
-
-func isDuplicateConstraintViolation(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == DuplicateConstraintSQLCode
-}
-
-func replierFactory(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
-	return func(statusKey string) {
-		appenv.Bot.Reply(msg, reqenv.Lang.Tr(statusKey))
 	}
 }

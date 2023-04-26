@@ -7,6 +7,7 @@ import (
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
@@ -106,7 +107,7 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 	uid := msg.From.ID
 	alias, fav := extractFavInfo(fields)
 
-	replyWith := replierFactory(handler.appenv, reqenv, msg)
+	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
 	if len(alias) == 0 {
 		replyWith(SaveStatusFailure)
 		return
@@ -115,7 +116,7 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 	res, err := handler.favService.Save(uid, alias, fav)
 
 	if err != nil {
-		if isDuplicateConstraintViolation(err) {
+		if storage.DuplicateConstraintViolation(err) {
 			replyWith(SaveStatusDuplicate)
 		} else {
 			log.WithField(logconst.FieldHandler, "SaveHandler").
