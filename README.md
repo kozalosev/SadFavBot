@@ -1,11 +1,19 @@
-@SadFavBot — SadBot's Favorites Bot
-===================================
+[@SadFavBot][SadFavBot-tg] — SadBot's Favorites Bot
+===================================================
 
 [![CI Build](https://github.com/kozalosev/SadFavBot/actions/workflows/ci-build.yml/badge.svg?branch=main&event=push)](https://github.com/kozalosev/SadFavBot/actions/workflows/ci-build.yml)
 [![Wiki Docs](https://img.shields.io/badge/wiki-documentation-brightgreen)](../../wiki)
 
 Your lovely pocket for storing stickers, pictures, GIFs, voices, etc. It lets you save your favorite memes and keep
 them for further use via inline mode.
+
+Save your favs:
+
+![image](https://user-images.githubusercontent.com/25857981/234774715-8aaa7762-2c7d-4068-aa89-794dd91f6637.png)
+
+And use them later!
+
+![image](https://user-images.githubusercontent.com/25857981/230475842-e5a457ca-f903-4e53-82a6-3ae91f88584d.png)
 
 Commands
 --------
@@ -33,3 +41,5 @@ The package is a set of aliases associated with the owner of the package. The pa
 associated with them! Therefore, the list of installing objects is formed only at installation time. The package is a
 reference to specific aliases of the user. However, the installation is just a bunch of `/save` actions (a bunch of
 inserts to the database actually), so the installed aliases are completely independent and separated between users.
+
+[SadFavBot-tg]: https://t.me/SadFavBot
