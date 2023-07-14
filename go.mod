@@ -6,7 +6,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/jackc/pgx/v5 v5.3.1
-	github.com/kozalosev/goSadTgBot v0.1.0
+	github.com/kozalosev/goSadTgBot v0.1.1
 	github.com/loctools/go-l10n v0.0.0-20191031185225-4f8f121cf651
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2

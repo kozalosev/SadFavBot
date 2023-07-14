@@ -97,6 +97,8 @@ func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, object.File.ID)
 		case wizard.Document:
 			return tgbotapi.NewInlineQueryResultCachedDocument(object.ID, object.File.ID, caser.String(lc.Tr("document")))
+		case wizard.Location:
+			return tgbotapi.NewInlineQueryResultLocation(object.ID, caser.String(lc.Tr("location")), object.Location.Latitude, object.Location.Longitude)
 		default:
 			log.WithField(logconst.FieldFunc, "generateMapper").
 				Warning("Unsupported type: ", object)

@@ -23,6 +23,8 @@ const (
 	UniqueFileID2   = "FileUniqueID_2"
 	Text            = "test_text"
 	TextID          = 1
+	Latitude        = 1.1
+	Longitude       = 2.2
 	Package         = "package/test"
 	PackageFullName = "123456@package/test"
 	PackageID       = 1

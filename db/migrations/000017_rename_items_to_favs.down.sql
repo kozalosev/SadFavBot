@@ -5,7 +5,7 @@ ALTER INDEX idx_favs_uid_alias RENAME TO idx_items_uid_alias;
 
 ALTER TABLE Favs RENAME CONSTRAINT fk_favs_alias TO fk_item_alias;
 ALTER TABLE Favs RENAME CONSTRAINT fk_favs_text TO fk_item_text;
-ALTER TABLE Favs RENAME CONSTRAINT ck_favs_data TO ck_item_data;
+ALTER TABLE Favs RENAME CONSTRAINT ck_favs_content TO ck_item_data;
 
 ALTER TABLE Favs RENAME COLUMN alias_id TO alias;
 ALTER TABLE Favs RENAME COLUMN text_id TO text;

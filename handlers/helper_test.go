@@ -24,6 +24,7 @@ func TestExtractItemValues_File(t *testing.T) {
 	assert.Equal(t, test.FileID, fav.File.ID)
 	assert.Equal(t, test.UniqueFileID, fav.File.UniqueID)
 	assert.Empty(t, fav.Text)
+	assert.Empty(t, fav.Location)
 }
 
 func TestExtractItemValues_Text(t *testing.T) {
@@ -39,6 +40,27 @@ func TestExtractItemValues_Text(t *testing.T) {
 	assert.Equal(t, test.Text, *fav.Text)
 	assert.Empty(t, fav.File.ID)
 	assert.Empty(t, fav.File.UniqueID)
+	assert.Empty(t, fav.Location)
+}
+
+func TestExtractItemValues_Location(t *testing.T) {
+	loc := wizard.LocData{
+		Latitude:  test.Latitude,
+		Longitude: test.Longitude,
+	}
+	fields := wizard.Fields{
+		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		&wizard.Field{Name: FieldObject, Type: wizard.Location, Data: loc},
+	}
+
+	alias, fav := extractFavInfo(fields)
+
+	assert.Equal(t, test.Alias, alias)
+	assert.Equal(t, wizard.Location, fav.Type)
+	assert.Equal(t, loc, *fav.Location)
+	assert.Empty(t, fav.File.ID)
+	assert.Empty(t, fav.File.UniqueID)
+	assert.Empty(t, fav.Text)
 }
 
 func TestExtractItemValues_MismatchError(t *testing.T) {

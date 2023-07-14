@@ -11,12 +11,13 @@ type UserOptions struct {
 // Fav is a favorite.
 // https://github.com/kozalosev/SadFavBot/wiki/Glossary#fav
 type Fav struct {
-	ID   string
-	Type wizard.FieldType
-	File *wizard.File
-	Text *string
+	ID       string
+	Type     wizard.FieldType
+	File     *wizard.File
+	Text     *string
+	Location *wizard.LocData
 }
 
 func NewFav() *Fav {
-	return &Fav{File: &wizard.File{}}
+	return &Fav{File: &wizard.File{}, Location: &wizard.LocData{}}
 }
