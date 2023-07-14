@@ -24,6 +24,8 @@ func InsertTestData(db *pgxpool.Pool) {
 	_, err := db.Exec(ctx, "INSERT INTO aliases(id, name) VALUES ($1, $2), ($3, $4)",
 		AliasID, Alias, Alias2ID, Alias2)
 	check(err)
+	_, err = db.Exec(ctx, "ALTER SEQUENCE aliases_id_seq RESTART WITH 3")
+	check(err)
 	_, err = db.Exec(ctx, "INSERT INTO favs(uid, type, alias_id, file_id, file_unique_id) VALUES"+
 		"($1, $3, $4, $6, $8),"+ // TestUID, TestAlias, TestFileID, TestUniqueFileID
 		"($1, $3, $4, $7, $9),"+ // TestUID, TestAlias, TestFileID2, TestUniqueFileID2

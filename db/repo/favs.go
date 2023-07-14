@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -43,14 +44,15 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		query = "%" + query + "%"
 	}
 
-	q := "SELECT min(f.id), type, file_id, t.text FROM favs f " +
+	q := "SELECT min(f.id), type, file_id, t.text, loc.latitude, loc.longitude FROM favs f " +
 		"JOIN aliases a ON a.id = f.alias_id " +
 		"LEFT JOIN texts t ON t.id = f.text_id " +
+		"LEFT JOIN locations loc ON loc.id = f.location_id " +
 		"WHERE uid = $1 AND (name ILIKE $2 OR name = (SELECT ai_linked.name FROM links l " +
 		"	JOIN aliases ai ON l.alias_id = ai.id " +
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
 		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +
-		"GROUP BY type, file_id, t.text " +
+		"GROUP BY type, file_id, t.text, loc.latitude, loc.longitude " +
 		"LIMIT 50"
 	rows, err := service.db.Query(service.ctx, q, uid, query)
 
@@ -60,8 +62,11 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 	}
 	for rows.Next() {
 		row := dto.NewFav()
-		var fileID *string
-		err = rows.Scan(&row.ID, &row.Type, &fileID, &row.Text)
+		var (
+			fileID              *string
+			latitude, longitude *float64
+		)
+		err = rows.Scan(&row.ID, &row.Type, &fileID, &row.Text, &latitude, &longitude)
 		if err != nil {
 			log.WithField(logconst.FieldService, "FavService").
 				WithField(logconst.FieldMethod, "Find").
@@ -72,6 +77,12 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		}
 		if fileID != nil {
 			row.File = &wizard.File{ID: *fileID}
+		}
+		if latitude != nil {
+			if longitude == nil {
+				return nil, errors.New("unexpected absence of longitude when latitude is present")
+			}
+			row.Location = &wizard.LocData{Latitude: *latitude, Longitude: *longitude}
 		}
 		result = append(result, row)
 	}
@@ -85,9 +96,12 @@ func (service *FavService) Save(uid int64, alias string, fav *dto.Fav) (RowsAffe
 		return nil, err
 	}
 	var res pgconn.CommandTag
-	if fav.Type == wizard.Text {
+	switch fav.Type {
+	case wizard.Text:
 		res, err = service.saveText(tx, uid, alias, *fav.Text)
-	} else {
+	case wizard.Location:
+		res, err = service.saveLocation(tx, uid, alias, *fav.Location)
+	default:
 		res, err = service.saveFile(tx, uid, alias, fav.Type, *fav.File)
 	}
 	if err != nil {
@@ -103,7 +117,7 @@ func (service *FavService) Save(uid int64, alias string, fav *dto.Fav) (RowsAffe
 	return &res, tx.Commit(service.ctx)
 }
 
-// DeleteByAlias deletes all of the user's favs associated with alias.
+// DeleteByAlias deletes all the user's favs associated with alias.
 func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedAware, error) {
 	log.WithField(logconst.FieldService, "FavService").
 		WithField(logconst.FieldMethod, "DeleteByAlias").
@@ -137,9 +151,12 @@ func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedA
 
 // DeleteFav deletes a specific fav of the user.
 func (service *FavService) DeleteFav(uid int64, alias string, fav *dto.Fav) (RowsAffectedAware, error) {
-	if fav.Type == wizard.Text {
+	switch fav.Type {
+	case wizard.Text:
 		return service.deleteByText(uid, alias, *fav.Text)
-	} else {
+	case wizard.Location:
+		return service.deleteByLocation(uid, alias, *fav.Location)
+	default:
 		return service.deleteByFileID(uid, alias, *fav.File)
 	}
 }
@@ -155,6 +172,22 @@ func (service *FavService) saveText(tx pgx.Tx, uid int64, alias, text string) (p
 				"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
 				"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6) END)",
 				uid, wizard.Text, aliasID, alias, textID, text)
+		}
+	}
+	return pgconn.CommandTag{}, err
+}
+
+func (service *FavService) saveLocation(tx pgx.Tx, uid int64, alias string, location wizard.LocData) (pgconn.CommandTag, error) {
+	var (
+		aliasID, locationID int
+		err                 error
+	)
+	if aliasID, err = saveAliasToSeparateTable(service.ctx, tx, alias); err == nil {
+		if locationID, err = saveLocationToSeparateTable(service.ctx, tx, location.Latitude, location.Longitude); err == nil {
+			return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, location_id) VALUES ($1, $2, "+
+				"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
+				"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM locations WHERE latitude = $6 AND longitude = $7) END)",
+				uid, wizard.Location, aliasID, alias, locationID, location.Latitude, location.Longitude)
 		}
 	}
 	return pgconn.CommandTag{}, err
@@ -177,6 +210,15 @@ func (service *FavService) deleteByText(uid int64, alias, text string) (RowsAffe
 	return service.db.Exec(service.ctx,
 		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3)",
 		uid, alias, text)
+}
+
+func (service *FavService) deleteByLocation(uid int64, alias string, location wizard.LocData) (RowsAffectedAware, error) {
+	log.WithField(logconst.FieldService, "FavService").
+		WithField(logconst.FieldMethod, "deleteByLocation").
+		Infof("Deletion of fav with uid '%d', alias '%s' and location (%f, %f)", uid, alias, location.Latitude, location.Longitude)
+	return service.db.Exec(service.ctx,
+		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND location_id = (SELECT id FROM locations WHERE latitude = $3 AND longitude = $4)",
+		uid, alias, location.Latitude, location.Longitude)
 }
 
 func (service *FavService) deleteByFileID(uid int64, alias string, file wizard.File) (RowsAffectedAware, error) {

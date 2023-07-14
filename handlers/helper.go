@@ -29,17 +29,26 @@ func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	}
 
 	var (
-		text string
-		file wizard.File
+		text     string
+		file     wizard.File
+		location wizard.LocData
 	)
-	if objectField.Type == wizard.Text {
+	switch objectField.Type {
+	case wizard.Text:
 		text, ok = objectField.Data.(string)
 		if !ok {
 			log.WithField(logconst.FieldFunc, "extractFavInfo").
 				Errorf("Invalid type: string was expected but '%T %+v' is got", objectField.Data, objectField.Data)
 			return "", nil
 		}
-	} else {
+	case wizard.Location:
+		location, ok = objectField.Data.(wizard.LocData)
+		if !ok {
+			log.WithField(logconst.FieldFunc, "extractFavInfo").
+				Errorf("Invalid type: LocData was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+			return "", nil
+		}
+	default:
 		file, ok = objectField.Data.(wizard.File)
 		if !ok {
 			log.WithField(logconst.FieldFunc, "extractFavInfo").
@@ -49,8 +58,9 @@ func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	}
 
 	return alias, &dto.Fav{
-		Type: objectField.Type,
-		Text: &text,
-		File: &file,
+		Type:     objectField.Type,
+		Text:     &text,
+		File:     &file,
+		Location: &location,
 	}
 }

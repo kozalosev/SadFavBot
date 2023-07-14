@@ -1,7 +1,9 @@
 package repo
 
 import (
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -28,6 +30,25 @@ func TestFavService_Find_Text(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
 	assert.Equal(t, test.Text, *objects[0].Text)
+}
+
+func TestFavService_Find_Location(t *testing.T) {
+	test.InsertTestData(db)
+	aliasLoc := test.Alias + "Loc"
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
+	res, err := favsService.Save(test.UID2, aliasLoc, &dto.Fav{
+		Type:     wizard.Location,
+		Location: &wizard.LocData{Latitude: test.Latitude, Longitude: test.Longitude},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), res.RowsAffected())
+
+	objects, err := favsService.Find(test.UID2, aliasLoc, false)
+
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+	assert.Equal(t, test.Latitude, objects[0].Location.Latitude)
+	assert.Equal(t, test.Longitude, objects[0].Location.Longitude)
 }
 
 func TestFavService_Find_bySubstring(t *testing.T) {
