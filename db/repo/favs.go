@@ -161,6 +161,18 @@ func (service *FavService) DeleteFav(uid int64, alias string, fav *dto.Fav) (Row
 	}
 }
 
+// Hide excludes all favs associated with a specified alias from the output of AliasService.List, AliasService.ListWithCounts and AliasService.ListForFavsOnly methods.
+func (service *FavService) Hide(uid int64, alias string) error {
+	res, err := service.db.Exec(service.ctx, "UPDATE favs SET hidden = true WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
+	if err != nil {
+		return err
+	} else if res.RowsAffected() < 1 {
+		return NoRowsWereAffected
+	} else {
+		return nil
+	}
+}
+
 func (service *FavService) saveText(tx pgx.Tx, uid int64, alias, text string) (pgconn.CommandTag, error) {
 	var (
 		aliasID, textID int

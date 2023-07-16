@@ -6,6 +6,7 @@ var (
 	cancelCommands = []string{"cancel"}
 	deleteCommands = []string{"delete", "del"}
 	// helpCommands	in handlers/help/command.go
+	hideCommands     = []string{"hide"}
 	installCommands  = []string{"install"}
 	languageCommands = []string{"language", "lang"}
 	linkCommands     = []string{"link", "ln"}

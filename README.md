@@ -23,6 +23,7 @@ Commands
 * `/link` — starts a wizard that helps you link another phrase to the already existing alias
 * `/list` — prints all saved aliases or packages
 * `/delete` — starts a wizard that helps you delete some memes you no longer needed
+* `/hide` — exclude an alias from all listings
 * `/package` — starts a wizard that helps you create or delete your own package of aliases, which may be installed by other users
 * `/install` — command to install a package of aliases created by someone else
 * `/language` — switch the bot's language

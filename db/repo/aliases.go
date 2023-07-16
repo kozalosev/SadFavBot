@@ -35,7 +35,7 @@ func NewAliasService(appenv *base.ApplicationEnv) *AliasService {
 //
 // where '1' is the count of favs associated with 'alias'
 func (service *AliasService) ListWithCounts(uid int64) ([]string, error) {
-	q := "SELECT a1.name, count(a1.name), null AS link FROM favs f JOIN aliases a1 ON f.alias_id = a1.id WHERE f.uid = $1 GROUP BY a1.name " +
+	q := "SELECT a1.name, count(a1.name), null AS link FROM favs f JOIN aliases a1 ON f.alias_id = a1.id WHERE f.uid = $1 AND f.hidden = false GROUP BY a1.name " +
 		"UNION " +
 		"SELECT a2.name, null AS count, (SELECT name FROM aliases a WHERE a.id = l.linked_alias_id) AS link FROM links l JOIN aliases a2 ON l.alias_id = a2.id WHERE l.uid = $2 " +
 		"ORDER BY name"
@@ -79,7 +79,7 @@ func (service *AliasService) List(uid int64) ([]string, error) {
 
 // ListForFavsOnly returns the list of the user's aliases associated only with favs, but not with links.
 func (service *AliasService) ListForFavsOnly(uid int64) ([]string, error) {
-	if res, err := service.db.Query(service.ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1", uid); err == nil {
+	if res, err := service.db.Query(service.ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1 AND f.hidden = false", uid); err == nil {
 		var (
 			aliases []string
 			alias   string
