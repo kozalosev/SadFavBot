@@ -17,7 +17,3 @@ type Fav struct {
 	Text     *string
 	Location *wizard.LocData
 }
-
-func NewFav() *Fav {
-	return &Fav{File: &wizard.File{}, Location: &wizard.LocData{}}
-}

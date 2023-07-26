@@ -71,13 +71,13 @@ func (service *PackageService) Install(uid int64, pkgInfo *PackageInfo) ([]strin
 }
 
 func (service *PackageService) installItems(tx pgx.Tx, uid int64, pkgInfo *PackageInfo) ([]int, error) {
-	res, err := tx.Query(service.ctx, "INSERT INTO favs(uid, type, alias_id, file_id, file_unique_id, text_id) "+
-		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id FROM packages p "+
+	res, err := tx.Query(service.ctx, "INSERT INTO favs(uid, type, alias_id, file_id, file_unique_id, text_id, location_id) "+
+		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id, f.location_id FROM packages p "+
 		"JOIN package_aliases pa ON p.id = pa.package_id "+
 		"JOIN favs f ON f.uid = p.owner_uid AND f.alias_id = pa.alias_id "+
 		"WHERE p.owner_uid = $2 AND p.name = $3 "+
 		"UNION "+
-		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id FROM packages p "+
+		"SELECT cast($1 AS bigint), f.type, f.alias_id, f.file_id, f.file_unique_id, f.text_id, f.location_id FROM packages p "+
 		"JOIN package_aliases pa ON p.id = pa.package_id "+
 		"JOIN links l ON l.uid = p.owner_uid AND l.alias_id = pa.alias_id "+
 		"JOIN favs f ON f.uid = p.owner_uid AND f.alias_id = l.linked_alias_id "+

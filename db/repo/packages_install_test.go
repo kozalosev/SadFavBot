@@ -1,8 +1,11 @@
 package repo
 
 import (
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	"testing"
 )
 
@@ -84,6 +87,36 @@ func TestInstallPackageWithLink(t *testing.T) {
 	assert.Len(t, installed, 2)
 	assert.Contains(t, installed, test.Alias)
 	assert.Contains(t, installed, test.Alias2)
+}
+
+func TestInstallPackageWithLocation(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
+
+	var locID int
+	err := db.QueryRow(ctx, "INSERT INTO locations(latitude, longitude) VALUES ($1, $2) RETURNING id", test.Latitude, test.Longitude).Scan(&locID)
+	assert.NoError(t, err)
+	assert.Greater(t, locID, 0)
+	_, err = db.Exec(ctx, "INSERT INTO favs(uid, type, alias_id, location_id) VALUES ($1, $2, $3, $4)",
+		test.UID, wizard.Location, test.Alias2ID, locID)
+	assert.NoError(t, err)
+
+	appEnv := test.BuildApplicationEnv(db)
+	packageService := NewPackageService(appEnv)
+	installed, err := packageService.Install(test.UID3, packageInfo)
+
+	assert.NoError(t, err)
+	assert.Len(t, installed, 1)
+	assert.Contains(t, installed, test.Alias2)
+
+	favsService := NewFavsService(appEnv)
+	favs, err := favsService.Find(test.UID3, test.Alias2, false)
+	assert.NoError(t, err)
+	assert.Len(t, favs, 2)
+	locFavs := funk.Filter(favs, func(f *dto.Fav) bool {
+		return f.Location != nil
+	})
+	assert.Len(t, locFavs, 1)
 }
 
 func TestRemoveDuplicates(t *testing.T) {
