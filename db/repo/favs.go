@@ -61,7 +61,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		return result, err
 	}
 	for rows.Next() {
-		row := dto.NewFav()
+		row := &dto.Fav{}
 		var (
 			fileID              *string
 			latitude, longitude *float64
