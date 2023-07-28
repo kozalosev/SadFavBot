@@ -10,7 +10,21 @@ import (
 
 func TestFavService_Find(t *testing.T) {
 	test.InsertTestData(db)
+	testFindImpl(t)
+}
 
+func TestFavService_Find_hidden(t *testing.T) {
+	test.InsertTestData(db)
+
+	appEnv := test.BuildApplicationEnv(db)
+	aliasService := NewAliasService(appEnv)
+	err := aliasService.Hide(test.UID, test.Alias)
+	assert.NoError(t, err)
+
+	testFindImpl(t)
+}
+
+func testFindImpl(t *testing.T) {
 	query := test.BuildInlineQuery()
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
 	objects, err := favsService.Find(query.From.ID, query.Query, false)
@@ -68,6 +82,24 @@ func TestFavService_Find_bySubstring(t *testing.T) {
 	assert.Len(t, objects, 2)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
 	assert.Equal(t, test.FileID2, objects[1].File.ID)
+}
+
+func TestFavService_Find_bySubstring_hidden(t *testing.T) {
+	test.InsertTestData(db)
+
+	appEnv := test.BuildApplicationEnv(db)
+	aliasService := NewAliasService(appEnv)
+	err := aliasService.Hide(test.UID, test.Alias)
+	assert.NoError(t, err)
+
+	query := test.BuildInlineQuery()
+	query.Query = "a"
+
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
+	objects, err := favsService.Find(query.From.ID, query.Query, true)
+
+	assert.Len(t, objects, 1)
+	assert.Equal(t, test.FileID, objects[0].File.ID)
 }
 
 func TestFavService_Find_escaping(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestHideAction(t *testing.T) {
+func TestAliasVisibilityAction(t *testing.T) {
 	test.InsertTestData(db)
 
 	appenv := test.BuildApplicationEnv(db)
@@ -19,6 +19,10 @@ func TestHideAction(t *testing.T) {
 			Name: FieldAlias,
 			Data: test.Alias,
 		},
+		&wizard.Field{
+			Name: FieldChange,
+			Data: ExcludeAction,
+		},
 	}
 
 	aliasService := repo.NewAliasService(appenv)
@@ -26,8 +30,8 @@ func TestHideAction(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, res, 2)
 
-	handler := NewHideHandler(appenv, nil)
-	handler.hideAction(reqenv, msg, fields)
+	handler := NewAliasVisibilityHandler(appenv, nil)
+	handler.action(reqenv, msg, fields)
 
 	res, err = aliasService.List(test.UID)
 	assert.NoError(t, err)

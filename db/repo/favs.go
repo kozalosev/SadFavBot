@@ -48,13 +48,15 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		"JOIN aliases a ON a.id = f.alias_id " +
 		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"LEFT JOIN locations loc ON loc.id = f.location_id " +
-		"WHERE uid = $1 AND (name ILIKE $2 OR name = (SELECT ai_linked.name FROM links l " +
+		"LEFT JOIN alias_visibility av ON av.uid = f.uid AND av.alias_id = f.alias_id " +
+		"WHERE f.uid = $1 AND (name ILIKE $2 OR name = (SELECT ai_linked.name FROM links l " +
 		"	JOIN aliases ai ON l.alias_id = ai.id " +
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
 		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +
+		"  AND ($3 IS FALSE OR av.hidden IS NOT TRUE OR lower('%' || name || '%') = lower($2)) " + // only exact match for hidden favs!
 		"GROUP BY type, file_id, t.text, loc.latitude, loc.longitude " +
 		"LIMIT 50"
-	rows, err := service.db.Query(service.ctx, q, uid, query)
+	rows, err := service.db.Query(service.ctx, q, uid, query, bySubstr)
 
 	var result []*dto.Fav
 	if err != nil {
@@ -158,18 +160,6 @@ func (service *FavService) DeleteFav(uid int64, alias string, fav *dto.Fav) (Row
 		return service.deleteByLocation(uid, alias, *fav.Location)
 	default:
 		return service.deleteByFileID(uid, alias, *fav.File)
-	}
-}
-
-// Hide excludes all favs associated with a specified alias from the output of AliasService.List, AliasService.ListWithCounts and AliasService.ListForFavsOnly methods.
-func (service *FavService) Hide(uid int64, alias string) error {
-	res, err := service.db.Exec(service.ctx, "UPDATE favs SET hidden = true WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2)", uid, alias)
-	if err != nil {
-		return err
-	} else if res.RowsAffected() < 1 {
-		return NoRowsWereAffected
-	} else {
-		return nil
 	}
 }
 
