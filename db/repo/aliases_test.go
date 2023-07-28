@@ -51,11 +51,9 @@ func TestAliasService_ListWithCounts_noHidden(t *testing.T) {
 	test.InsertTestData(db)
 	appEnv := test.BuildApplicationEnv(db)
 
-	favsService := NewFavsService(appEnv)
-	err := favsService.Hide(test.UID, test.Alias)
-	assert.NoError(t, err)
-
 	aliasService := NewAliasService(appEnv)
+	err := aliasService.Hide(test.UID, test.Alias)
+	assert.NoError(t, err)
 	aliases, err := aliasService.ListWithCounts(test.UID)
 
 	assert.NoError(t, err)

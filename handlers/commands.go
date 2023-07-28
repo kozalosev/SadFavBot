@@ -6,12 +6,12 @@ var (
 	cancelCommands = []string{"cancel"}
 	deleteCommands = []string{"delete", "del"}
 	// helpCommands	in handlers/help/command.go
-	hideCommands     = []string{"hide"}
-	installCommands  = []string{"install"}
-	languageCommands = []string{"language", "lang"}
-	linkCommands     = []string{"link", "ln"}
-	listCommands     = []string{"list"}
-	modeCommands     = []string{"mode", "mod"}
-	packageCommands  = []string{"package", "pack"}
-	saveCommands     = []string{"save"}
+	installCommands    = []string{"install"}
+	languageCommands   = []string{"language", "lang"}
+	linkCommands       = []string{"link", "ln"}
+	listCommands       = []string{"list"}
+	modeCommands       = []string{"mode", "mod"}
+	packageCommands    = []string{"package", "pack"}
+	saveCommands       = []string{"save"}
+	visibilityCommands = []string{"visibility"}
 )

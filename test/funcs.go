@@ -16,7 +16,7 @@ import (
 var ctx = context.Background()
 
 func InsertTestData(db *pgxpool.Pool) {
-	for _, table := range []string{"links", "package_aliases", "packages", "favs", "aliases", "texts", "users"} {
+	for _, table := range []string{"alias_visibility", "links", "package_aliases", "packages", "favs", "aliases", "texts", "users"} {
 		_, err := db.Exec(ctx, "DELETE FROM "+table)
 		check(err)
 	}

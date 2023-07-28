@@ -154,7 +154,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 		handlers.NewLinkHandler(appenv, stateStorage),
 		handlers.NewPackageHandler(appenv, stateStorage),
 		handlers.NewSearchModeHandler(appenv, stateStorage),
-		handlers.NewHideHandler(appenv, stateStorage),
+		handlers.NewAliasVisibilityHandler(appenv, stateStorage),
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.NewGetFavoritesInlineHandler(appenv),

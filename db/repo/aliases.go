@@ -35,9 +35,15 @@ func NewAliasService(appenv *base.ApplicationEnv) *AliasService {
 //
 // where '1' is the count of favs associated with 'alias'
 func (service *AliasService) ListWithCounts(uid int64) ([]string, error) {
-	q := "SELECT a1.name, count(a1.name), null AS link FROM favs f JOIN aliases a1 ON f.alias_id = a1.id WHERE f.uid = $1 AND f.hidden = false GROUP BY a1.name " +
+	q := "SELECT a1.name, count(a1.name), null AS link FROM favs f " +
+		"JOIN aliases a1 ON f.alias_id = a1.id " +
+		"LEFT JOIN alias_visibility av ON av.uid = f.uid AND av.alias_id = f.alias_id " +
+		"WHERE f.uid = $1 AND av.hidden IS NOT true GROUP BY a1.name " +
 		"UNION " +
-		"SELECT a2.name, null AS count, (SELECT name FROM aliases a WHERE a.id = l.linked_alias_id) AS link FROM links l JOIN aliases a2 ON l.alias_id = a2.id WHERE l.uid = $2 " +
+		"SELECT a2.name, null AS count, (SELECT name FROM aliases a WHERE a.id = l.linked_alias_id) AS link FROM links l " +
+		"JOIN aliases a2 ON l.alias_id = a2.id " +
+		"LEFT JOIN alias_visibility av ON av.uid = l.uid AND av.alias_id = l.alias_id " +
+		"WHERE l.uid = $2 AND av.hidden IS NOT true " +
 		"ORDER BY name"
 
 	if rows, err := service.db.Query(service.ctx, q, uid, uid); err == nil {
@@ -79,7 +85,11 @@ func (service *AliasService) List(uid int64) ([]string, error) {
 
 // ListForFavsOnly returns the list of the user's aliases associated only with favs, but not with links.
 func (service *AliasService) ListForFavsOnly(uid int64) ([]string, error) {
-	if res, err := service.db.Query(service.ctx, "SELECT DISTINCT a.name FROM favs f JOIN aliases a on a.id = f.alias_id WHERE f.uid = $1 AND f.hidden = false", uid); err == nil {
+	if res, err := service.db.Query(service.ctx,
+		"SELECT DISTINCT a.name FROM favs f "+
+			"JOIN aliases a on a.id = f.alias_id "+
+			"LEFT JOIN alias_visibility av ON av.uid = f.uid AND av.alias_id = f.alias_id "+
+			"WHERE f.uid = $1 AND av.hidden IS NOT true", uid); err == nil {
 		var (
 			aliases []string
 			alias   string
@@ -98,6 +108,29 @@ func (service *AliasService) ListForFavsOnly(uid int64) ([]string, error) {
 		return aliases, res.Err()
 	} else {
 		return nil, err
+	}
+}
+
+// Hide excludes all favs associated with a specified alias from the output of List, ListWithCounts and ListForFavsOnly methods.
+func (service *AliasService) Hide(uid int64, alias string) error {
+	return service.changeVisibility(uid, alias, true)
+}
+
+// Reveal is a reversed to Hide operation.
+func (service *AliasService) Reveal(uid int64, alias string) error {
+	return service.changeVisibility(uid, alias, false)
+}
+
+func (service *AliasService) changeVisibility(uid int64, alias string, hidden bool) error {
+	res, err := service.db.Exec(service.ctx,
+		"INSERT INTO Alias_Visibility (uid, alias_id, hidden) VALUES ($1, (SELECT id FROM aliases WHERE name = $2), $3) ON CONFLICT (uid, alias_id) DO UPDATE SET hidden = $3",
+		uid, alias, hidden)
+	if err != nil {
+		return err
+	} else if res.RowsAffected() < 1 {
+		return NoRowsWereAffected
+	} else {
+		return nil
 	}
 }
 
