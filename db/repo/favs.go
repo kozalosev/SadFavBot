@@ -44,7 +44,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		query = "%" + query + "%"
 	}
 
-	q := "SELECT min(f.id), type, file_id, t.text, loc.latitude, loc.longitude FROM favs f " +
+	q := "SELECT min(f.id), type, min(file_id), t.text, loc.latitude, loc.longitude FROM favs f " +
 		"JOIN aliases a ON a.id = f.alias_id " +
 		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"LEFT JOIN locations loc ON loc.id = f.location_id " +
@@ -54,7 +54,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
 		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +
 		"  AND ($3 IS FALSE OR av.hidden IS NOT TRUE OR lower('%' || name || '%') = lower($2)) " + // only exact match for hidden favs!
-		"GROUP BY type, file_id, t.text, loc.latitude, loc.longitude " +
+		"GROUP BY type, file_unique_id, t.text, loc.latitude, loc.longitude " +
 		"LIMIT 50"
 	rows, err := service.db.Query(service.ctx, q, uid, query, bySubstr)
 

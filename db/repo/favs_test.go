@@ -5,6 +5,7 @@ import (
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	"testing"
 )
 
@@ -100,6 +101,36 @@ func TestFavService_Find_bySubstring_hidden(t *testing.T) {
 
 	assert.Len(t, objects, 1)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
+}
+
+func TestFavService_Find_bySubstring_withDuplicates(t *testing.T) {
+	test.InsertTestData(db)
+
+	query := test.BuildInlineQuery()
+	query.From.ID = test.UID2
+	query.Query = "a"
+
+	dupFile := &wizard.File{
+		ID:       test.FileID2,
+		UniqueID: test.UniqueFileID,
+	}
+	dupFav := &dto.Fav{
+		Type: wizard.Sticker,
+		File: dupFile,
+	}
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
+	rowsAffectedAware, err := favsService.Save(query.From.ID, query.Query, dupFav)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), rowsAffectedAware.RowsAffected())
+
+	objects, err := favsService.Find(query.From.ID, query.Query, true)
+	assert.Len(t, objects, 2)
+
+	types := funk.Map(objects, func(fav *dto.Fav) wizard.FieldType {
+		return fav.Type
+	}).([]wizard.FieldType)
+	assert.Contains(t, types, wizard.Sticker)
+	assert.Contains(t, types, wizard.Text)
 }
 
 func TestFavService_Find_escaping(t *testing.T) {
