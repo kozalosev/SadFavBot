@@ -13,5 +13,5 @@ var (
 	modeCommands       = []string{"mode", "mod"}
 	packageCommands    = []string{"package", "pack"}
 	saveCommands       = []string{"save"}
-	visibilityCommands = []string{"visibility"}
+	visibilityCommands = []string{"visibility", "vis"}
 )
