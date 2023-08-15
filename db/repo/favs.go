@@ -44,7 +44,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		query = "%" + query + "%"
 	}
 
-	q := "SELECT DISTINCT ON (file_unique_id) f.id, type, file_id, t.text, loc.latitude, loc.longitude FROM favs f " +
+	q := "SELECT DISTINCT ON (file_unique_id, text_id, location_id) f.id, type, file_id, t.text, loc.latitude, loc.longitude FROM favs f " +
 		"JOIN aliases a ON a.id = f.alias_id " +
 		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"LEFT JOIN locations loc ON loc.id = f.location_id " +

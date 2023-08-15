@@ -114,17 +114,25 @@ func TestFavService_Find_bySubstring_withDuplicates(t *testing.T) {
 		ID:       test.FileID2,
 		UniqueID: test.UniqueFileID,
 	}
-	dupFav := &dto.Fav{
+	dupFavFile := &dto.Fav{
 		Type: wizard.Sticker,
 		File: dupFile,
 	}
+	dupText := test.Text + "'2"
+	dupFavText := &dto.Fav{
+		Type: wizard.Text,
+		Text: &dupText,
+	}
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
-	rowsAffectedAware, err := favsService.Save(query.From.ID, query.Query, dupFav)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), rowsAffectedAware.RowsAffected())
+	for _, dupFav := range []*dto.Fav{dupFavFile, dupFavText} {
+		rowsAffectedAware, err := favsService.Save(query.From.ID, query.Query, dupFav)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), rowsAffectedAware.RowsAffected())
+	}
 
 	objects, err := favsService.Find(query.From.ID, query.Query, true)
-	assert.Len(t, objects, 2)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 3)
 
 	types := funk.Map(objects, func(fav *dto.Fav) wizard.FieldType {
 		return fav.Type
