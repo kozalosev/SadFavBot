@@ -49,7 +49,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"LEFT JOIN locations loc ON loc.id = f.location_id " +
 		"LEFT JOIN alias_visibility av ON av.uid = f.uid AND av.alias_id = f.alias_id " +
-		"WHERE f.uid = $1 AND (name ILIKE $2 OR name = (SELECT ai_linked.name FROM links l " +
+		"WHERE f.uid = $1 AND (name ILIKE $2 OR name IN (SELECT ai_linked.name FROM links l " +
 		"	JOIN aliases ai ON l.alias_id = ai.id " +
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
 		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +

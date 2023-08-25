@@ -164,9 +164,27 @@ func TestFavService_Find_byLink(t *testing.T) {
 
 	query := test.BuildInlineQuery()
 
-	favsService := NewFavsService(test.BuildApplicationEnv(db))
+	appenv := test.BuildApplicationEnv(db)
+	favsService := NewFavsService(appenv)
 	objects, err := favsService.Find(query.From.ID, query.Query, false)
 
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+	assert.Equal(t, test.FileID, objects[0].File.ID)
+
+	// several links beginning alike + substring search
+	// https://github.com/kozalosev/SadFavBot/issues/75
+
+	linkService := NewLinkService(appenv)
+	oleas := "oleas"
+	for _, link := range []string{oleas, oleas + "'2"} {
+		err = linkService.Create(test.UID, link, test.Alias2)
+		assert.NoError(t, err)
+	}
+
+	objects, err = favsService.Find(query.From.ID, oleas, true)
+
+	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
 }
