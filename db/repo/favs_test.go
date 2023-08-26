@@ -188,3 +188,31 @@ func TestFavService_Find_byLink(t *testing.T) {
 	assert.Len(t, objects, 1)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
 }
+
+func TestFavService_Find_PhotoWithCaption(t *testing.T) {
+	test.InsertTestData(db)
+
+	query := test.BuildInlineQuery()
+	query.From.ID = test.UID3
+	fav := &dto.Fav{
+		Type: wizard.Image,
+		File: &wizard.File{
+			ID:       test.FileIDPhoto,
+			UniqueID: test.FileIDPhoto,
+			Caption:  test.AliasPhoto,
+		},
+	}
+
+	appenv := test.BuildApplicationEnv(db)
+	favsService := NewFavsService(appenv)
+	rowsAffectedAware, err := favsService.Save(query.From.ID, test.AliasPhoto, fav)
+	assert.NoError(t, err)
+	assert.Greater(t, rowsAffectedAware.RowsAffected(), int64(0))
+
+	objects, err := favsService.Find(query.From.ID, test.AliasPhoto, false)
+
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+	assert.Equal(t, test.FileIDPhoto, objects[0].File.ID)
+	assert.Equal(t, test.CaptionPhoto, objects[0].File.Caption)
+}

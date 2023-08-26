@@ -78,6 +78,10 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		}
 		if fileID != nil {
 			row.File = &wizard.File{ID: *fileID}
+			if row.Text != nil {
+				row.File.Caption = *row.Text
+				row.Text = nil
+			}
 		}
 		if latitude != nil {
 			if longitude == nil {
@@ -196,8 +200,22 @@ func (service *FavService) saveLocation(tx pgx.Tx, uid int64, alias string, loca
 
 func (service *FavService) saveFile(tx pgx.Tx, uid int64, alias string, fileType wizard.FieldType, file wizard.File) (pgconn.CommandTag, error) {
 	if aliasID, err := saveAliasToSeparateTable(service.ctx, tx, alias); err == nil {
-		return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, file_id, file_unique_id) VALUES ($1, $2, CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, $5, $6)",
-			uid, fileType, aliasID, alias, file.ID, file.UniqueID)
+		var textID = -1
+		if len(file.Caption) > 0 {
+			textID, err = saveTextToSeparateTable(service.ctx, tx, file.Caption)
+			if err != nil {
+				return pgconn.CommandTag{}, err
+			}
+		}
+		return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, file_id, file_unique_id, text_id) VALUES "+
+			"($1, $2, "+
+			"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
+			"$5, $6, "+
+			"CASE WHEN ($7 = -1) THEN NULL WHEN ($7 > 0) THEN $7 ELSE (SELECT id FROM texts WHERE text = $8) END)",
+			uid, fileType,
+			aliasID, alias,
+			file.ID, file.UniqueID,
+			textID, file.Caption)
 	} else {
 		return pgconn.CommandTag{}, err
 	}

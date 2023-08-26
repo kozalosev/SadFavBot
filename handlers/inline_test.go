@@ -52,3 +52,29 @@ func TestGetFavoritesInlineHandler_Handle(t *testing.T) {
 	assert.Equal(t, string(test.Type), sticker2.Type)
 	assert.Equal(t, test.FileID2, sticker2.StickerID)
 }
+
+func TestGetFavoritesInlineHandler_Handle_PhotoWithCaption(t *testing.T) {
+	test.InsertTestData(db)
+
+	query := test.BuildInlineQuery()
+	query.From.ID = test.UIDPhoto
+	query.Query = test.AliasPhoto
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
+
+	handler := NewGetFavoritesInlineHandler(appenv)
+	assert.True(t, handler.CanHandle(reqenv, query))
+	handler.Handle(reqenv, query)
+
+	bot := appenv.Bot.(*base.FakeBotAPI)
+	cc := bot.GetOutput().([]tgbotapi.Chattable)
+	assert.Len(t, cc, 1)
+	c := cc[0].(tgbotapi.InlineConfig)
+	assert.Len(t, c.Results, 1)
+
+	photo := c.Results[0].(tgbotapi.InlineQueryResultCachedPhoto)
+	assert.NotEmpty(t, photo.ID)
+	assert.Equal(t, "photo", photo.Type)
+	assert.Equal(t, test.FileIDPhoto, photo.PhotoID)
+	assert.Equal(t, test.CaptionPhoto, photo.Caption)
+}

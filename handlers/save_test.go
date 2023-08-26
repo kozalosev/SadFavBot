@@ -10,10 +10,12 @@ import (
 func TestSaveFormAction(t *testing.T) {
 	test.InsertTestData(db)
 
+	// 1. Sticker
+
 	msg := buildMessage(test.UID3)
 	appenv := test.BuildApplicationEnv(db)
 	reqenv := test.BuildRequestEnv()
-	fieldsFile := wizard.Fields{
+	fields := wizard.Fields{
 		&wizard.Field{Name: FieldAlias, Data: test.Alias},
 		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{
 			ID:       test.FileID,
@@ -22,7 +24,7 @@ func TestSaveFormAction(t *testing.T) {
 	}
 
 	handler := NewSaveHandler(appenv, nil)
-	handler.saveFormAction(reqenv, msg, fieldsFile)
+	handler.saveFormAction(reqenv, msg, fields)
 
 	test.CheckRowsCount(t, db, 1, test.UID3, nil)
 	itemFile := fetchItem(t, test.Type)
@@ -30,18 +32,37 @@ func TestSaveFormAction(t *testing.T) {
 	assert.Equal(t, test.UniqueFileID, *itemFile.FileUniqueID)
 	assert.Nil(t, itemFile.Text)
 
-	fieldsText := fieldsFile
-	objField := fieldsText.FindField(FieldObject)
+	// 2. Text
+
+	objField := fields.FindField(FieldObject)
 	objField.Type = wizard.Text
 	objField.Data = test.Text
 
-	handler.saveFormAction(reqenv, msg, fieldsText)
+	handler.saveFormAction(reqenv, msg, fields)
 
 	test.CheckRowsCount(t, db, 2, test.UID3, nil)
 	itemText := fetchItem(t, wizard.Text)
 	assert.Nil(t, itemText.FileID)
 	assert.Nil(t, itemText.FileUniqueID)
 	assert.Equal(t, test.Text, *itemText.Text)
+
+	// 3. Photo with a caption
+
+	objField = fields.FindField(FieldObject)
+	objField.Type = wizard.Image
+	objField.Data = wizard.File{
+		ID:       test.FileIDPhoto,
+		UniqueID: test.FileIDPhoto,
+		Caption:  test.CaptionPhoto,
+	}
+
+	handler.saveFormAction(reqenv, msg, fields)
+
+	test.CheckRowsCount(t, db, 3, test.UID3, nil)
+	itemPhoto := fetchItem(t, wizard.Image)
+	assert.Equal(t, test.FileIDPhoto, *itemPhoto.FileID)
+	assert.Equal(t, test.FileIDPhoto, *itemPhoto.FileUniqueID)
+	assert.Equal(t, test.CaptionPhoto, *itemPhoto.Text)
 }
 
 type queryResult struct {

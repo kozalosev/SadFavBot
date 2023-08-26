@@ -84,19 +84,31 @@ func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 		case wizard.Text:
 			return tgbotapi.NewInlineQueryResultArticle(object.ID, *object.Text, *object.Text)
 		case wizard.Image:
-			return tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, object.File.ID)
+			photo := tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, object.File.ID)
+			photo.Caption = object.File.Caption
+			return photo
 		case wizard.Sticker:
 			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, object.File.ID, caser.String(lc.Tr("sticker")))
 		case wizard.Video:
-			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.File.ID, caser.String(lc.Tr("video")))
+			video := tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.File.ID, caser.String(lc.Tr("video")))
+			video.Caption = object.File.Caption
+			return video
 		case wizard.Audio:
-			return tgbotapi.NewInlineQueryResultCachedAudio(object.ID, object.File.ID)
+			audio := tgbotapi.NewInlineQueryResultCachedAudio(object.ID, object.File.ID)
+			audio.Caption = object.File.Caption
+			return audio
 		case wizard.Voice:
-			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, object.File.ID, caser.String(lc.Tr("voice")))
+			voice := tgbotapi.NewInlineQueryResultCachedVoice(object.ID, object.File.ID, caser.String(lc.Tr("voice")))
+			voice.Caption = object.File.Caption
+			return voice
 		case wizard.Gif:
-			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, object.File.ID)
+			gif := tgbotapi.NewInlineQueryResultCachedGIF(object.ID, object.File.ID)
+			gif.Caption = object.File.Caption
+			return gif
 		case wizard.Document:
-			return tgbotapi.NewInlineQueryResultCachedDocument(object.ID, object.File.ID, caser.String(lc.Tr("document")))
+			document := tgbotapi.NewInlineQueryResultCachedDocument(object.ID, object.File.ID, caser.String(lc.Tr("document")))
+			document.Caption = object.File.Caption
+			return document
 		case wizard.Location:
 			return tgbotapi.NewInlineQueryResultLocation(object.ID, caser.String(lc.Tr("location")), object.Location.Latitude, object.Location.Longitude)
 		default:
