@@ -16,7 +16,7 @@ func TestSaveFormAction(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		test.NewTextField(FieldAlias, test.Alias),
 		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{
 			ID:       test.FileID,
 			UniqueID: test.UniqueFileID,
@@ -36,7 +36,7 @@ func TestSaveFormAction(t *testing.T) {
 
 	objField := fields.FindField(FieldObject)
 	objField.Type = wizard.Text
-	objField.Data = test.Text
+	objField.Data = wizard.Txt{Value: test.Text}
 
 	handler.saveFormAction(reqenv, msg, fields)
 

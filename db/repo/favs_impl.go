@@ -18,9 +18,12 @@ func saveAliasToSeparateTable(ctx context.Context, tx pgx.Tx, alias string) (int
 	}
 }
 
-func saveTextToSeparateTable(ctx context.Context, tx pgx.Tx, text string) (int, error) {
-	var id int
-	if err := tx.QueryRow(ctx, "INSERT INTO texts(text) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id", text).Scan(&id); err == nil {
+func saveTextToSeparateTable(ctx context.Context, tx pgx.Tx, text string, entities []byte) (int, error) {
+	var (
+		id  int
+		err error
+	)
+	if err = tx.QueryRow(ctx, "INSERT INTO texts(text, entities) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id", text, entities).Scan(&id); err == nil {
 		return id, nil
 	} else if errors.Is(err, pgx.ErrNoRows) {
 		return 0, nil

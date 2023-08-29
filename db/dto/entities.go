@@ -14,6 +14,6 @@ type Fav struct {
 	ID       string
 	Type     wizard.FieldType
 	File     *wizard.File
-	Text     *string
+	Text     *wizard.Txt
 	Location *wizard.LocData
 }

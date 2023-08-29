@@ -17,18 +17,9 @@ func TestPackageAction(t *testing.T) {
 	packageService := repo.NewPackageService(appenv)
 	msg := buildMessage(test.UID3)
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldName,
-			Data: test.Package,
-		},
-		&wizard.Field{
-			Name: FieldCreateOrDelete,
-			Data: Create,
-		},
-		&wizard.Field{
-			Name: FieldAliases,
-			Data: test.Alias + "\n" + test.Alias2,
-		},
+		test.NewTextField(FieldName, test.Package),
+		test.NewTextField(FieldCreateOrDelete, Create),
+		test.NewTextField(FieldAliases, test.Alias+"\n"+test.Alias2),
 	}
 
 	handler := NewPackageHandler(appenv, nil)
@@ -39,8 +30,8 @@ func TestPackageAction(t *testing.T) {
 	assert.Len(t, packages, 1)
 	assert.Contains(t, packages, fmt.Sprintf("%d@%s (2)", test.UID3, test.Package))
 
-	fields.FindField(FieldCreateOrDelete).Data = Recreate
-	fields.FindField(FieldAliases).Data = test.Alias
+	fields.FindField(FieldCreateOrDelete).Data = wizard.Txt{Value: Recreate}
+	fields.FindField(FieldAliases).Data = wizard.Txt{Value: test.Alias}
 	handler.packageAction(reqenv, msg, fields)
 
 	packages, err = packageService.ListWithCounts(test.UID3)
@@ -48,7 +39,7 @@ func TestPackageAction(t *testing.T) {
 	assert.Len(t, packages, 1)
 	assert.Contains(t, packages, fmt.Sprintf("%d@%s (1)", test.UID3, test.Package))
 
-	fields.FindField(FieldCreateOrDelete).Data = Delete
+	fields.FindField(FieldCreateOrDelete).Data = wizard.Txt{Value: Delete}
 	handler.packageAction(reqenv, msg, fields)
 
 	packages, err = packageService.ListWithCounts(test.UID3)

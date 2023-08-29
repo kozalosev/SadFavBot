@@ -107,14 +107,14 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 
 func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	intent := fields.FindField(FieldCreateOrDelete).Data
-	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(string), " ", "-")
+	intent := fields.FindField(FieldCreateOrDelete).Data.(wizard.Txt).Value
+	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(wizard.Txt).Value, " ", "-")
 
 	var err error
 	if intent == Delete {
 		err = handler.packageService.Delete(uid, name)
 	} else {
-		aliasesStr := fields.FindField(FieldAliases).Data.(string)
+		aliasesStr := fields.FindField(FieldAliases).Data.(wizard.Txt).Value
 		aliases := strings.Split(aliasesStr, "\n")
 		aliases = funk.Map(aliases, func(a string) string {
 			return strings.TrimPrefix(a, LinePrefix)

@@ -17,17 +17,14 @@ func TestLanguageFormAction(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldLanguage,
-			Data: en,
-		},
+		test.NewTextField(FieldLanguage, en),
 	}
 
 	handler := NewLanguageHandler(appenv, nil)
 	handler.languageFormAction(reqenv, msg, fields)
 	assertLanguage(t, en)
 
-	fields.FindField(FieldLanguage).Data = "au" // unsupported
+	fields.FindField(FieldLanguage).Data = wizard.Txt{Value: "au"} // unsupported
 	handler.languageFormAction(reqenv, msg, fields)
 	assertLanguage(t, en)
 }

@@ -21,10 +21,7 @@ func TestSearchModeAction(t *testing.T) {
 	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldSubstrSearchEnabled,
-			Data: Yes,
-		},
+		test.NewTextField(FieldSubstrSearchEnabled, Yes),
 	}
 	handler := NewSearchModeHandler(appenv, nil)
 	handler.searchModeAction(reqenv, msg, fields)

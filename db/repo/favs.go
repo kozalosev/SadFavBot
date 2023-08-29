@@ -2,7 +2,9 @@ package repo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -44,7 +46,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		query = "%" + query + "%"
 	}
 
-	q := "SELECT DISTINCT ON (file_unique_id, text_id, location_id) f.id, type, file_id, t.text, loc.latitude, loc.longitude FROM favs f " +
+	q := "SELECT DISTINCT ON (file_unique_id, text_id, location_id) f.id, type, file_id, t.text, t.entities, loc.latitude, loc.longitude FROM favs f " +
 		"JOIN aliases a ON a.id = f.alias_id " +
 		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"LEFT JOIN locations loc ON loc.id = f.location_id " +
@@ -64,10 +66,10 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 	for rows.Next() {
 		row := &dto.Fav{}
 		var (
-			fileID              *string
-			latitude, longitude *float64
+			fileID, text, entities *string
+			latitude, longitude    *float64
 		)
-		err = rows.Scan(&row.ID, &row.Type, &fileID, &row.Text, &latitude, &longitude)
+		err = rows.Scan(&row.ID, &row.Type, &fileID, &text, &entities, &latitude, &longitude)
 		if err != nil {
 			log.WithField(logconst.FieldService, "FavService").
 				WithField(logconst.FieldMethod, "Find").
@@ -78,12 +80,36 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		}
 		if fileID != nil {
 			row.File = &wizard.File{ID: *fileID}
-			if row.Text != nil {
-				row.File.Caption = *row.Text
-				row.Text = nil
+			if text != nil {
+				row.File.Caption = *text
+				if entities != nil {
+					var dest []tgbotapi.MessageEntity
+					if err := json.Unmarshal([]byte(*entities), &dest); err != nil {
+						log.WithField(logconst.FieldService, "FavService").
+							WithField(logconst.FieldMethod, "Find").
+							WithField(logconst.FieldCalledObject, "File.Entities").
+							WithField(logconst.FieldCalledMethod, "Unmarshal").
+							Error(err)
+						continue
+					}
+					row.File.Entities = dest
+				}
 			}
-		}
-		if latitude != nil {
+		} else if text != nil {
+			row.Text = &wizard.Txt{Value: *text}
+			if entities != nil {
+				var dest []tgbotapi.MessageEntity
+				if err := json.Unmarshal([]byte(*entities), &dest); err != nil {
+					log.WithField(logconst.FieldService, "FavService").
+						WithField(logconst.FieldMethod, "Find").
+						WithField(logconst.FieldCalledObject, "Text.Entities").
+						WithField(logconst.FieldCalledMethod, "Unmarshal").
+						Error(err)
+					continue
+				}
+				row.Text.Entities = dest
+			}
+		} else if latitude != nil {
 			if longitude == nil {
 				return nil, errors.New("unexpected absence of longitude when latitude is present")
 			}
@@ -158,7 +184,7 @@ func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedA
 func (service *FavService) DeleteFav(uid int64, alias string, fav *dto.Fav) (RowsAffectedAware, error) {
 	switch fav.Type {
 	case wizard.Text:
-		return service.deleteByText(uid, alias, *fav.Text)
+		return service.deleteByText(uid, alias, fav.Text.Value)
 	case wizard.Location:
 		return service.deleteByLocation(uid, alias, *fav.Location)
 	default:
@@ -166,17 +192,20 @@ func (service *FavService) DeleteFav(uid int64, alias string, fav *dto.Fav) (Row
 	}
 }
 
-func (service *FavService) saveText(tx pgx.Tx, uid int64, alias, text string) (pgconn.CommandTag, error) {
+func (service *FavService) saveText(tx pgx.Tx, uid int64, alias string, text wizard.Txt) (pgconn.CommandTag, error) {
 	var (
 		aliasID, textID int
+		entities        []byte
 		err             error
 	)
 	if aliasID, err = saveAliasToSeparateTable(service.ctx, tx, alias); err == nil {
-		if textID, err = saveTextToSeparateTable(service.ctx, tx, text); err == nil {
-			return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, text_id) VALUES ($1, $2, "+
-				"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
-				"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6) END)",
-				uid, wizard.Text, aliasID, alias, textID, text)
+		if entities, err = json.Marshal(text.Entities); err == nil {
+			if textID, err = saveTextToSeparateTable(service.ctx, tx, text.Value, entities); err == nil {
+				return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, text_id) VALUES ($1, $2, "+
+					"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
+					"CASE WHEN ($5 > 0) THEN $5 ELSE (SELECT id FROM texts WHERE text = $6 AND entities = $7) END)",
+					uid, wizard.Text, aliasID, alias, textID, text.Value, entities)
+			}
 		}
 	}
 	return pgconn.CommandTag{}, err
@@ -200,22 +229,28 @@ func (service *FavService) saveLocation(tx pgx.Tx, uid int64, alias string, loca
 
 func (service *FavService) saveFile(tx pgx.Tx, uid int64, alias string, fileType wizard.FieldType, file wizard.File) (pgconn.CommandTag, error) {
 	if aliasID, err := saveAliasToSeparateTable(service.ctx, tx, alias); err == nil {
-		var textID = -1
-		if len(file.Caption) > 0 {
-			textID, err = saveTextToSeparateTable(service.ctx, tx, file.Caption)
-			if err != nil {
-				return pgconn.CommandTag{}, err
+		var (
+			entities []byte
+			textID   = -1
+		)
+		if entities, err = json.Marshal(file.Entities); err == nil {
+			if len(file.Caption) > 0 {
+				textID, err = saveTextToSeparateTable(service.ctx, tx, file.Caption, entities)
 			}
 		}
+		if err != nil {
+			return pgconn.CommandTag{}, err
+		}
+
 		return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, file_id, file_unique_id, text_id) VALUES "+
 			"($1, $2, "+
 			"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
 			"$5, $6, "+
-			"CASE WHEN ($7 = -1) THEN NULL WHEN ($7 > 0) THEN $7 ELSE (SELECT id FROM texts WHERE text = $8) END)",
+			"CASE WHEN ($7 = -1) THEN NULL WHEN ($7 > 0) THEN $7 ELSE (SELECT id FROM texts WHERE text = $8 AND entities = $9) END)",
 			uid, fileType,
 			aliasID, alias,
 			file.ID, file.UniqueID,
-			textID, file.Caption)
+			textID, file.Caption, entities)
 	} else {
 		return pgconn.CommandTag{}, err
 	}

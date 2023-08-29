@@ -17,8 +17,10 @@ func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	aliasField := fields.FindField(FieldAlias)
 	objectField := fields.FindField(FieldObject)
 
-	alias, ok := aliasField.Data.(string)
-	if !ok {
+	var alias string
+	if a, ok := aliasField.Data.(wizard.Txt); ok {
+		alias = a.Value
+	} else {
 		log.WithField(logconst.FieldFunc, "extractFavInfo").
 			Errorf("Invalid type for alias: %T %+v", aliasField, aliasField)
 		return "", nil
@@ -29,13 +31,14 @@ func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	}
 
 	var (
-		text     string
+		text     wizard.Txt
 		file     wizard.File
 		location wizard.LocData
+		ok       bool
 	)
 	switch objectField.Type {
 	case wizard.Text:
-		text, ok = objectField.Data.(string)
+		text, ok = objectField.Data.(wizard.Txt)
 		if !ok {
 			log.WithField(logconst.FieldFunc, "extractFavInfo").
 				Errorf("Invalid type: string was expected but '%T %+v' is got", objectField.Data, objectField.Data)

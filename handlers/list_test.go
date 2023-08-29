@@ -34,10 +34,7 @@ func testListActionImpl(t *testing.T, favsOrPackages string, assertionsFunc func
 	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldFavsOrPackages,
-			Data: favsOrPackages,
-		},
+		test.NewTextField(FieldFavsOrPackages, favsOrPackages),
 	}
 
 	handler := NewListHandler(appenv, nil)

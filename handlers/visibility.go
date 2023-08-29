@@ -86,8 +86,8 @@ func (handler *AliasVisibilityHandler) Handle(reqenv *base.RequestEnv, msg *tgbo
 
 func (handler *AliasVisibilityHandler) action(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	alias := fields.FindField(FieldAlias).Data.(string)
-	visibility := fields.FindField(FieldChange).Data
+	alias := fields.FindField(FieldAlias).Data.(wizard.Txt).Value
+	visibility := fields.FindField(FieldChange).Data.(wizard.Txt).Value
 
 	var err error
 	switch visibility {

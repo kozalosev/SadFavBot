@@ -95,3 +95,14 @@ func BuildInlineQuery() *tgbotapi.InlineQuery {
 		Query: AliasCI,
 	}
 }
+
+func NewTextField(name string, data interface{}) *wizard.Field {
+	if dataStr, isStr := data.(string); isStr {
+		data = wizard.Txt{Value: dataStr}
+	}
+	return &wizard.Field{
+		Type: wizard.Text,
+		Name: name,
+		Data: data,
+	}
+}

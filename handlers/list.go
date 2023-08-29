@@ -82,7 +82,7 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		noRowsTitle  string
 		err          error
 	)
-	if fields.FindField(FieldFavsOrPackages).Data.(string) == Packages {
+	if fields.FindField(FieldFavsOrPackages).Data.(wizard.Txt).Value == Packages {
 		items, err = handler.packageService.ListWithCounts(msg.From.ID)
 		successTitle = ListStatusSuccessPackages
 		noRowsTitle = ListStatusNoRowsPackages
