@@ -70,6 +70,7 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		}
 		return aliases
 	}
+	aliasDesc.DisableKeyboardValidation = true
 
 	delAllDesc := desc.AddField(FieldDeleteAll, DeleteFieldsTrPrefix+FieldDeleteAll)
 	delAllDesc.InlineKeyboardAnswers = []string{Yes, No}

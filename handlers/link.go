@@ -76,6 +76,7 @@ func (handler *LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		}
 		return aliases
 	}
+	aliasField.DisableKeyboardValidation = true
 
 	return desc
 }
