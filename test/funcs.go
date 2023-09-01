@@ -21,7 +21,9 @@ func InsertTestData(db *pgxpool.Pool) {
 		check(err)
 	}
 
-	_, err := db.Exec(ctx, "INSERT INTO aliases(id, name) VALUES ($1, $2), ($3, $4), ($5, $6)",
+	_, err := db.Exec(ctx, "INSERT INTO users(uid, language) VALUES ($1, 'ru'), ($2, 'en'), ($3, 'ru'), ($4, 'en')", UID, UID2, UID3, UIDPhoto)
+	check(err)
+	_, err = db.Exec(ctx, "INSERT INTO aliases(id, name) VALUES ($1, $2), ($3, $4), ($5, $6)",
 		AliasID, Alias, Alias2ID, Alias2, AliasPhotoID, AliasPhoto)
 	check(err)
 	_, err = db.Exec(ctx, "ALTER SEQUENCE aliases_id_seq RESTART WITH 4")
@@ -44,8 +46,6 @@ func InsertTestData(db *pgxpool.Pool) {
 		"($1, 'image', $2, $3, $3, $4)",
 		UIDPhoto, AliasPhotoID, FileIDPhoto, CaptionPhotoID)
 	check(err)
-
-	_, err = db.Exec(ctx, "INSERT INTO users(uid, language) VALUES ($1, 'ru'), ($2, 'en'), ($3, 'ru'), ($4, 'en')", UID, UID2, UID3, UIDPhoto)
 }
 
 func InsertTestPackages(db *pgxpool.Pool) {

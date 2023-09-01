@@ -1,0 +1,4 @@
+ALTER TABLE Favs ADD FOREIGN KEY (uid) REFERENCES Users(uid);
+ALTER TABLE Links ADD FOREIGN KEY (uid) REFERENCES Users(uid);
+ALTER TABLE Packages ADD FOREIGN KEY (owner_uid) REFERENCES Users(uid);
+ALTER TABLE Alias_visibility ADD FOREIGN KEY (uid) REFERENCES Users(uid);
