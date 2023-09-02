@@ -37,19 +37,21 @@ func NewAliasService(appenv *base.ApplicationEnv) *AliasService {
 //	link -> alias
 //
 // where '1' is the count of favs associated with 'alias'
-func (service *AliasService) ListWithCounts(uid int64) ([]string, error) {
+func (service *AliasService) ListWithCounts(uid int64, grep string) ([]string, error) {
 	q := "SELECT a1.name, count(a1.name), null AS link FROM favs f " +
 		"JOIN aliases a1 ON f.alias_id = a1.id " +
 		"LEFT JOIN alias_visibility av ON av.uid = f.uid AND av.alias_id = f.alias_id " +
-		"WHERE f.uid = $1 AND av.hidden IS NOT true GROUP BY a1.name " +
+		"WHERE f.uid = $1 AND av.hidden IS NOT true AND ($2 = '' OR name ILIKE $2) " +
+		"GROUP BY a1.name " +
 		"UNION " +
 		"SELECT a2.name, null AS count, (SELECT name FROM aliases a WHERE a.id = l.linked_alias_id) AS link FROM links l " +
 		"JOIN aliases a2 ON l.alias_id = a2.id " +
 		"LEFT JOIN alias_visibility av ON av.uid = l.uid AND av.alias_id = l.alias_id " +
-		"WHERE l.uid = $2 AND av.hidden IS NOT true " +
+		"WHERE l.uid = $1 AND av.hidden IS NOT true AND ($2 = '' OR name ILIKE $2) " +
 		"ORDER BY name"
 
-	if rows, err := service.db.Query(service.ctx, q, uid, uid); err == nil {
+	grep = "%" + sqlEscaper.Replace(grep) + "%"
+	if rows, err := service.db.Query(service.ctx, q, uid, grep); err == nil {
 		var (
 			aliases []string
 			alias   string
@@ -79,7 +81,7 @@ func (service *AliasService) ListWithCounts(uid int64) ([]string, error) {
 
 // List returns the list of the user's aliases.
 func (service *AliasService) List(uid int64) ([]string, error) {
-	res, err := service.ListWithCounts(uid)
+	res, err := service.ListWithCounts(uid, "")
 	if err == nil {
 		res = funk.Map(res, trimSuffix).([]string)
 	}

@@ -20,6 +20,7 @@ const (
 	ListFieldAliasesOrPackagesPromptTr = "commands.list.fields.favs.or.packages"
 
 	FieldFavsOrPackages = "favsOrPackages"
+	FieldGrep           = "grep"
 	Favs                = "Favs"
 	Packages            = "Packages"
 
@@ -53,8 +54,11 @@ func (handler *ListHandler) GetWizardEnv() *wizard.Env {
 
 func (handler *ListHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.listAction)
+
 	f := desc.AddField(FieldFavsOrPackages, ListFieldAliasesOrPackagesPromptTr)
 	f.InlineKeyboardAnswers = []string{Favs, Packages}
+
+	desc.AddField(FieldGrep, "if you see this, something went wrong")
 	return desc
 }
 
@@ -63,15 +67,22 @@ func (*ListHandler) GetCommands() []string {
 }
 
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	w := wizard.NewWizard(handler, 1)
+	w := wizard.NewWizard(handler, 2)
 	arg := strings.ToLower(base.GetCommandArgument(msg))
-	if arg == "favs" || arg == "f" || arg == "fav" {
+	args := strings.Split(arg, " ")
+	kind := args[0]
+	var query string
+	if len(args) == 2 {
+		query = args[1]
+	}
+	if kind == "favs" || kind == "f" || kind == "fav" {
 		w.AddPrefilledField(FieldFavsOrPackages, Favs)
-	} else if arg == "packages" || arg == "p" || arg == "packs" || arg == "package" || arg == "pack" {
+	} else if kind == "packages" || kind == "p" || kind == "packs" || kind == "package" || kind == "pack" {
 		w.AddPrefilledField(FieldFavsOrPackages, Packages)
 	} else {
 		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
+	w.AddPrefilledField(FieldGrep, query)
 	w.ProcessNextField(reqenv, msg)
 }
 
@@ -87,7 +98,8 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		successTitle = ListStatusSuccessPackages
 		noRowsTitle = ListStatusNoRowsPackages
 	} else {
-		items, err = handler.aliasService.ListWithCounts(msg.From.ID)
+		query := fields.FindField(FieldGrep).Data.(wizard.Txt).Value
+		items, err = handler.aliasService.ListWithCounts(msg.From.ID, query)
 		successTitle = ListStatusSuccessFavs
 		noRowsTitle = ListStatusNoRowsFavs
 	}

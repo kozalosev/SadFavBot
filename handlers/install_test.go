@@ -39,7 +39,7 @@ func TestInstallPackageAction(t *testing.T) {
 	fields.FindField(FieldConfirmation).Data = wizard.Txt{Value: Yes}
 	handler.installPackageAction(reqenv, msg, fields)
 
-	aliases, err = aliasService.ListWithCounts(test.UID3)
+	aliases, err = aliasService.ListWithCounts(test.UID3, "")
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 1)
 	assert.Contains(t, aliases, test.Alias2+" (1)")

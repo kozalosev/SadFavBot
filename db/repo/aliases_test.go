@@ -30,7 +30,7 @@ func TestAliasService_ListWithCounts(t *testing.T) {
 	test.InsertTestData(db)
 
 	aliasService := NewAliasService(test.BuildApplicationEnv(db))
-	aliases, err := aliasService.ListWithCounts(test.UID)
+	aliases, err := aliasService.ListWithCounts(test.UID, "")
 
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 2)
@@ -55,11 +55,21 @@ func TestAliasService_ListWithCounts_noHidden(t *testing.T) {
 	aliasService := NewAliasService(appEnv)
 	err := aliasService.Hide(test.UID, test.Alias)
 	assert.NoError(t, err)
-	aliases, err := aliasService.ListWithCounts(test.UID)
+	aliases, err := aliasService.ListWithCounts(test.UID, "")
 
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 1)
 	assert.Contains(t, aliases, test.Alias2+" (1)")
+}
+
+func TestAliasService_ListWithCounts_grep(t *testing.T) {
+	test.InsertTestData(db)
+
+	aliasService := NewAliasService(test.BuildApplicationEnv(db))
+	aliases, err := aliasService.ListWithCounts(test.UID, "b")
+
+	assert.NoError(t, err)
+	assert.Len(t, aliases, 0)
 }
 
 func TestAliasService_ListBy(t *testing.T) {
