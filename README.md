@@ -22,6 +22,7 @@ Commands
 * `/save` — starts a wizard that helps you store a meme associated with some textual alias
 * `/link` — starts a wizard that helps you link another phrase to the already existing alias
 * `/list` — prints all saved aliases or packages
+* `/ref` — prints the list of all aliases associated with an object
 * `/delete` — starts a wizard that helps you delete some memes you no longer needed
 * `/visibility` — exclude an alias from all listings, or reveal it back
 * `/package` — starts a wizard that helps you create or delete your own package of aliases, which may be installed by other users
