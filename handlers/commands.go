@@ -12,6 +12,7 @@ var (
 	listCommands       = []string{"list"}
 	modeCommands       = []string{"mode", "mod"}
 	packageCommands    = []string{"package", "pack"}
+	refCommands        = []string{"ref", "references"}
 	saveCommands       = []string{"save"}
 	visibilityCommands = []string{"visibility", "vis"}
 )

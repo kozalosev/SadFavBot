@@ -16,7 +16,7 @@ import (
 var ctx = context.Background()
 
 func InsertTestData(db *pgxpool.Pool) {
-	for _, table := range []string{"alias_visibility", "links", "package_aliases", "packages", "favs", "aliases", "texts", "users"} {
+	for _, table := range []string{"alias_visibility", "links", "package_aliases", "packages", "favs", "aliases", "texts", "locations", "users"} {
 		_, err := db.Exec(ctx, "DELETE FROM "+table)
 		check(err)
 	}
@@ -52,6 +52,18 @@ func InsertTestPackages(db *pgxpool.Pool) {
 	_, err := db.Exec(ctx, "INSERT INTO packages(id, owner_uid, name) VALUES ($1, $2, $3)", PackageID, UID, Package)
 	check(err)
 	_, err = db.Exec(ctx, "INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2)", PackageID, Alias2ID)
+	check(err)
+}
+
+func InsertTestLocation(db *pgxpool.Pool, uid int) {
+	var locID int
+	err := db.QueryRow(ctx, "INSERT INTO locations(latitude, longitude) VALUES ($1, $2) RETURNING id", Latitude, Longitude).Scan(&locID)
+	check(err)
+	if locID < 1 {
+		panic("locID is zero!")
+	}
+	_, err = db.Exec(ctx, "INSERT INTO favs(uid, type, alias_id, location_id) VALUES ($1, $2, $3, $4)",
+		uid, wizard.Location, Alias2ID, locID)
 	check(err)
 }
 

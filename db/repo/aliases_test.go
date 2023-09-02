@@ -2,6 +2,7 @@ package repo
 
 import (
 	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -59,4 +60,30 @@ func TestAliasService_ListWithCounts_noHidden(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 1)
 	assert.Contains(t, aliases, test.Alias2+" (1)")
+}
+
+func TestAliasService_ListBy(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestLocation(db, test.UID2)
+	appEnv := test.BuildApplicationEnv(db)
+
+	aliasService := NewAliasService(appEnv)
+	aliases, err := aliasService.ListByFile(test.UID, &wizard.File{UniqueID: test.UniqueFileID})
+	assert.NoError(t, err)
+	assert.Len(t, aliases, 2)
+	assert.Contains(t, aliases, test.Alias)
+	assert.Contains(t, aliases, test.Alias2)
+
+	aliases, err = aliasService.ListByText(test.UID2, &wizard.Txt{Value: test.Text})
+	assert.NoError(t, err)
+	assert.Len(t, aliases, 1)
+	assert.Contains(t, aliases, test.Alias2)
+
+	aliases, err = aliasService.ListByLocation(test.UID2, &wizard.LocData{
+		Latitude:  test.Latitude,
+		Longitude: test.Longitude,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, aliases, 1)
+	assert.Contains(t, aliases, test.Alias2)
 }
