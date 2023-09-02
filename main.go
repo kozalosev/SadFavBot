@@ -150,6 +150,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 	messageHandlers = []base.MessageHandler{
 		handlers.NewSaveHandler(appenv, stateStorage),
 		handlers.NewListHandler(appenv, stateStorage),
+		handlers.NewRefHandler(appenv, stateStorage),
 		handlers.NewDeleteHandler(appenv, stateStorage),
 		installPackageHandler,
 		handlers.NewStartHandler(appenv, stateStorage, startEmbeddedHandlers),

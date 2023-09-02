@@ -82,21 +82,42 @@ func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 	return func(object *dto.Fav) interface{} {
 		switch object.Type {
 		case wizard.Text:
-			return tgbotapi.NewInlineQueryResultArticle(object.ID, *object.Text, *object.Text)
+			article := tgbotapi.NewInlineQueryResultArticle(object.ID, object.Text.Value, object.Text.Value)
+			content := article.InputMessageContent.(tgbotapi.InputTextMessageContent)
+			content.Entities = object.Text.Entities
+			return article
 		case wizard.Image:
-			return tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, object.File.ID)
+			photo := tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, object.File.ID)
+			photo.Caption = object.File.Caption
+			photo.CaptionEntities = object.File.Entities
+			return photo
 		case wizard.Sticker:
 			return tgbotapi.NewInlineQueryResultCachedSticker(object.ID, object.File.ID, caser.String(lc.Tr("sticker")))
 		case wizard.Video:
-			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.File.ID, caser.String(lc.Tr("video")))
+			video := tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.File.ID, caser.String(lc.Tr("video")))
+			video.Caption = object.File.Caption
+			video.CaptionEntities = object.File.Entities
+			return video
 		case wizard.Audio:
-			return tgbotapi.NewInlineQueryResultCachedAudio(object.ID, object.File.ID)
+			audio := tgbotapi.NewInlineQueryResultCachedAudio(object.ID, object.File.ID)
+			audio.Caption = object.File.Caption
+			audio.CaptionEntities = object.File.Entities
+			return audio
 		case wizard.Voice:
-			return tgbotapi.NewInlineQueryResultCachedVoice(object.ID, object.File.ID, caser.String(lc.Tr("voice")))
+			voice := tgbotapi.NewInlineQueryResultCachedVoice(object.ID, object.File.ID, caser.String(lc.Tr("voice")))
+			voice.Caption = object.File.Caption
+			voice.CaptionEntities = object.File.Entities
+			return voice
 		case wizard.Gif:
-			return tgbotapi.NewInlineQueryResultCachedGIF(object.ID, object.File.ID)
+			gif := tgbotapi.NewInlineQueryResultCachedGIF(object.ID, object.File.ID)
+			gif.Caption = object.File.Caption
+			gif.CaptionEntities = object.File.Entities
+			return gif
 		case wizard.Document:
-			return tgbotapi.NewInlineQueryResultCachedDocument(object.ID, object.File.ID, caser.String(lc.Tr("document")))
+			document := tgbotapi.NewInlineQueryResultCachedDocument(object.ID, object.File.ID, caser.String(lc.Tr("document")))
+			document.Caption = object.File.Caption
+			document.CaptionEntities = object.File.Entities
+			return document
 		case wizard.Location:
 			return tgbotapi.NewInlineQueryResultLocation(object.ID, caser.String(lc.Tr("location")), object.Location.Latitude, object.Location.Longitude)
 		default:

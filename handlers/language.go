@@ -73,7 +73,7 @@ func (handler *LanguageHandler) languageFormAction(reqenv *base.RequestEnv, msg 
 	if slices.Contains(supportedLangCodes, msg.Text) {
 		lang = msg.Text
 	} else {
-		lang = fields.FindField(FieldLanguage).Data.(string)
+		lang = fields.FindField(FieldLanguage).Data.(wizard.Txt).Value
 	}
 	handler.saveLangConfig(reqenv, msg, lang)
 }

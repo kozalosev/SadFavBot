@@ -25,14 +25,8 @@ func TestInstallPackageAction(t *testing.T) {
 	aliasService := repo.NewAliasService(appenv)
 	msg := buildMessage(test.UID3)
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldName,
-			Data: test.PackageFullName,
-		},
-		&wizard.Field{
-			Name: FieldConfirmation,
-			Data: No,
-		},
+		test.NewTextField(FieldName, test.PackageFullName),
+		test.NewTextField(FieldConfirmation, No),
 	}
 
 	handler := NewInstallPackageHandler(appenv, nil)
@@ -42,10 +36,10 @@ func TestInstallPackageAction(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 0)
 
-	fields.FindField(FieldConfirmation).Data = Yes
+	fields.FindField(FieldConfirmation).Data = wizard.Txt{Value: Yes}
 	handler.installPackageAction(reqenv, msg, fields)
 
-	aliases, err = aliasService.ListWithCounts(test.UID3)
+	aliases, err = aliasService.ListWithCounts(test.UID3, "")
 	assert.NoError(t, err)
 	assert.Len(t, aliases, 1)
 	assert.Contains(t, aliases, test.Alias2+" (1)")

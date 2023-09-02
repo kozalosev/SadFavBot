@@ -46,11 +46,12 @@ func (handler *StartHandler) GetWizardEnv() *wizard.Env {
 func (handler *StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(func(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 		handler.embeddedHandlers.Language.languageFormAction(reqenv, msg, fields)
-		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(string))
+		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(wizard.Txt).Value)
 		reqenv.Lang = reqenv.Lang.GetContext(newLang)
 		help.SendHelpMessage(handler.appenv.Bot, reqenv.Lang, msg)
 
-		if installingPackage := fields.FindField(FieldInstallingPackage).Data.(string); len(installingPackage) > 0 {
+		installingPackage := fields.FindField(FieldInstallingPackage).Data.(wizard.Txt).Value
+		if len(installingPackage) > 0 {
 			handler.runWizardForInstallation(reqenv, msg, installingPackage)
 		}
 	})

@@ -80,7 +80,7 @@ func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 }
 
 func (handler *SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	substrSearchEnabled := fields.FindField(FieldSubstrSearchEnabled).Data == Yes
+	substrSearchEnabled := fields.FindField(FieldSubstrSearchEnabled).Data.(wizard.Txt).Value == Yes
 
 	err := handler.userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)
 

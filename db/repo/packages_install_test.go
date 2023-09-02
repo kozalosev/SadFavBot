@@ -3,7 +3,6 @@ package repo
 import (
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/test"
-	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
 	"testing"
@@ -92,14 +91,7 @@ func TestInstallPackageWithLink(t *testing.T) {
 func TestInstallPackageWithLocation(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
-
-	var locID int
-	err := db.QueryRow(ctx, "INSERT INTO locations(latitude, longitude) VALUES ($1, $2) RETURNING id", test.Latitude, test.Longitude).Scan(&locID)
-	assert.NoError(t, err)
-	assert.Greater(t, locID, 0)
-	_, err = db.Exec(ctx, "INSERT INTO favs(uid, type, alias_id, location_id) VALUES ($1, $2, $3, $4)",
-		test.UID, wizard.Location, test.Alias2ID, locID)
-	assert.NoError(t, err)
+	test.InsertTestLocation(db, test.UID)
 
 	appEnv := test.BuildApplicationEnv(db)
 	packageService := NewPackageService(appEnv)

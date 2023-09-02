@@ -13,8 +13,8 @@ func TestDeleteFormAction(t *testing.T) {
 	msg := buildMessage(test.UID)
 	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias},
-		&wizard.Field{Name: FieldDeleteAll, Data: No},
+		test.NewTextField(FieldAlias, test.Alias),
+		test.NewTextField(FieldDeleteAll, No),
 		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{UniqueID: test.UniqueFileID}},
 	}
 
@@ -25,7 +25,7 @@ func TestDeleteFormAction(t *testing.T) {
 	test.CheckRowsCount(t, db, 1, test.UID, &testAlias) // row with FileID_2 is on its place
 	test.CheckRowsCount(t, db, 2, test.UID, nil)        // rows with alias2 and alias+FileID_2
 
-	fields.FindField(FieldDeleteAll).Data = Yes
+	fields.FindField(FieldDeleteAll).Data = wizard.Txt{Value: Yes}
 	handler.deleteFormAction(reqenv, msg, fields)
 
 	test.CheckRowsCount(t, db, 0, test.UID, &testAlias)
@@ -37,9 +37,9 @@ func TestDeleteFormActionText(t *testing.T) {
 	msg := buildMessage(test.UID2)
 	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias2},
-		&wizard.Field{Name: FieldDeleteAll, Data: No},
-		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: test.Text},
+		test.NewTextField(FieldAlias, test.Alias2),
+		test.NewTextField(FieldDeleteAll, No),
+		test.NewTextField(FieldObject, test.Text),
 	}
 
 	handler := NewDeleteHandler(test.BuildApplicationEnv(db), nil)
@@ -60,8 +60,8 @@ func TestDeleteFormActionLink(t *testing.T) {
 	msg := buildMessage(test.UID2)
 	reqenv := test.BuildRequestEnv()
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias2},
-		&wizard.Field{Name: FieldDeleteAll, Data: Yes},
+		test.NewTextField(FieldAlias, test.Alias2),
+		test.NewTextField(FieldDeleteAll, Yes),
 		&wizard.Field{Name: FieldObject},
 	}
 

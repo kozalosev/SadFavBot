@@ -15,14 +15,8 @@ func TestLinkActionOnConflict(t *testing.T) {
 	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldName,
-			Data: test.Alias2,
-		},
-		&wizard.Field{
-			Name: FieldAlias,
-			Data: test.Alias,
-		},
+		test.NewTextField(FieldName, test.Alias2),
+		test.NewTextField(FieldAlias, test.Alias),
 	}
 
 	links, err := fetchLinks(db, test.UID)
@@ -45,14 +39,8 @@ func TestLinkAction(t *testing.T) {
 	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldName,
-			Data: test.Alias2,
-		},
-		&wizard.Field{
-			Name: FieldAlias,
-			Data: test.Alias,
-		},
+		test.NewTextField(FieldName, test.Alias2),
+		test.NewTextField(FieldAlias, test.Alias),
 	}
 
 	// resolve conflict

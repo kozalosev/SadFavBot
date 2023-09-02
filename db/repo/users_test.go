@@ -39,7 +39,9 @@ func TestFetchUserOptions(t *testing.T) {
 }
 
 func clearDatabase(t *testing.T) {
-	//goland:noinspection SqlWithoutWhere
-	_, err := db.Exec(ctx, "DELETE FROM users")
-	assert.NoError(t, err)
+	for _, table := range []string{"favs", "links", "packages", "alias_visibility", "users"} {
+		//goland:noinspection SqlWithoutWhere
+		_, err := db.Exec(ctx, "DELETE FROM "+table)
+		assert.NoError(t, err)
+	}
 }

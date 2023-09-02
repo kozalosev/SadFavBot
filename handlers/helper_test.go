@@ -10,7 +10,7 @@ import (
 
 func TestExtractItemValues_File(t *testing.T) {
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		test.NewTextField(FieldAlias, test.Alias),
 		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.File{
 			ID:       test.FileID,
 			UniqueID: test.UniqueFileID,
@@ -29,15 +29,15 @@ func TestExtractItemValues_File(t *testing.T) {
 
 func TestExtractItemValues_Text(t *testing.T) {
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias},
-		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: test.Text},
+		test.NewTextField(FieldAlias, test.Alias),
+		test.NewTextField(FieldObject, test.Text),
 	}
 
 	alias, fav := extractFavInfo(fields)
 
 	assert.Equal(t, test.Alias, alias)
 	assert.Equal(t, wizard.Text, fav.Type)
-	assert.Equal(t, test.Text, *fav.Text)
+	assert.Equal(t, test.Text, fav.Text.Value)
 	assert.Empty(t, fav.File.ID)
 	assert.Empty(t, fav.File.UniqueID)
 	assert.Empty(t, fav.Location)
@@ -49,7 +49,7 @@ func TestExtractItemValues_Location(t *testing.T) {
 		Longitude: test.Longitude,
 	}
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		test.NewTextField(FieldAlias, test.Alias),
 		&wizard.Field{Name: FieldObject, Type: wizard.Location, Data: loc},
 	}
 
@@ -65,7 +65,7 @@ func TestExtractItemValues_Location(t *testing.T) {
 
 func TestExtractItemValues_MismatchError(t *testing.T) {
 	fields := wizard.Fields{
-		&wizard.Field{Name: FieldAlias, Data: test.Alias},
+		test.NewTextField(FieldAlias, test.Alias),
 		&wizard.Field{Name: FieldObject, Type: test.Type, Data: test.Text},
 	}
 

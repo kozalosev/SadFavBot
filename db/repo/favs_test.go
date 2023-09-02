@@ -1,6 +1,7 @@
 package repo
 
 import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -44,7 +45,7 @@ func TestFavService_Find_Text(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
-	assert.Equal(t, test.Text, *objects[0].Text)
+	assert.Equal(t, test.Text, objects[0].Text.Value)
 }
 
 func TestFavService_Find_Location(t *testing.T) {
@@ -121,7 +122,7 @@ func TestFavService_Find_bySubstring_withDuplicates(t *testing.T) {
 	dupText := test.Text + "'2"
 	dupFavText := &dto.Fav{
 		Type: wizard.Text,
-		Text: &dupText,
+		Text: &wizard.Txt{Value: dupText},
 	}
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
 	for _, dupFav := range []*dto.Fav{dupFavFile, dupFavText} {
@@ -187,4 +188,37 @@ func TestFavService_Find_byLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
+}
+
+func TestFavService_Find_PhotoWithCaptionEntity(t *testing.T) {
+	test.InsertTestData(db)
+
+	query := test.BuildInlineQuery()
+	query.From.ID = test.UID3
+	fav := &dto.Fav{
+		Type: wizard.Image,
+		File: &wizard.File{
+			ID:       test.FileIDPhoto,
+			UniqueID: test.FileIDPhoto,
+			Caption:  test.AliasPhoto,
+			Entities: []tgbotapi.MessageEntity{{
+				Type: "test",
+			}},
+		},
+	}
+
+	appenv := test.BuildApplicationEnv(db)
+	favsService := NewFavsService(appenv)
+	rowsAffectedAware, err := favsService.Save(query.From.ID, test.AliasPhoto, fav)
+	assert.NoError(t, err)
+	assert.Greater(t, rowsAffectedAware.RowsAffected(), int64(0))
+
+	objects, err := favsService.Find(query.From.ID, test.AliasPhoto, false)
+
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+	assert.Equal(t, test.FileIDPhoto, objects[0].File.ID)
+	assert.Equal(t, test.CaptionPhoto, objects[0].File.Caption)
+	assert.Len(t, objects[0].File.Entities, 1)
+	assert.Equal(t, "test", objects[0].File.Entities[0].Type)
 }

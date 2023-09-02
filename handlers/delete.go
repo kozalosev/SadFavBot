@@ -70,6 +70,7 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		}
 		return aliases
 	}
+	aliasDesc.DisableKeyboardValidation = true
 
 	delAllDesc := desc.AddField(FieldDeleteAll, DeleteFieldsTrPrefix+FieldDeleteAll)
 	delAllDesc.InlineKeyboardAnswers = []string{Yes, No}
@@ -82,7 +83,7 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	objDesc.InlineKeyboardAnswers = []string{SelectObjectBtnTr}
 	objDesc.DisableKeyboardValidation = true
 	objDesc.InlineButtonCustomizer(SelectObjectBtnTr, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
-		query := f.Form.Fields.FindField(FieldAlias).Data.(string)
+		query := f.Form.Fields.FindField(FieldAlias).Data.(wizard.Txt).Value
 		btn.SwitchInlineQueryCurrentChat = &query
 	})
 
@@ -110,10 +111,23 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	deleteAll := fields.FindField(FieldDeleteAll).Data == Yes
-	alias, fav := extractFavInfo(fields)
-
 	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
+
+	var (
+		deleteAll      bool
+		deleteAllField = fields.FindField(FieldDeleteAll).Data
+	)
+	if data, ok := deleteAllField.(wizard.Txt); ok {
+		deleteAll = data.Value == Yes
+	} else {
+		log.WithField(logconst.FieldHandler, "DeleteHandler").
+			WithField(logconst.FieldMethod, "deleteFormAction").
+			Errorf("Invalid type of Data: %T %+v", deleteAllField, deleteAllField)
+		replyWith(DeleteStatusFailure)
+		return
+	}
+
+	alias, fav := extractFavInfo(fields)
 	if len(alias) == 0 {
 		replyWith(DeleteStatusFailure)
 		return

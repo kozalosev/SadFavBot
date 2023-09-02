@@ -15,14 +15,8 @@ func TestAliasVisibilityAction(t *testing.T) {
 	reqenv := test.BuildRequestEnv()
 	msg := buildMessage(test.UID)
 	fields := wizard.Fields{
-		&wizard.Field{
-			Name: FieldAlias,
-			Data: test.Alias,
-		},
-		&wizard.Field{
-			Name: FieldChange,
-			Data: ExcludeAction,
-		},
+		test.NewTextField(FieldAlias, test.Alias),
+		test.NewTextField(FieldChange, ExcludeAction),
 	}
 
 	aliasService := repo.NewAliasService(appenv)
