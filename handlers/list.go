@@ -69,7 +69,7 @@ func (*ListHandler) GetCommands() []string {
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	arg := strings.ToLower(base.GetCommandArgument(msg))
-	args := strings.Split(arg, " ")
+	args := strings.SplitN(arg, " ", 2)
 	kind := args[0]
 	var query string
 	if len(args) == 2 {
