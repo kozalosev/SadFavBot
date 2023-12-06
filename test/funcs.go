@@ -35,7 +35,7 @@ func InsertTestData(db *pgxpool.Pool) {
 		"($2, $3, $4, $6, $8)", // TestUID2, TestAlias, TestFileID, TestUniqueFileID
 		UID, UID2, Type, AliasID, Alias2ID, FileID, FileID2, UniqueFileID, UniqueFileID2)
 	check(err)
-	_, err = db.Exec(ctx, "INSERT INTO texts(id, text) VALUES ($1, $2), ($3, $4)", TextID, Text, CaptionPhotoID, AliasPhoto)
+	_, err = db.Exec(ctx, "INSERT INTO texts(id, text, entities) VALUES ($1, $2, 'null'), ($3, $4, 'null')", TextID, Text, CaptionPhotoID, AliasPhoto)
 	check(err)
 	_, err = db.Exec(ctx, "ALTER SEQUENCE texts_id_seq RESTART WITH 3")
 	check(err)

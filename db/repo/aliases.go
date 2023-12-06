@@ -193,7 +193,7 @@ func (service *AliasService) ListByText(uid int64, text *wizard.Txt) ([]string, 
 	sql := "SELECT DISTINCT a.name FROM favs f " +
 		"JOIN aliases a ON f.alias_id = a.id " +
 		"JOIN texts t ON f.text_id = t.id " +
-		"WHERE f.uid = $1 AND t.text = $2 AND t.entities "
+		"WHERE f.uid = $1 AND t.text = $2 AND t.entities = "
 
 	var (
 		res pgx.Rows
@@ -202,10 +202,10 @@ func (service *AliasService) ListByText(uid int64, text *wizard.Txt) ([]string, 
 	if len(text.Entities) > 0 {
 		var entities []byte
 		if entities, err = json.Marshal(text.Entities); err == nil {
-			res, err = service.db.Query(service.ctx, sql+" = $3", uid, text.Value, entities)
+			res, err = service.db.Query(service.ctx, sql+"$3", uid, text.Value, entities)
 		}
 	} else {
-		res, err = service.db.Query(service.ctx, sql+" IS NULL", uid, text.Value)
+		res, err = service.db.Query(service.ctx, sql+"'null'", uid, text.Value)
 	}
 	if err != nil {
 		return nil, err
