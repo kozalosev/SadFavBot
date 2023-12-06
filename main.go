@@ -167,6 +167,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 	}
 	callbackHandlers = []base.CallbackHandler{
 		help.NewCallbackHandler(appenv),
+		handlers.NewListPaginationCallbackHandler(appenv),
 	}
 	metrics.RegisterMessageHandlerCounters(messageHandlers...)
 	metrics.RegisterInlineHandlerCounters(inlineHandlers...)

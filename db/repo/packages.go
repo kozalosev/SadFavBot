@@ -35,10 +35,13 @@ func NewPackageService(appenv *base.ApplicationEnv) *PackageService {
 //	package (1)
 //
 // where '1' is the count of aliases associated with 'package'
-func (service *PackageService) ListWithCounts(uid int64) ([]string, error) {
-	q := "SELECT p.name, count(pa.alias_id) FROM packages p JOIN package_aliases pa ON p.id = pa.package_id WHERE p.owner_uid = $1 GROUP BY p.name ORDER BY p.name"
+func (service *PackageService) ListWithCounts(uid int64, lastPackage string) (*Page, error) {
+	q := "SELECT p.name, count(pa.alias_id) FROM packages p " +
+		"JOIN package_aliases pa ON p.id = pa.package_id " +
+		"WHERE p.owner_uid = $1 AND p.name > $2 " +
+		"GROUP BY p.name ORDER BY p.name LIMIT $3"
 
-	if rows, err := service.db.Query(service.ctx, q, uid); err == nil {
+	if rows, err := service.db.Query(service.ctx, q, uid, lastPackage, ResultsPerPage+1); err == nil {
 		var (
 			packages []string
 			pkg      string
@@ -55,9 +58,22 @@ func (service *PackageService) ListWithCounts(uid int64) ([]string, error) {
 					Error(err)
 			}
 		}
-		return funk.Map(packages, func(s string) string {
+		lines := funk.Map(packages, func(s string) string {
 			return FormatPackageName(uid, s)
-		}).([]string), rows.Err()
+		}).([]string)
+		if len(lines) > ResultsPerPage {
+			return &Page{
+				Items:       lines[:ResultsPerPage],
+				HasNextPage: true,
+				ofPackages:  true,
+			}, rows.Err()
+		} else {
+			return &Page{
+				Items:       lines,
+				HasNextPage: false,
+				ofPackages:  true,
+			}, rows.Err()
+		}
 	} else {
 		return nil, err
 	}
