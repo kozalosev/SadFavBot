@@ -23,6 +23,9 @@ func saveTextToSeparateTable(ctx context.Context, tx pgx.Tx, text string, entiti
 		id  int
 		err error
 	)
+	if entities == nil {
+		entities = []byte("null")
+	}
 	if err = tx.QueryRow(ctx, "INSERT INTO texts(text, entities) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id", text, entities).Scan(&id); err == nil {
 		return id, nil
 	} else if errors.Is(err, pgx.ErrNoRows) {

@@ -46,7 +46,8 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		query = "%" + query + "%"
 	}
 
-	q := "SELECT DISTINCT ON (file_unique_id, text_id, location_id) f.id, type, file_id, t.text, t.entities, loc.latitude, loc.longitude FROM favs f " +
+	q := "SELECT id, type, file_id, text, entities, latitude, longitude FROM (" +
+		"SELECT DISTINCT ON (file_unique_id, text_id, location_id) f.id, name, type, file_id, t.text, t.entities, loc.latitude, loc.longitude FROM favs f " +
 		"JOIN aliases a ON a.id = f.alias_id " +
 		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"LEFT JOIN locations loc ON loc.id = f.location_id " +
@@ -56,7 +57,8 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool) ([]*dto.
 		"	JOIN aliases ai_linked ON l.linked_alias_id = ai_linked.id " +
 		"	WHERE l.uid = $1 AND ai.name ILIKE $2)) " +
 		"  AND ($3 IS FALSE OR av.hidden IS NOT TRUE OR lower('%' || name || '%') = lower($2)) " + // only exact match for hidden favs!
-		"LIMIT 50"
+		"LIMIT 50) _ " +
+		"ORDER BY length(name)"
 	rows, err := service.db.Query(service.ctx, q, uid, query, bySubstr)
 
 	var result []*dto.Fav

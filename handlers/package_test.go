@@ -25,24 +25,27 @@ func TestPackageAction(t *testing.T) {
 	handler := NewPackageHandler(appenv, nil)
 	handler.packageAction(reqenv, msg, fields)
 
-	packages, err := packageService.ListWithCounts(test.UID3)
+	packages, err := packageService.ListWithCounts(test.UID3, "")
 	assert.NoError(t, err)
-	assert.Len(t, packages, 1)
-	assert.Contains(t, packages, fmt.Sprintf("%d@%s (2)", test.UID3, test.Package))
+	assert.Len(t, packages.Items, 1)
+	assert.False(t, packages.HasNextPage)
+	assert.Contains(t, packages.Items, fmt.Sprintf("%d@%s (2)", test.UID3, test.Package))
+	assert.Equal(t, packages.GetLastItem(), fmt.Sprintf("%s (2)", test.Package))
 
 	fields.FindField(FieldCreateOrDelete).Data = wizard.Txt{Value: Recreate}
 	fields.FindField(FieldAliases).Data = wizard.Txt{Value: test.Alias}
 	handler.packageAction(reqenv, msg, fields)
 
-	packages, err = packageService.ListWithCounts(test.UID3)
+	packages, err = packageService.ListWithCounts(test.UID3, "")
 	assert.NoError(t, err)
-	assert.Len(t, packages, 1)
-	assert.Contains(t, packages, fmt.Sprintf("%d@%s (1)", test.UID3, test.Package))
+	assert.Len(t, packages.Items, 1)
+	assert.Contains(t, packages.Items, fmt.Sprintf("%d@%s (1)", test.UID3, test.Package))
+	assert.Equal(t, packages.GetLastItem(), fmt.Sprintf("%s (1)", test.Package))
 
 	fields.FindField(FieldCreateOrDelete).Data = wizard.Txt{Value: Delete}
 	handler.packageAction(reqenv, msg, fields)
 
-	packages, err = packageService.ListWithCounts(test.UID3)
+	packages, err = packageService.ListWithCounts(test.UID3, "")
 	assert.NoError(t, err)
-	assert.Len(t, packages, 0)
+	assert.Len(t, packages.Items, 0)
 }

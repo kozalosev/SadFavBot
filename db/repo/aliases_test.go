@@ -30,12 +30,13 @@ func TestAliasService_ListWithCounts(t *testing.T) {
 	test.InsertTestData(db)
 
 	aliasService := NewAliasService(test.BuildApplicationEnv(db))
-	aliases, err := aliasService.ListWithCounts(test.UID, "")
+	aliases, err := aliasService.ListWithCounts(test.UID, "", "")
 
 	assert.NoError(t, err)
-	assert.Len(t, aliases, 2)
-	assert.Contains(t, aliases, test.Alias+" (2)")
-	assert.Contains(t, aliases, test.Alias2+" (1)")
+	assert.Len(t, aliases.Items, 2)
+	assert.False(t, aliases.HasNextPage)
+	assert.Contains(t, aliases.Items, test.Alias+" (2)")
+	assert.Contains(t, aliases.Items, test.Alias2+" (1)")
 }
 
 func TestAliasService_List_noRows(t *testing.T) {
@@ -55,21 +56,21 @@ func TestAliasService_ListWithCounts_noHidden(t *testing.T) {
 	aliasService := NewAliasService(appEnv)
 	err := aliasService.Hide(test.UID, test.Alias)
 	assert.NoError(t, err)
-	aliases, err := aliasService.ListWithCounts(test.UID, "")
+	aliases, err := aliasService.ListWithCounts(test.UID, "", "")
 
 	assert.NoError(t, err)
-	assert.Len(t, aliases, 1)
-	assert.Contains(t, aliases, test.Alias2+" (1)")
+	assert.Len(t, aliases.Items, 1)
+	assert.Contains(t, aliases.Items, test.Alias2+" (1)")
 }
 
 func TestAliasService_ListWithCounts_grep(t *testing.T) {
 	test.InsertTestData(db)
 
 	aliasService := NewAliasService(test.BuildApplicationEnv(db))
-	aliases, err := aliasService.ListWithCounts(test.UID, "b")
+	aliases, err := aliasService.ListWithCounts(test.UID, "b", "")
 
 	assert.NoError(t, err)
-	assert.Len(t, aliases, 0)
+	assert.Len(t, aliases.Items, 0)
 }
 
 func TestAliasService_ListBy(t *testing.T) {

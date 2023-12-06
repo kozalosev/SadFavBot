@@ -100,6 +100,19 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 	if len(arg) > 0 {
 		w.AddPrefilledField(FieldAlias, arg)
+
+		if msg.ReplyToMessage != nil {
+			if f, ok := w.(*wizard.Form); ok {
+				w.AddPrefilledField(FieldDeleteAll, No)
+				w.AddEmptyField(FieldObject, wizard.Auto)
+
+				f.Index = 2
+				f.PopulateRestored(msg.ReplyToMessage, handler.GetWizardEnv())
+				f.Fields.FindField(FieldObject).WasRequested = true
+				w.ProcessNextField(reqenv, msg.ReplyToMessage)
+				return
+			}
+		}
 	} else {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
