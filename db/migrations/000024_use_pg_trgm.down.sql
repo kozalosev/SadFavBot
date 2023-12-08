@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_name_trg_key;
+DROP EXTENSION IF EXISTS pg_trgm;
