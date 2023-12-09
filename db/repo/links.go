@@ -52,3 +52,16 @@ func (service *LinkService) Create(uid int64, name, refAlias string) error {
 	}
 	return err
 }
+
+func (service *LinkService) Delete(uid int64, name string) error {
+	tag, err := service.db.Exec(service.ctx,
+		"DELETE FROM Links WHERE uid = $1 AND alias_id = (SELECT id FROM Aliases WHERE name = $2)",
+		uid, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() < 1 {
+		return NoRowsWereAffected
+	}
+	return nil
+}

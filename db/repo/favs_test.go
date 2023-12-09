@@ -178,7 +178,8 @@ func TestFavService_Find_byLink(t *testing.T) {
 
 	linkService := NewLinkService(appenv)
 	oleas := "oleas"
-	for _, link := range []string{oleas, oleas + "'2"} {
+	oleases := []string{oleas, oleas + "'2"}
+	for _, link := range oleases {
 		err = linkService.Create(test.UID, link, test.Alias2)
 		assert.NoError(t, err)
 	}
@@ -188,6 +189,15 @@ func TestFavService_Find_byLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
+
+	for _, link := range oleases {
+		err = linkService.Delete(test.UID, link)
+		assert.NoError(t, err)
+	}
+
+	objects, err = favsService.Find(query.From.ID, oleas, true)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 0)
 }
 
 func TestFavService_Find_PhotoWithCaptionEntity(t *testing.T) {

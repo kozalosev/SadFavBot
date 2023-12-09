@@ -9,6 +9,7 @@ var (
 	installCommands    = []string{"install"}
 	languageCommands   = []string{"language", "lang"}
 	linkCommands       = []string{"link", "ln"}
+	rmLinkCommands     = []string{"rmlink", "delink", "dellink", "remove_link", "delete_link"}
 	listCommands       = []string{"list"}
 	modeCommands       = []string{"mode", "mod"}
 	packageCommands    = []string{"package", "pack"}

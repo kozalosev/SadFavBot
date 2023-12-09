@@ -21,6 +21,7 @@ Commands
 * `/help` — prints help message
 * `/save` — starts a wizard that helps you store a meme associated with some textual alias
 * `/link` — starts a wizard that helps you link another phrase to the already existing alias
+* `/rmlink` — starts a wizard that helps you remove the link created by the previous command
 * `/list` — prints all saved aliases or packages
 * `/ref` — prints the list of all aliases associated with an object
 * `/delete` — starts a wizard that helps you delete some memes you no longer needed
