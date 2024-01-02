@@ -53,9 +53,9 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	aliasDesc := desc.AddField(FieldAlias, DeleteFieldsTrPrefix+FieldAlias)
 	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
-		if len(msg.Text) > MaxAliasLen {
+		if len([]rune(msg.Text)) > MaxAliasLen {
 			template := lc.Tr(DeleteFieldsTrPrefix + FieldAlias + FieldMaxLengthErrorTrSuffix)
-			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
+			return errors.New(fmt.Sprintf(template, MaxAliasLen))
 		}
 		return nil
 	}

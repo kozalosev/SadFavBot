@@ -11,7 +11,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"strings"
 )
 
@@ -28,11 +27,6 @@ const (
 	MaxTextLen                = 4096
 	ReservedSymbols           = ReservedSymbolsForMessage + "\n"
 	ReservedSymbolsForMessage = "•@|{}[]:"
-)
-
-var (
-	maxAliasLenStr = strconv.FormatInt(MaxAliasLen, 10)
-	maxTextLenStr  = strconv.FormatInt(MaxAliasLen, 10)
 )
 
 type SaveHandler struct {
@@ -63,18 +57,18 @@ func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	aliasDesc := desc.AddField(FieldAlias, SaveFieldsTrPrefix+FieldAlias)
 	aliasDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
-		if len(msg.Text) > MaxAliasLen {
+		if len([]rune(msg.Text)) > MaxAliasLen {
 			template := lc.Tr(SaveFieldsTrPrefix + FieldAlias + FieldMaxLengthErrorTrSuffix)
-			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
+			return errors.New(fmt.Sprintf(template, MaxAliasLen))
 		}
 		return verifyNoReservedSymbols(msg.Text, lc, SaveStatusErrorForbiddenSymbolsInAlias)
 	}
 
 	objDesc := desc.AddField(FieldObject, SaveFieldsTrPrefix+FieldObject)
 	objDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
-		if len(msg.Text) > MaxTextLen {
+		if len([]rune(msg.Text)) > MaxTextLen {
 			template := lc.Tr(SaveFieldsTrPrefix + FieldObject + FieldMaxLengthErrorTrSuffix)
-			return errors.New(fmt.Sprintf(template, maxTextLenStr))
+			return errors.New(fmt.Sprintf(template, MaxTextLen))
 		}
 		return nil
 	}

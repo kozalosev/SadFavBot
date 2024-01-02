@@ -57,9 +57,9 @@ func (handler *LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	nameField := desc.AddField(FieldName, LinkFieldTrPrefix+FieldName)
 	nameField.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
-		if len(msg.Text) > MaxAliasLen {
+		if len([]rune(msg.Text)) > MaxAliasLen {
 			template := lc.Tr(LinkFieldTrPrefix + FieldName + FieldMaxLengthErrorTrSuffix)
-			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
+			return errors.New(fmt.Sprintf(template, MaxAliasLen))
 		}
 		return verifyNoReservedSymbols(msg.Text, lc, LinkStatusErrorForbiddenSymbolsInName)
 	}

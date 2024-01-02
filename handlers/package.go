@@ -71,9 +71,9 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 
 	nameDesc := desc.AddField(FieldName, PackageFieldsTrPrefix+FieldName)
 	nameDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
-		if len(msg.Text) > MaxPackageNameLen {
+		if len([]rune(msg.Text)) > MaxPackageNameLen {
 			template := lc.Tr(PackageFieldsTrPrefix + FieldName + FieldMaxLengthErrorTrSuffix)
-			return errors.New(fmt.Sprintf(template, maxAliasLenStr))
+			return errors.New(fmt.Sprintf(template, MaxPackageNameLen))
 		}
 		return verifyNoReservedSymbols(msg.Text, lc, PackageStatusErrorForbiddenSymbolsInName)
 	}
