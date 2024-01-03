@@ -83,8 +83,12 @@ func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 		switch object.Type {
 		case wizard.Text:
 			article := tgbotapi.NewInlineQueryResultArticle(object.ID, object.Text.Value, object.Text.Value)
+
+			// this is a copy, not a reference to the original InputTextMessageContent!
 			content := article.InputMessageContent.(tgbotapi.InputTextMessageContent)
 			content.Entities = object.Text.Entities
+
+			article.InputMessageContent = content
 			return article
 		case wizard.Image:
 			photo := tgbotapi.NewInlineQueryResultCachedPhoto(object.ID, object.File.ID)

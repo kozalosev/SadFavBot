@@ -25,6 +25,30 @@ func TestMapper(t *testing.T) {
 	assert.Equal(t, "InlineQueryResultCachedSticker", reflect.TypeOf(inlineAnswer).Name())
 }
 
+func TestMapperForTextWithEntities(t *testing.T) {
+	test.InsertTestData(db)
+	_, err := db.Exec(ctx, "UPDATE texts SET entities = $2 WHERE id = $1", test.TextID, "[{\"type\": \"spoiler\", \"length\": 7, \"offset\": 0}]")
+	assert.NoError(t, err)
+
+	query := &tgbotapi.InlineQuery{
+		From:  &tgbotapi.User{ID: test.UID2},
+		Query: test.Alias2,
+	}
+	appenv := test.BuildApplicationEnv(db)
+
+	favsService := repo.NewFavsService(appenv)
+	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+
+	inlineAnswer := generateMapper(loc.NewPool("en").GetContext("en"))(objects[0])
+	article, ok := inlineAnswer.(tgbotapi.InlineQueryResultArticle)
+	assert.True(t, ok)
+	content, ok := article.InputMessageContent.(tgbotapi.InputTextMessageContent)
+	assert.True(t, ok)
+	assert.NotNil(t, content.Entities)
+}
+
 func TestGetFavoritesInlineHandler_Handle(t *testing.T) {
 	test.InsertTestData(db)
 
