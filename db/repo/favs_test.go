@@ -232,3 +232,39 @@ func TestFavService_Find_PhotoWithCaptionEntity(t *testing.T) {
 	assert.Len(t, objects[0].File.Entities, 1)
 	assert.Equal(t, "test", objects[0].File.Entities[0].Type)
 }
+
+func TestFavService_DeleteFav(t *testing.T) {
+	test.InsertTestData(db)
+
+	query := &tgbotapi.InlineQuery{
+		From:  &tgbotapi.User{ID: test.UID2},
+		Query: test.Alias2,
+	}
+	secondFav := &dto.Fav{
+		Type: wizard.Text,
+		Text: &wizard.Txt{
+			Value: test.Text,
+			Entities: []tgbotapi.MessageEntity{
+				{Type: "spoiler", Length: 7},
+			},
+		},
+	}
+	appenv := test.BuildApplicationEnv(db)
+
+	favsService := NewFavsService(appenv)
+	rowsAffectedAware, err := favsService.Save(query.From.ID, query.Query, secondFav)
+	assert.NoError(t, err)
+	assert.Equal(t, rowsAffectedAware.RowsAffected(), int64(1))
+
+	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 2)
+
+	rowsAffectedAware, err = favsService.DeleteFav(query.From.ID, query.Query, secondFav)
+	assert.NoError(t, err)
+	assert.Equal(t, rowsAffectedAware.RowsAffected(), int64(1))
+
+	objects, err = favsService.Find(query.From.ID, query.Query, false)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+}

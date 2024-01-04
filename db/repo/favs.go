@@ -186,7 +186,7 @@ func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedA
 func (service *FavService) DeleteFav(uid int64, alias string, fav *dto.Fav) (RowsAffectedAware, error) {
 	switch fav.Type {
 	case wizard.Text:
-		return service.deleteByText(uid, alias, fav.Text.Value)
+		return service.deleteByText(uid, alias, fav.Text)
 	case wizard.Location:
 		return service.deleteByLocation(uid, alias, *fav.Location)
 	default:
@@ -259,13 +259,18 @@ func (service *FavService) saveFile(tx pgx.Tx, uid int64, alias string, fileType
 
 }
 
-func (service *FavService) deleteByText(uid int64, alias, text string) (RowsAffectedAware, error) {
+func (service *FavService) deleteByText(uid int64, alias string, text *wizard.Txt) (RowsAffectedAware, error) {
+	entities, err := entitiesToJson(text.Entities)
+	if err != nil {
+		return nil, err
+	}
+
 	log.WithField(logconst.FieldService, "FavService").
 		WithField(logconst.FieldMethod, "deleteByText").
-		Infof("Deletion of fav with uid '%d', alias '%s' and text '%s'", uid, alias, text)
+		Infof("Deletion of fav with uid '%d', alias '%s' and text '%s' with entities '%s'", uid, alias, text.Value, entities)
 	return service.db.Exec(service.ctx,
-		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3)",
-		uid, alias, text)
+		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3 AND entities = $4)",
+		uid, alias, text.Value, entities)
 }
 
 func (service *FavService) deleteByLocation(uid int64, alias string, location wizard.LocData) (RowsAffectedAware, error) {
@@ -284,4 +289,17 @@ func (service *FavService) deleteByFileID(uid int64, alias string, file wizard.F
 	return service.db.Exec(service.ctx,
 		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3",
 		uid, alias, file.UniqueID)
+}
+
+func entitiesToJson(entities []tgbotapi.MessageEntity) ([]byte, error) {
+	var (
+		entitiesJson []byte
+		err          error
+	)
+	if entitiesJson, err = json.Marshal(entities); err == nil {
+		if entitiesJson == nil {
+			entitiesJson = []byte("null")
+		}
+	}
+	return entitiesJson, err
 }
