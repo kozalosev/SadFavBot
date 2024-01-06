@@ -51,7 +51,7 @@ func TestStart(t *testing.T) {
 	assert.Contains(t, sentMessages[0], "Hello")
 
 	encodedPkgName := []byte(test.PackageFullName)
-	msg.Text = "/start " + base64.StdEncoding.EncodeToString(encodedPkgName)
+	msg.Text = "/start " + base64.URLEncoding.EncodeToString(encodedPkgName)
 	bot.ClearOutput()
 	handler.Handle(reqenv, msg)
 

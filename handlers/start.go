@@ -71,7 +71,7 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	var installingPackage string
 	if err == nil {
 		var pkg []byte
-		if pkg, err = base64.StdEncoding.DecodeString(base.GetCommandArgument(msg)); err == nil {
+		if pkg, err = base64.URLEncoding.DecodeString(base.GetCommandArgument(msg)); err == nil {
 			installingPackage = string(pkg)
 		}
 	}

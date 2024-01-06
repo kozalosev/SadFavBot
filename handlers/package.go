@@ -13,19 +13,17 @@ import (
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"net/url"
 	"strings"
 )
 
 const (
-	PackageFieldsTrPrefix          = "commands.package.fields."
-	PackageStatusTrPrefix          = "commands.package.status."
-	PackageStatusCreationSuccess   = PackageStatusTrPrefix + StatusSuccess + ".creation"
-	PackageStatusDeletionSuccess   = PackageStatusTrPrefix + StatusSuccess + ".deletion"
-	PackageStatusRecreationSuccess = PackageStatusTrPrefix + StatusSuccess + ".recreation"
-	PackageStatusFailure           = PackageStatusTrPrefix + StatusFailure
-	PackageStatusDuplicate         = PackageStatusTrPrefix + StatusDuplicate
-	PackageStatusNoRows            = PackageStatusTrPrefix + StatusNoRows
+	PackageFieldsTrPrefix        = "commands.package.fields."
+	PackageStatusTrPrefix        = "commands.package.status."
+	PackageStatusCreationSuccess = PackageStatusTrPrefix + StatusSuccess + ".creation"
+	PackageStatusDeletionSuccess = PackageStatusTrPrefix + StatusSuccess + ".deletion"
+	PackageStatusFailure         = PackageStatusTrPrefix + StatusFailure
+	PackageStatusDuplicate       = PackageStatusTrPrefix + StatusDuplicate
+	PackageStatusNoRows          = PackageStatusTrPrefix + StatusNoRows
 
 	PackageStatusErrorForbiddenSymbolsInName = PackageFieldsTrPrefix + FieldName + FieldValidationErrorTrInfix + "forbidden.symbols"
 
@@ -130,7 +128,7 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	reply := base.NewReplier(handler.appenv, reqenv, msg)
 	if storage.DuplicateConstraintViolation(err) {
 		reply(PackageStatusDuplicate)
-	} else if err == repo.NoRowsWereAffected {
+	} else if errors.Is(err, repo.NoRowsWereAffected) {
 		reply(PackageStatusNoRows)
 	} else if err != nil {
 		log.WithField(logconst.FieldHandler, "PackageHandler").
@@ -141,14 +139,9 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else if intent == Delete {
 		reply(PackageStatusDeletionSuccess)
 	} else {
-		var template string
-		if intent == Recreate {
-			template = reqenv.Lang.Tr(PackageStatusRecreationSuccess)
-		} else {
-			template = reqenv.Lang.Tr(PackageStatusCreationSuccess)
-		}
+		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := repo.FormatPackageName(uid, name)
-		urlPath := url.QueryEscape(base64.StdEncoding.EncodeToString([]byte(packName)))
+		urlPath := base64.URLEncoding.EncodeToString([]byte(packName))
 		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, handler.appenv.Bot.GetName(), urlPath))
 	}
 }
