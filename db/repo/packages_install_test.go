@@ -15,6 +15,17 @@ var (
 	}
 )
 
+func TestResolveName(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
+
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
+	packageName, err := packageService.ResolveName(test.PackageID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, test.PackageFullName, packageName)
+}
+
 func TestFetchCountOfAliasesInPackage(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)

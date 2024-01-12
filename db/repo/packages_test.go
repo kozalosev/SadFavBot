@@ -24,8 +24,9 @@ func TestPackageService_Create(t *testing.T) {
 	test.InsertTestData(db)
 
 	packageService := NewPackageService(test.BuildApplicationEnv(db))
-	err := packageService.Create(test.UID, test.Package, []string{test.Alias2})
+	packID, err := packageService.Create(test.UID, test.Package, []string{test.Alias2})
 	assert.NoError(t, err)
+	assert.Equal(t, 1, packID)
 
 	packages, err := packageService.ListWithCounts(test.UID, "")
 	assert.NoError(t, err)

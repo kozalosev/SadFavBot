@@ -30,6 +30,17 @@ func NewPackageService(appenv *base.ApplicationEnv) *PackageService {
 	}
 }
 
+// ResolveName fetches the name of a package by its identifier.
+func (service *PackageService) ResolveName(id int) (string, error) {
+	var (
+		uid  int
+		name string
+	)
+	q := "SELECT owner_uid, name FROM packages WHERE id = $1"
+	err := service.db.QueryRow(service.ctx, q, id).Scan(&uid, &name)
+	return fmt.Sprintf("%d@%s", uid, name), err
+}
+
 // ListWithCounts prints the list of saved packages of some user in the format:
 //
 //	package (1)
@@ -102,17 +113,18 @@ func (service *PackageService) ListAliases(pkgInfo *PackageInfo) (items []string
 }
 
 // Create a new package.
-func (service *PackageService) Create(uid int64, name string, aliases []string) error {
+func (service *PackageService) Create(uid int64, name string, aliases []string) (int, error) {
 	var (
-		tx  pgx.Tx
-		err error
+		packID int
+		tx     pgx.Tx
+		err    error
 	)
 	if tx, err = service.db.Begin(service.ctx); err == nil {
-		if err = service.createPackage(tx, uid, name, aliases); err == nil {
+		if packID, err = service.createPackage(tx, uid, name, aliases); err == nil {
 			err = tx.Commit(service.ctx)
 		}
 	}
-	return err
+	return packID, err
 }
 
 // Delete some package.
@@ -128,22 +140,23 @@ func (service *PackageService) Delete(uid int64, name string) error {
 }
 
 // Recreate is a combination of Delete and Create executing in one transaction.
-func (service *PackageService) Recreate(uid int64, name string, aliases []string) error {
+func (service *PackageService) Recreate(uid int64, name string, aliases []string) (int, error) {
 	var (
-		tx  pgx.Tx
-		err error
+		packID int
+		tx     pgx.Tx
+		err    error
 	)
 	if tx, err = service.db.Begin(service.ctx); err == nil {
 		if err = service.Delete(uid, name); err == nil {
-			if err = service.createPackage(tx, uid, name, aliases); err == nil {
+			if packID, err = service.createPackage(tx, uid, name, aliases); err == nil {
 				err = tx.Commit(service.ctx)
 			}
 		}
 	}
-	return err
+	return packID, err
 }
 
-func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, aliases []string) error {
+func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, aliases []string) (int, error) {
 	var (
 		packID int
 		res    pgx.Rows
@@ -173,7 +186,7 @@ func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, 
 			err = batchRes.Close()
 		}
 	}
-	return err
+	return packID, err
 }
 
 // FormatPackageName returns the full name of the package.

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/base64"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/base"
@@ -50,14 +50,16 @@ func TestStart(t *testing.T) {
 	assert.Len(t, sentMessages, 1)
 	assert.Contains(t, sentMessages[0], "Hello")
 
-	encodedPkgName := []byte(test.PackageFullName)
-	msg.Text = "/start " + base64.URLEncoding.EncodeToString(encodedPkgName)
+	test.InsertTestPackages(db)
+	msg.Text = fmt.Sprintf("/start %d", test.PackageID)
 	bot.ClearOutput()
 	handler.Handle(reqenv, msg)
 
 	sentMessages = bot.GetOutput().([]string)
-	assert.Len(t, sentMessages, 1)
-	assert.Contains(t, sentMessages[0], "confirmation")
+	assert.Len(t, sentMessages, 2)
+	assert.Contains(t, sentMessages[0], "favs")
+	assert.Contains(t, sentMessages[0], test.PackageFullName)
+	assert.Contains(t, sentMessages[1], "confirmation")
 }
 
 func userExists(uid int64) bool {

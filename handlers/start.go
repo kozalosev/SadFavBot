@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/base64"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/help"
@@ -9,6 +8,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 const (
@@ -27,7 +27,8 @@ type StartHandler struct {
 
 	embeddedHandlers StartEmbeddedHandlers
 
-	userService *repo.UserService
+	userService    *repo.UserService
+	packageService *repo.PackageService
 }
 
 func NewStartHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage, embeddedHandlers StartEmbeddedHandlers) *StartHandler {
@@ -36,6 +37,7 @@ func NewStartHandler(appenv *base.ApplicationEnv, stateStorage wizard.StateStora
 		stateStorage:     stateStorage,
 		embeddedHandlers: embeddedHandlers,
 		userService:      repo.NewUserService(appenv),
+		packageService:   repo.NewPackageService(appenv),
 	}
 }
 
@@ -69,10 +71,11 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	wasCreated, err := handler.userService.Create(msg.From.ID)
 
 	var installingPackage string
-	if err == nil {
-		var pkg []byte
-		if pkg, err = base64.URLEncoding.DecodeString(base.GetCommandArgument(msg)); err == nil {
-			installingPackage = string(pkg)
+	arg := base.GetCommandArgument(msg)
+	if err == nil && len(arg) > 0 {
+		var pkgID int
+		if pkgID, err = strconv.Atoi(arg); err == nil {
+			installingPackage, err = handler.packageService.ResolveName(pkgID)
 		}
 	}
 

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -108,7 +107,10 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	intent := fields.FindField(FieldCreateOrDelete).Data.(wizard.Txt).Value
 	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(wizard.Txt).Value, " ", "-")
 
-	var err error
+	var (
+		packID int
+		err    error
+	)
 	if intent == Delete {
 		err = handler.packageService.Delete(uid, name)
 	} else {
@@ -119,9 +121,9 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 		}).([]string)
 
 		if intent == Recreate {
-			err = handler.packageService.Recreate(uid, name, aliases)
+			packID, err = handler.packageService.Recreate(uid, name, aliases)
 		} else {
-			err = handler.packageService.Create(uid, name, aliases)
+			packID, err = handler.packageService.Create(uid, name, aliases)
 		}
 	}
 
@@ -141,7 +143,6 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else {
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := repo.FormatPackageName(uid, name)
-		urlPath := base64.URLEncoding.EncodeToString([]byte(packName))
-		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, handler.appenv.Bot.GetName(), urlPath))
+		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, handler.appenv.Bot.GetName(), packID))
 	}
 }
