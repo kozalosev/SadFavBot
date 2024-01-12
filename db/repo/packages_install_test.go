@@ -20,7 +20,7 @@ func TestResolveName(t *testing.T) {
 	test.InsertTestPackages(db)
 
 	packageService := NewPackageService(test.BuildApplicationEnv(db))
-	packageName, err := packageService.ResolveName(test.PackageID)
+	packageName, err := packageService.ResolveName(test.PackageUUID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, test.PackageFullName, packageName)

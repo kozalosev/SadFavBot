@@ -108,7 +108,7 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(wizard.Txt).Value, " ", "-")
 
 	var (
-		packID int
+		packID string
 		err    error
 	)
 	if intent == Delete {

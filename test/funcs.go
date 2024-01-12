@@ -49,7 +49,7 @@ func InsertTestData(db *pgxpool.Pool) {
 }
 
 func InsertTestPackages(db *pgxpool.Pool) {
-	_, err := db.Exec(ctx, "INSERT INTO packages(id, owner_uid, name) VALUES ($1, $2, $3)", PackageID, UID, Package)
+	_, err := db.Exec(ctx, "INSERT INTO packages(id, owner_uid, name, unique_id) VALUES ($1, $2, $3, $4)", PackageID, UID, Package, PackageUUID)
 	check(err)
 	_, err = db.Exec(ctx, "INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2)", PackageID, Alias2ID)
 	check(err)

@@ -51,7 +51,7 @@ func TestStart(t *testing.T) {
 	assert.Contains(t, sentMessages[0], "Hello")
 
 	test.InsertTestPackages(db)
-	msg.Text = fmt.Sprintf("/start %d", test.PackageID)
+	msg.Text = fmt.Sprintf("/start %s", test.PackageUUID)
 	bot.ClearOutput()
 	handler.Handle(reqenv, msg)
 

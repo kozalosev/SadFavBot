@@ -34,4 +34,5 @@ const (
 	Package         = "package/test"
 	PackageFullName = "123456@package/test"
 	PackageID       = 1
+	PackageUUID     = "a97a8b56-d461-47b5-a740-651bf14c501f"
 )

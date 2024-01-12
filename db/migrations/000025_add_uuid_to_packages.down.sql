@@ -1,0 +1,1 @@
+ALTER TABLE Packages DROP COLUMN IF EXISTS uuid;

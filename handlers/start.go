@@ -8,7 +8,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 const (
@@ -73,10 +72,7 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	var installingPackage string
 	arg := base.GetCommandArgument(msg)
 	if err == nil && len(arg) > 0 {
-		var pkgID int
-		if pkgID, err = strconv.Atoi(arg); err == nil {
-			installingPackage, err = handler.packageService.ResolveName(pkgID)
-		}
+		installingPackage, err = handler.packageService.ResolveName(arg)
 	}
 
 	if err != nil {

@@ -30,14 +30,14 @@ func NewPackageService(appenv *base.ApplicationEnv) *PackageService {
 	}
 }
 
-// ResolveName fetches the name of a package by its identifier.
-func (service *PackageService) ResolveName(id int) (string, error) {
+// ResolveName fetches the name of a package by its unique_id.
+func (service *PackageService) ResolveName(uuid string) (string, error) {
 	var (
 		uid  int
 		name string
 	)
-	q := "SELECT owner_uid, name FROM packages WHERE id = $1"
-	err := service.db.QueryRow(service.ctx, q, id).Scan(&uid, &name)
+	q := "SELECT owner_uid, name FROM packages WHERE unique_id = $1"
+	err := service.db.QueryRow(service.ctx, q, uuid).Scan(&uid, &name)
 	return fmt.Sprintf("%d@%s", uid, name), err
 }
 
@@ -113,9 +113,9 @@ func (service *PackageService) ListAliases(pkgInfo *PackageInfo) (items []string
 }
 
 // Create a new package.
-func (service *PackageService) Create(uid int64, name string, aliases []string) (int, error) {
+func (service *PackageService) Create(uid int64, name string, aliases []string) (string, error) {
 	var (
-		packID int
+		packID string
 		tx     pgx.Tx
 		err    error
 	)
@@ -140,9 +140,9 @@ func (service *PackageService) Delete(uid int64, name string) error {
 }
 
 // Recreate is a combination of Delete and Create executing in one transaction.
-func (service *PackageService) Recreate(uid int64, name string, aliases []string) (int, error) {
+func (service *PackageService) Recreate(uid int64, name string, aliases []string) (string, error) {
 	var (
-		packID int
+		packID string
 		tx     pgx.Tx
 		err    error
 	)
@@ -156,13 +156,14 @@ func (service *PackageService) Recreate(uid int64, name string, aliases []string
 	return packID, err
 }
 
-func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, aliases []string) (int, error) {
+func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, aliases []string) (string, error) {
 	var (
-		packID int
-		res    pgx.Rows
-		err    error
+		packID   int
+		packUUID string
+		res      pgx.Rows
+		err      error
 	)
-	if err = tx.QueryRow(service.ctx, "INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id", uid, name).Scan(&packID); err == nil {
+	if err = tx.QueryRow(service.ctx, "INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id, unique_id", uid, name).Scan(&packID, &packUUID); err == nil {
 		aliases = funk.Map(aliases, func(a string) string {
 			return strings.Replace(a, "'", "''", -1)
 		}).([]string)
@@ -186,7 +187,7 @@ func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, 
 			err = batchRes.Close()
 		}
 	}
-	return packID, err
+	return packUUID, err
 }
 
 // FormatPackageName returns the full name of the package.
