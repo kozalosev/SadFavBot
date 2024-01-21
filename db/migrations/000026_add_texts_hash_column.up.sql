@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION texts_hash_func(input text)
     LANGUAGE PLPGSQL
 AS $$
 BEGIN
-    RETURN sha256(input::bytea);
+    RETURN sha256(convert_to(input, 'UTF8'));
 END;
 $$;
 
