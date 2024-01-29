@@ -71,7 +71,12 @@ func (*ListHandler) GetCommands() []string {
 	return listCommands
 }
 
+func (*ListHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	allFieldsAreFilled := false
 	w := wizard.NewWizard(handler, 2)
 	arg := strings.ToLower(base.GetCommandArgument(msg))
 	args := strings.SplitN(arg, " ", 2)
@@ -82,11 +87,18 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 	if kind == "favs" || kind == "f" || kind == "fav" {
 		w.AddPrefilledField(FieldFavsOrPackages, Favs)
+		allFieldsAreFilled = true
 	} else if kind == "packages" || kind == "p" || kind == "packs" || kind == "package" || kind == "pack" {
 		w.AddPrefilledField(FieldFavsOrPackages, Packages)
+		allFieldsAreFilled = true
 	} else {
 		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
+
+	if isGroup(msg.Chat) && !allFieldsAreFilled {
+		return
+	}
+
 	w.AddPrefilledField(FieldGrep, query)
 	w.ProcessNextField(reqenv, msg)
 }

@@ -1,12 +1,17 @@
 package handlers
 
 import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
+
+var commandScopePrivateChats = []base.CommandScope{base.CommandScopeAllPrivateChats}
+var commandScopePrivateAndGroupChats = []base.CommandScope{base.CommandScopeAllPrivateChats, base.CommandScopeAllGroupChats, base.CommandScopeAllChatAdmins}
 
 var markdownEscaper = strings.NewReplacer(
 	"*", "\\*",
@@ -66,4 +71,8 @@ func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 		File:     &file,
 		Location: &location,
 	}
+}
+
+func isGroup(chat *tgbotapi.Chat) bool {
+	return chat.IsGroup() || chat.IsSuperGroup()
 }

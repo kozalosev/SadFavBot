@@ -80,6 +80,10 @@ func (*SaveHandler) GetCommands() []string {
 	return saveCommands
 }
 
+func (*SaveHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	wizardForm := wizard.NewWizard(handler, 2)
 	title := base.GetCommandArgument(msg)
@@ -90,9 +94,30 @@ func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		} else {
 			wizardForm.AddPrefilledField(FieldAlias, title)
 		}
+
+		if msg.ReplyToMessage != nil {
+			if f, ok := wizardForm.(*wizard.Form); ok {
+				wizardForm.AddEmptyField(FieldObject, wizard.Auto)
+
+				replyMessage := msg.ReplyToMessage
+				replyMessage.From = msg.From
+
+				f.Index = 1
+				f.PopulateRestored(replyMessage, handler.GetWizardEnv())
+				f.Fields.FindField(FieldObject).WasRequested = true
+				wizardForm.ProcessNextField(reqenv, replyMessage)
+				return
+			}
+		}
 	} else {
 		wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 	}
+
+	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	wizardForm.AddEmptyField(FieldObject, wizard.Auto)
 	wizardForm.ProcessNextField(reqenv, msg)
 }

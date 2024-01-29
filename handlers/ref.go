@@ -51,10 +51,27 @@ func (*RefHandler) GetCommands() []string {
 	return refCommands
 }
 
+func (*RefHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	w.AddEmptyField(FieldObject, wizard.Auto)
-	w.ProcessNextField(reqenv, msg)
+	if msg.ReplyToMessage != nil {
+		if f, ok := w.(*wizard.Form); ok {
+			replyMessage := msg.ReplyToMessage
+			replyMessage.From = msg.From
+
+			f.PopulateRestored(replyMessage, handler.GetWizardEnv())
+			f.Fields.FindField(FieldObject).WasRequested = true
+			w.ProcessNextField(reqenv, replyMessage)
+			return
+		}
+	}
+	if msg.Chat.IsPrivate() {
+		w.ProcessNextField(reqenv, msg)
+	}
 }
 
 func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {

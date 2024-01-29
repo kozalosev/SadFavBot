@@ -57,7 +57,15 @@ func (*LanguageHandler) GetCommands() []string {
 	return languageCommands
 }
 
+func (*LanguageHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateChats
+}
+
 func (handler *LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	lang := base.GetCommandArgument(msg)
 	if len(lang) > 0 {
 		handler.saveLangConfig(reqenv, msg, lang)

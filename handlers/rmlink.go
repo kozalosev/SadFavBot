@@ -51,11 +51,18 @@ func (*RemoveLinkHandler) GetCommands() []string {
 	return rmLinkCommands
 }
 
+func (*RemoveLinkHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	if name := base.GetCommandArgument(msg); len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
 	} else {
+		if isGroup(msg.Chat) {
+			return
+		}
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
 	w.ProcessNextField(reqenv, msg)

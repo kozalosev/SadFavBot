@@ -87,7 +87,15 @@ func (*PackageHandler) GetCommands() []string {
 	return packageCommands
 }
 
+func (*PackageHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateChats
+}
+
 func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	name := base.GetCommandArgument(msg)
 
 	w := wizard.NewWizard(handler, 3)

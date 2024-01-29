@@ -58,7 +58,15 @@ func (*SearchModeHandler) GetCommands() []string {
 	return modeCommands
 }
 
+func (*SearchModeHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateChats
+}
+
 func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	var currVal string
 	opts := reqenv.Options.(*dto.UserOptions)
 	if opts.SubstrSearchEnabled {

@@ -85,7 +85,12 @@ func (*LinkHandler) GetCommands() []string {
 	return linkCommands
 }
 
+func (*LinkHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	fullyPrefilledCommand := false
 	w := wizard.NewWizard(handler, 2)
 	if name := base.GetCommandArgument(msg); len(name) > 0 {
 		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
@@ -94,6 +99,7 @@ func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		if len(argParts) == 2 {
 			if len(argParts[0]) <= MaxAliasLen && verifyNoReservedSymbols(argParts[0], reqenv.Lang, LinkStatusErrorForbiddenSymbolsInName) == nil {
 				w.AddPrefilledField(FieldName, argParts[0])
+				fullyPrefilledCommand = true
 			} else {
 				w.AddEmptyField(FieldName, wizard.Text)
 			}
@@ -110,6 +116,12 @@ func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		w.AddEmptyField(FieldName, wizard.Text)
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
+
+	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
+	if isGroup(msg.Chat) && !fullyPrefilledCommand {
+		return
+	}
+
 	w.ProcessNextField(reqenv, msg)
 }
 

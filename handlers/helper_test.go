@@ -78,5 +78,6 @@ func TestExtractItemValues_MismatchError(t *testing.T) {
 func buildMessage(uid int64) *tgbotapi.Message {
 	return &tgbotapi.Message{
 		From: &tgbotapi.User{ID: uid},
+		Chat: &tgbotapi.Chat{Type: "private"},
 	}
 }

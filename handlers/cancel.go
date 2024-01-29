@@ -28,7 +28,15 @@ func (*CancelHandler) GetCommands() []string {
 	return cancelCommands
 }
 
+func (*CancelHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateChats
+}
+
 func (c *CancelHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	err := c.stateStorage.DeleteState(msg.From.ID)
 	var answer string
 	if err != nil {
