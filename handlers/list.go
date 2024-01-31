@@ -125,7 +125,7 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		favsOrPacks = Favs
 	}
 
-	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
+	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "ListHandler").
 			WithField(logconst.FieldMethod, "listAction").
@@ -139,9 +139,9 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		text := buildText(title, page)
 		if page.HasNextPage {
 			buttons := buildPaginationButtons(page, favsOrPacks, grep)
-			handler.appenv.Bot.ReplyWithInlineKeyboard(msg, text, buttons)
+			replyPossiblySelfDestroying(handler.appenv, msg, text, buttons)
 		} else {
-			handler.appenv.Bot.Reply(msg, text)
+			replyPossiblySelfDestroying(handler.appenv, msg, text, []tgbotapi.InlineKeyboardButton{})
 		}
 	}
 }

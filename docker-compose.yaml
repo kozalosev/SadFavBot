@@ -26,6 +26,7 @@ services:
       - WEBHOOK_PORT
       - WEBHOOK_PATH
       - PHOTO_INLINE_EXAMPLE
+      - SELF_DELETION_DELAY_SECS
     expose:
       - ${APP_PORT}
     depends_on:

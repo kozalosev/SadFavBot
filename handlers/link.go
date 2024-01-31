@@ -132,7 +132,7 @@ func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 	err := handler.linkService.Create(uid, name, refAlias)
 
-	reply := base.NewReplier(handler.appenv, reqenv, msg)
+	reply := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if isAttemptToInsertLinkForExistingFav(err) {
 		reply(LinkStatusDuplicateFav)
 	} else if storage.DuplicateConstraintViolation(err) {

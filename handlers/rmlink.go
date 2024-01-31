@@ -74,7 +74,7 @@ func (handler *RemoveLinkHandler) rmLinkAction(reqenv *base.RequestEnv, msg *tgb
 
 	err := handler.linkService.Delete(uid, name)
 
-	reply := base.NewReplier(handler.appenv, reqenv, msg)
+	reply := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if errors.Is(err, repo.NoRowsWereAffected) {
 		reply(RmLinkStatusNoRows)
 	} else if err != nil {

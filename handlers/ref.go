@@ -92,7 +92,7 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
 	}
 
-	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
+	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "RefHandler").
 			WithField(logconst.FieldMethod, "refAction").
@@ -104,6 +104,7 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		replyWith(RefStatusNoRows)
 	} else {
 		title := reqenv.Lang.Tr(RefStatusSuccess)
-		handler.appenv.Bot.Reply(msg, title+"\n\n"+LinePrefix+strings.Join(aliases, "\n"+LinePrefix))
+		text := title + "\n\n" + LinePrefix + strings.Join(aliases, "\n"+LinePrefix)
+		replyPossiblySelfDestroying(handler.appenv, msg, text, []tgbotapi.InlineKeyboardButton{})
 	}
 }

@@ -126,7 +126,7 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 	uid := msg.From.ID
 	alias, fav := extractFavInfo(fields)
 
-	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
+	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if len(alias) == 0 {
 		replyWith(SaveStatusFailure)
 		return
