@@ -96,7 +96,7 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 		return
 	}
 
-	name := base.GetCommandArgument(msg)
+	name := msg.CommandArguments()
 
 	w := wizard.NewWizard(handler, 3)
 	w.AddEmptyField(FieldCreateOrDelete, wizard.Text)

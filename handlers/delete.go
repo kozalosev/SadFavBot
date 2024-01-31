@@ -100,7 +100,7 @@ func (*DeleteHandler) GetScopes() []base.CommandScope {
 
 func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 3)
-	arg := base.GetCommandArgument(msg)
+	arg := msg.CommandArguments()
 
 	if len(arg) > 0 {
 		w.AddPrefilledField(FieldAlias, arg)

@@ -86,7 +86,7 @@ func (*SaveHandler) GetScopes() []base.CommandScope {
 
 func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	wizardForm := wizard.NewWizard(handler, 2)
-	title := base.GetCommandArgument(msg)
+	title := msg.CommandArguments()
 	if len(title) > 0 {
 		if err := verifyNoReservedSymbols(title, reqenv.Lang, SaveStatusErrorForbiddenSymbolsInAlias); err != nil {
 			handler.appenv.Bot.ReplyWithMarkdown(msg, err.Error())

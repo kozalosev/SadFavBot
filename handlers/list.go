@@ -78,7 +78,7 @@ func (*ListHandler) GetScopes() []base.CommandScope {
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	allFieldsAreFilled := false
 	w := wizard.NewWizard(handler, 2)
-	arg := strings.ToLower(base.GetCommandArgument(msg))
+	arg := strings.ToLower(msg.CommandArguments())
 	args := strings.SplitN(arg, " ", 2)
 	kind := args[0]
 	var query string

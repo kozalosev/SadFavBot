@@ -77,7 +77,7 @@ func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 	handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(ModeMessageCurrentVal)+currVal)
 
 	w := wizard.NewWizard(handler, 1)
-	if arg := strings.ToLower(base.GetCommandArgument(msg)); arg == "true" || arg == "1" {
+	if arg := strings.ToLower(msg.CommandArguments()); arg == "true" || arg == "1" {
 		w.AddPrefilledField(FieldSubstrSearchEnabled, true)
 	} else if arg == "false" || arg == "0" {
 		w.AddPrefilledField(FieldSubstrSearchEnabled, false)

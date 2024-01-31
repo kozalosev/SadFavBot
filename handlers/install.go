@@ -74,7 +74,7 @@ func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 	}
 
 	w := wizard.NewWizard(handler, 2)
-	name := base.GetCommandArgument(msg)
+	name := msg.CommandArguments()
 	if len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
 		sendCountOfAliasesInPackage(handler, reqenv, msg, name)

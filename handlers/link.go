@@ -92,7 +92,7 @@ func (*LinkHandler) GetScopes() []base.CommandScope {
 func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	fullyPrefilledCommand := false
 	w := wizard.NewWizard(handler, 2)
-	if name := base.GetCommandArgument(msg); len(name) > 0 {
+	if name := msg.CommandArguments(); len(name) > 0 {
 		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
 			return strings.TrimSpace(s)
 		}).([]string)

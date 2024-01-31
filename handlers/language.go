@@ -66,7 +66,7 @@ func (handler *LanguageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		return
 	}
 
-	lang := base.GetCommandArgument(msg)
+	lang := msg.CommandArguments()
 	if len(lang) > 0 {
 		handler.saveLangConfig(reqenv, msg, lang)
 	} else {
