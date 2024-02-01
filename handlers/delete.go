@@ -94,9 +94,13 @@ func (*DeleteHandler) GetCommands() []string {
 	return deleteCommands
 }
 
+func (*DeleteHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 3)
-	arg := base.GetCommandArgument(msg)
+	arg := msg.CommandArguments()
 
 	if len(arg) > 0 {
 		w.AddPrefilledField(FieldAlias, arg)
@@ -106,16 +110,25 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 				w.AddPrefilledField(FieldDeleteAll, No)
 				w.AddEmptyField(FieldObject, wizard.Auto)
 
+				replyMessage := msg.ReplyToMessage
+				replyMessage.From = msg.From
+
 				f.Index = 2
-				f.PopulateRestored(msg.ReplyToMessage, handler.GetWizardEnv())
+				f.PopulateRestored(replyMessage, handler.GetWizardEnv())
 				f.Fields.FindField(FieldObject).WasRequested = true
-				w.ProcessNextField(reqenv, msg.ReplyToMessage)
+				w.ProcessNextField(reqenv, replyMessage)
 				return
 			}
 		}
 	} else {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
+
+	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	w.AddEmptyField(FieldDeleteAll, wizard.Text)
 	w.AddEmptyField(FieldObject, wizard.Auto)
 
@@ -124,7 +137,7 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
+	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 
 	var (
 		deleteAll      bool

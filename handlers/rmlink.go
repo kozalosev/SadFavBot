@@ -51,11 +51,18 @@ func (*RemoveLinkHandler) GetCommands() []string {
 	return rmLinkCommands
 }
 
+func (*RemoveLinkHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
-	if name := base.GetCommandArgument(msg); len(name) > 0 {
+	if name := msg.CommandArguments(); len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
 	} else {
+		if isGroup(msg.Chat) {
+			return
+		}
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
 	w.ProcessNextField(reqenv, msg)
@@ -67,7 +74,7 @@ func (handler *RemoveLinkHandler) rmLinkAction(reqenv *base.RequestEnv, msg *tgb
 
 	err := handler.linkService.Delete(uid, name)
 
-	reply := base.NewReplier(handler.appenv, reqenv, msg)
+	reply := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if errors.Is(err, repo.NoRowsWereAffected) {
 		reply(RmLinkStatusNoRows)
 	} else if err != nil {

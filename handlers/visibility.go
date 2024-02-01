@@ -73,9 +73,17 @@ func (*AliasVisibilityHandler) GetCommands() []string {
 	return visibilityCommands
 }
 
+func (*AliasVisibilityHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateChats
+}
+
 func (handler *AliasVisibilityHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	w := wizard.NewWizard(handler, 2)
-	if alias := base.GetCommandArgument(msg); len(alias) > 0 {
+	if alias := msg.CommandArguments(); len(alias) > 0 {
 		w.AddPrefilledField(FieldAlias, alias)
 	} else {
 		w.AddEmptyField(FieldAlias, wizard.Text)

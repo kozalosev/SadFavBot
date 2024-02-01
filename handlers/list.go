@@ -71,9 +71,14 @@ func (*ListHandler) GetCommands() []string {
 	return listCommands
 }
 
+func (*ListHandler) GetScopes() []base.CommandScope {
+	return commandScopePrivateAndGroupChats
+}
+
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	allFieldsAreFilled := false
 	w := wizard.NewWizard(handler, 2)
-	arg := strings.ToLower(base.GetCommandArgument(msg))
+	arg := strings.ToLower(msg.CommandArguments())
 	args := strings.SplitN(arg, " ", 2)
 	kind := args[0]
 	var query string
@@ -82,11 +87,18 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 	if kind == "favs" || kind == "f" || kind == "fav" {
 		w.AddPrefilledField(FieldFavsOrPackages, Favs)
+		allFieldsAreFilled = true
 	} else if kind == "packages" || kind == "p" || kind == "packs" || kind == "package" || kind == "pack" {
 		w.AddPrefilledField(FieldFavsOrPackages, Packages)
+		allFieldsAreFilled = true
 	} else {
 		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
+
+	if isGroup(msg.Chat) && !allFieldsAreFilled {
+		return
+	}
+
 	w.AddPrefilledField(FieldGrep, query)
 	w.ProcessNextField(reqenv, msg)
 }
@@ -113,7 +125,7 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		favsOrPacks = Favs
 	}
 
-	replyWith := base.NewReplier(handler.appenv, reqenv, msg)
+	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "ListHandler").
 			WithField(logconst.FieldMethod, "listAction").
@@ -127,9 +139,9 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		text := buildText(title, page)
 		if page.HasNextPage {
 			buttons := buildPaginationButtons(page, favsOrPacks, grep)
-			handler.appenv.Bot.ReplyWithInlineKeyboard(msg, text, buttons)
+			replyPossiblySelfDestroying(handler.appenv, msg, text, buttons)
 		} else {
-			handler.appenv.Bot.Reply(msg, text)
+			replyPossiblySelfDestroying(handler.appenv, msg, text, []tgbotapi.InlineKeyboardButton{})
 		}
 	}
 }

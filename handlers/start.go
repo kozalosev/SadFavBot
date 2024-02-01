@@ -67,10 +67,14 @@ func (*StartHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
 }
 
 func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
+	if isGroup(msg.Chat) {
+		return
+	}
+
 	wasCreated, err := handler.userService.Create(msg.From.ID)
 
 	var installingPackage string
-	arg := base.GetCommandArgument(msg)
+	arg := msg.CommandArguments()
 	if err == nil && len(arg) > 0 {
 		installingPackage, err = handler.packageService.ResolveName(arg)
 	}
