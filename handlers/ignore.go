@@ -2,17 +2,18 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 )
 
-type IgnoreChatMemberJoinLeftHandler struct{}
+type IgnoreUnknownInGroupsHandler struct{}
 
-func NewIgnoreChatMemberJoinLeftHandler() *IgnoreChatMemberJoinLeftHandler {
-	return &IgnoreChatMemberJoinLeftHandler{}
+func NewIgnoreUnknownInGroupsHandler() *IgnoreUnknownInGroupsHandler {
+	return &IgnoreUnknownInGroupsHandler{}
 }
 
-func (*IgnoreChatMemberJoinLeftHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
-	return msg.NewChatMembers != nil || msg.LeftChatMember != nil
+func (*IgnoreUnknownInGroupsHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
+	return common.IsGroup(msg.Chat)
 }
 
-func (handler *IgnoreChatMemberJoinLeftHandler) Handle(_ *base.RequestEnv, _ *tgbotapi.Message) {}
+func (handler *IgnoreUnknownInGroupsHandler) Handle(_ *base.RequestEnv, _ *tgbotapi.Message) {}
