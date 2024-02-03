@@ -1,4 +1,4 @@
-package handlers
+package common
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -13,10 +13,15 @@ import (
 	"time"
 )
 
-var commandScopePrivateChats = []base.CommandScope{base.CommandScopeAllPrivateChats}
-var commandScopePrivateAndGroupChats = []base.CommandScope{base.CommandScopeAllPrivateChats, base.CommandScopeAllGroupChats, base.CommandScopeAllChatAdmins}
+const (
+	FieldAlias  = "alias"
+	FieldObject = "object"
+)
 
-var markdownEscaper = strings.NewReplacer(
+var CommandScopePrivateChats = []base.CommandScope{base.CommandScopeAllPrivateChats}
+var CommandScopePrivateAndGroupChats = []base.CommandScope{base.CommandScopeAllPrivateChats, base.CommandScopeAllGroupChats, base.CommandScopeAllChatAdmins}
+
+var MarkdownEscaper = strings.NewReplacer(
 	"*", "\\*",
 	"_", "\\_",
 	"`", "\\`")
@@ -35,7 +40,7 @@ func init() {
 	selfDeletionDelay = time.Duration(delay) * time.Second
 }
 
-func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
+func ExtractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	aliasField := fields.FindField(FieldAlias)
 	objectField := fields.FindField(FieldObject)
 
@@ -90,51 +95,6 @@ func extractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	}
 }
 
-func isGroup(chat *tgbotapi.Chat) bool {
+func IsGroup(chat *tgbotapi.Chat) bool {
 	return chat.IsGroup() || chat.IsSuperGroup()
-}
-
-func possiblySelfDestroyingReplier(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
-	if msg.Chat.IsPrivate() {
-		return base.NewReplier(appenv, reqenv, msg)
-	}
-
-	return func(statusKey string) {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, reqenv.Lang.Tr(statusKey))
-		_replyDestroyingImpl(appenv.Bot, msg, reply)
-	}
-}
-
-func replyPossiblySelfDestroying(appenv *base.ApplicationEnv, msg *tgbotapi.Message, text string, buttons []tgbotapi.InlineKeyboardButton) {
-	if msg.Chat.IsPrivate() {
-		appenv.Bot.Reply(msg, text)
-		return
-	}
-
-	reply := tgbotapi.NewMessage(msg.Chat.ID, text)
-	if len(buttons) > 0 {
-		reply.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(buttons...),
-		)
-	}
-	_replyDestroyingImpl(appenv.Bot, msg, reply)
-}
-
-func _replyDestroyingImpl(bot base.ExtendedBotAPI, srcMsg *tgbotapi.Message, msgToSend tgbotapi.MessageConfig) {
-	msgToSend.ReplyToMessageID = srcMsg.MessageID
-
-	if sentMsg, err := bot.Send(msgToSend); err == nil {
-		go func() {
-			time.Sleep(selfDeletionDelay)
-			if err := bot.Request(tgbotapi.NewDeleteMessage(sentMsg.Chat.ID, sentMsg.MessageID)); err != nil {
-				log.WithField(logconst.FieldFunc, "_replyDestroyingImpl").
-					Error("Couldn't delete a self-destroying message", err)
-			}
-		}()
-	} else {
-		log.WithField(logconst.FieldFunc, "_replyDestroyingImpl").
-			WithField(logconst.FieldCalledObject, "ExtendedBotAPI").
-			WithField(logconst.FieldCalledMethod, "Send").
-			Error(err)
-	}
 }

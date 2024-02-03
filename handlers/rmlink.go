@@ -4,6 +4,7 @@ import (
 	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -52,7 +53,7 @@ func (*RemoveLinkHandler) GetCommands() []string {
 }
 
 func (*RemoveLinkHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateAndGroupChats
+	return common.CommandScopePrivateAndGroupChats
 }
 
 func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
@@ -60,7 +61,7 @@ func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 	if name := msg.CommandArguments(); len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
 	} else {
-		if isGroup(msg.Chat) {
+		if common.IsGroup(msg.Chat) {
 			return
 		}
 		w.AddEmptyField(FieldName, wizard.Text)
@@ -74,7 +75,7 @@ func (handler *RemoveLinkHandler) rmLinkAction(reqenv *base.RequestEnv, msg *tgb
 
 	err := handler.linkService.Delete(uid, name)
 
-	reply := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	reply := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if errors.Is(err, repo.NoRowsWereAffected) {
 		reply(RmLinkStatusNoRows)
 	} else if err != nil {

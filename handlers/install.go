@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -65,11 +66,11 @@ func (*InstallPackageHandler) GetCommands() []string {
 }
 
 func (*InstallPackageHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateChats
+	return common.CommandScopePrivateChats
 }
 
 func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	if isGroup(msg.Chat) {
+	if common.IsGroup(msg.Chat) {
 		return
 	}
 
@@ -97,7 +98,7 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 
 	if items, err := handler.packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
-			escapedItems := funk.Map(items, markdownEscaper.Replace).([]string)
+			escapedItems := funk.Map(items, common.MarkdownEscaper.Replace).([]string)
 			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
 			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
 		} else {

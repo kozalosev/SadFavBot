@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -95,7 +96,7 @@ func (*DeleteHandler) GetCommands() []string {
 }
 
 func (*DeleteHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateAndGroupChats
+	return common.CommandScopePrivateAndGroupChats
 }
 
 func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
@@ -125,7 +126,7 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	}
 
 	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if isGroup(msg.Chat) {
+	if common.IsGroup(msg.Chat) {
 		return
 	}
 
@@ -137,7 +138,7 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 
 	var (
 		deleteAll      bool
@@ -153,7 +154,7 @@ func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgb
 		return
 	}
 
-	alias, fav := extractFavInfo(fields)
+	alias, fav := common.ExtractFavInfo(fields)
 	if len(alias) == 0 {
 		replyWith(DeleteStatusFailure)
 		return

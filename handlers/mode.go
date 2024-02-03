@@ -4,6 +4,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -59,11 +60,11 @@ func (*SearchModeHandler) GetCommands() []string {
 }
 
 func (*SearchModeHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateChats
+	return common.CommandScopePrivateChats
 }
 
 func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	if isGroup(msg.Chat) {
+	if common.IsGroup(msg.Chat) {
 		return
 	}
 

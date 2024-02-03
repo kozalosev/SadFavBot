@@ -3,6 +3,7 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -52,7 +53,7 @@ func (*RefHandler) GetCommands() []string {
 }
 
 func (*RefHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateAndGroupChats
+	return common.CommandScopePrivateAndGroupChats
 }
 
 func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
@@ -92,7 +93,7 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
 	}
 
-	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "RefHandler").
 			WithField(logconst.FieldMethod, "refAction").
@@ -105,6 +106,6 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	} else {
 		title := reqenv.Lang.Tr(RefStatusSuccess)
 		text := title + "\n\n" + LinePrefix + strings.Join(aliases, "\n"+LinePrefix)
-		replyPossiblySelfDestroying(handler.appenv, msg, text, []tgbotapi.InlineKeyboardButton{})
+		common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, common.NoOpCustomizer)
 	}
 }

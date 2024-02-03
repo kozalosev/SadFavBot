@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/storage"
@@ -81,7 +82,7 @@ func (*SaveHandler) GetCommands() []string {
 }
 
 func (*SaveHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateAndGroupChats
+	return common.CommandScopePrivateAndGroupChats
 }
 
 func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
@@ -114,7 +115,7 @@ func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 
 	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if isGroup(msg.Chat) {
+	if common.IsGroup(msg.Chat) {
 		return
 	}
 
@@ -124,9 +125,9 @@ func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 
 func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	alias, fav := extractFavInfo(fields)
+	alias, fav := common.ExtractFavInfo(fields)
 
-	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if len(alias) == 0 {
 		replyWith(SaveStatusFailure)
 		return
@@ -147,8 +148,8 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 		}
 	} else {
 		if res.RowsAffected() > 0 {
-			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), markdownEscaper.Replace(alias))
-			handler.appenv.Bot.ReplyWithMarkdown(msg, answer)
+			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), common.MarkdownEscaper.Replace(alias))
+			common.ReplyPossiblySelfDestroying(handler.appenv, msg, answer, common.AsMarkdownCustomizer)
 		} else {
 			log.WithField(logconst.FieldHandler, "SaveHandler").
 				WithField(logconst.FieldMethod, "saveFormAction").
