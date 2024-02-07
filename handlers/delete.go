@@ -105,28 +105,16 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 	if len(arg) > 0 {
 		w.AddPrefilledField(FieldAlias, arg)
-
-		if msg.ReplyToMessage != nil {
-			if f, ok := w.(*wizard.Form); ok {
-				w.AddPrefilledField(FieldDeleteAll, No)
-				w.AddEmptyField(FieldObject, wizard.Auto)
-
-				replyMessage := msg.ReplyToMessage
-				replyMessage.From = msg.From
-
-				f.Index = 2
-				f.PopulateRestored(replyMessage, handler.GetWizardEnv())
-				f.Fields.FindField(FieldObject).WasRequested = true
-				w.ProcessNextField(reqenv, replyMessage)
-				return
-			}
-		}
 	} else {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
 
+	if msg.ReplyToMessage != nil {
+		w.AddPrefilledAutoField(FieldDeleteAll, msg.ReplyToMessage)
+	}
+
 	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(msg.Chat) {
+	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
 

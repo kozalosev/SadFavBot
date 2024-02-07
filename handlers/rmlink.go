@@ -61,11 +61,14 @@ func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 	if name := msg.CommandArguments(); len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
 	} else {
-		if common.IsGroup(msg.Chat) {
-			return
-		}
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
+
+	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
+	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
+		return
+	}
+
 	w.ProcessNextField(reqenv, msg)
 }
 

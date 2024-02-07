@@ -58,21 +58,12 @@ func (*RefHandler) GetScopes() []base.CommandScope {
 
 func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
-	w.AddEmptyField(FieldObject, wizard.Auto)
 	if msg.ReplyToMessage != nil {
-		if f, ok := w.(*wizard.Form); ok {
-			replyMessage := msg.ReplyToMessage
-			replyMessage.From = msg.From
-
-			f.PopulateRestored(replyMessage, handler.GetWizardEnv())
-			f.Fields.FindField(FieldObject).WasRequested = true
-			w.ProcessNextField(reqenv, replyMessage)
-			return
-		}
+		w.AddPrefilledAutoField(FieldObject, msg.ReplyToMessage)
+	} else {
+		w.AddEmptyField(FieldObject, wizard.Auto)
 	}
-	if msg.Chat.IsPrivate() {
-		w.ProcessNextField(reqenv, msg)
-	}
+	w.ProcessNextField(reqenv, msg)
 }
 
 func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
@@ -106,6 +97,6 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	} else {
 		title := reqenv.Lang.Tr(RefStatusSuccess)
 		text := title + "\n\n" + LinePrefix + strings.Join(aliases, "\n"+LinePrefix)
-		common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, common.NoOpCustomizer)
+		common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
 	}
 }

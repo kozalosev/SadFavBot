@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-var (
-	NoOpCustomizer       = func(_ *tgbotapi.MessageConfig) {}
-	AsMarkdownCustomizer = func(msgConfig *tgbotapi.MessageConfig) {
-		msgConfig.ParseMode = tgbotapi.ModeMarkdown
-	}
-)
-
 func PossiblySelfDestroyingReplier(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
 	if msg.Chat.IsPrivate() {
 		return base.NewReplier(appenv, reqenv, msg)
@@ -45,7 +38,7 @@ func SingleRowInlineKeyboardCustomizer(buttons []tgbotapi.InlineKeyboardButton) 
 			)
 		}
 	} else {
-		return NoOpCustomizer
+		return base.NoOpCustomizer
 	}
 }
 

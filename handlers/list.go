@@ -77,7 +77,6 @@ func (*ListHandler) GetScopes() []base.CommandScope {
 }
 
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	allFieldsAreFilled := false
 	w := wizard.NewWizard(handler, 2)
 	arg := strings.ToLower(msg.CommandArguments())
 	args := strings.SplitN(arg, " ", 2)
@@ -88,15 +87,13 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 	if kind == "favs" || kind == "f" || kind == "fav" {
 		w.AddPrefilledField(FieldFavsOrPackages, Favs)
-		allFieldsAreFilled = true
 	} else if kind == "packages" || kind == "p" || kind == "packs" || kind == "package" || kind == "pack" {
 		w.AddPrefilledField(FieldFavsOrPackages, Packages)
-		allFieldsAreFilled = true
 	} else {
 		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
 
-	if common.IsGroup(msg.Chat) && !allFieldsAreFilled {
+	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
 
@@ -142,7 +139,7 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 			buttons := buildPaginationButtons(page, favsOrPacks, grep)
 			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, common.SingleRowInlineKeyboardCustomizer(buttons))
 		} else {
-			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, common.NoOpCustomizer)
+			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
 		}
 	}
 }
