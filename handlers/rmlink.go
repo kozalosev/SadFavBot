@@ -60,6 +60,8 @@ func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 	w := wizard.NewWizard(handler, 1)
 	if name := msg.CommandArguments(); len(name) > 0 {
 		w.AddPrefilledField(FieldName, name)
+	} else if msg.ReplyToMessage != nil && len(msg.ReplyToMessage.Text) > 0 {
+		w.AddPrefilledField(FieldName, msg.ReplyToMessage.Text)
 	} else {
 		w.AddEmptyField(FieldName, wizard.Text)
 	}

@@ -110,16 +110,17 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	}
 
 	if msg.ReplyToMessage != nil {
-		w.AddPrefilledAutoField(FieldDeleteAll, msg.ReplyToMessage)
+		w.AddPrefilledField(FieldDeleteAll, No)
+		w.AddPrefilledAutoField(FieldObject, msg.ReplyToMessage)
+	} else {
+		w.AddEmptyField(FieldDeleteAll, wizard.Text)
+		w.AddEmptyField(FieldObject, wizard.Auto)
 	}
 
 	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
 	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
-
-	w.AddEmptyField(FieldDeleteAll, wizard.Text)
-	w.AddEmptyField(FieldObject, wizard.Auto)
 
 	w.ProcessNextField(reqenv, msg)
 }

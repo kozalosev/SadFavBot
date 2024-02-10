@@ -15,6 +15,4 @@ const (
 
 	FieldValidationErrorTrInfix = ".validation.error."
 	FieldMaxLengthErrorTrSuffix = FieldValidationErrorTrInfix + "length"
-
-	DuplicateConstraintSQLCode = "23505"
 )

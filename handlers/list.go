@@ -92,12 +92,12 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	} else {
 		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
+	w.AddPrefilledField(FieldGrep, query)
 
 	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
 
-	w.AddPrefilledField(FieldGrep, query)
 	w.ProcessNextField(reqenv, msg)
 }
 

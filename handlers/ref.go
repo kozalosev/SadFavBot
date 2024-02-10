@@ -63,6 +63,12 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	} else {
 		w.AddEmptyField(FieldObject, wizard.Auto)
 	}
+
+	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
+	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
+		return
+	}
+
 	w.ProcessNextField(reqenv, msg)
 }
 
