@@ -4,6 +4,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -72,11 +73,10 @@ func (*ListHandler) GetCommands() []string {
 }
 
 func (*ListHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateAndGroupChats
+	return common.CommandScopePrivateAndGroupChats
 }
 
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	allFieldsAreFilled := false
 	w := wizard.NewWizard(handler, 2)
 	arg := strings.ToLower(msg.CommandArguments())
 	args := strings.SplitN(arg, " ", 2)
@@ -87,19 +87,17 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 	if kind == "favs" || kind == "f" || kind == "fav" {
 		w.AddPrefilledField(FieldFavsOrPackages, Favs)
-		allFieldsAreFilled = true
 	} else if kind == "packages" || kind == "p" || kind == "packs" || kind == "package" || kind == "pack" {
 		w.AddPrefilledField(FieldFavsOrPackages, Packages)
-		allFieldsAreFilled = true
 	} else {
 		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
+	w.AddPrefilledField(FieldGrep, query)
 
-	if isGroup(msg.Chat) && !allFieldsAreFilled {
+	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
 
-	w.AddPrefilledField(FieldGrep, query)
 	w.ProcessNextField(reqenv, msg)
 }
 
@@ -125,7 +123,7 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		favsOrPacks = Favs
 	}
 
-	replyWith := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if err != nil {
 		log.WithField(logconst.FieldHandler, "ListHandler").
 			WithField(logconst.FieldMethod, "listAction").
@@ -139,9 +137,9 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		text := buildText(title, page)
 		if page.HasNextPage {
 			buttons := buildPaginationButtons(page, favsOrPacks, grep)
-			replyPossiblySelfDestroying(handler.appenv, msg, text, buttons)
+			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, common.SingleRowInlineKeyboardCustomizer(buttons))
 		} else {
-			replyPossiblySelfDestroying(handler.appenv, msg, text, []tgbotapi.InlineKeyboardButton{})
+			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
 		}
 	}
 }

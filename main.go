@@ -162,7 +162,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 		handlers.NewSearchModeHandler(appenv, stateStorage),
 		handlers.NewAliasVisibilityHandler(appenv, stateStorage),
 		handlers.NewRemoveLinkHandler(appenv, stateStorage),
-		handlers.NewIgnoreChatMemberJoinLeftHandler(),
+		handlers.NewIgnoreUnknownInGroupsHandler(),
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.NewGetFavoritesInlineHandler(appenv),

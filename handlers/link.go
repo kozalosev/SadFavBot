@@ -6,6 +6,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/storage"
@@ -86,11 +87,10 @@ func (*LinkHandler) GetCommands() []string {
 }
 
 func (*LinkHandler) GetScopes() []base.CommandScope {
-	return commandScopePrivateAndGroupChats
+	return common.CommandScopePrivateAndGroupChats
 }
 
 func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	fullyPrefilledCommand := false
 	w := wizard.NewWizard(handler, 2)
 	if name := msg.CommandArguments(); len(name) > 0 {
 		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
@@ -99,7 +99,6 @@ func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		if len(argParts) == 2 {
 			if len(argParts[0]) <= MaxAliasLen && verifyNoReservedSymbols(argParts[0], reqenv.Lang, LinkStatusErrorForbiddenSymbolsInName) == nil {
 				w.AddPrefilledField(FieldName, argParts[0])
-				fullyPrefilledCommand = true
 			} else {
 				w.AddEmptyField(FieldName, wizard.Text)
 			}
@@ -118,7 +117,7 @@ func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 
 	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if isGroup(msg.Chat) && !fullyPrefilledCommand {
+	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
 
@@ -132,7 +131,7 @@ func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 	err := handler.linkService.Create(uid, name, refAlias)
 
-	reply := possiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	reply := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if isAttemptToInsertLinkForExistingFav(err) {
 		reply(LinkStatusDuplicateFav)
 	} else if storage.DuplicateConstraintViolation(err) {

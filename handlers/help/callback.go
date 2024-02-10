@@ -31,6 +31,7 @@ const (
 	packageHelpKey   helpMessageKey = "package"
 	linkHelpKey      helpMessageKey = "link"
 	settingsHelpKey  helpMessageKey = "settings"
+	groupsHelpKey    helpMessageKey = "groups"
 )
 
 var (
@@ -64,6 +65,11 @@ var (
 	//go:embed settings.ru.md
 	settingsHelpMsgRu string
 
+	//go:embed groups.md
+	groupsHelpMsgEn string
+	//go:embed groups.ru.md
+	groupsHelpMsgRu string
+
 	helpMessagesByLang map[string]map[helpMessageKey]string
 )
 
@@ -85,6 +91,7 @@ func InitMessages(maxAliasLen, maxPackageNameLen int, reservedSymbols string) {
 			packageHelpKey:  fmt.Sprintf(packageHelpMsgEn, maxPackageNameLen, reservedSymbols),
 			linkHelpKey:     linkHelpMsgEn,
 			settingsHelpKey: settingsHelpMsgEn,
+			groupsHelpKey:   groupsHelpMsgEn,
 		},
 		"ru": {
 			favHelpKey:      favHelpMsgRu,
@@ -93,6 +100,7 @@ func InitMessages(maxAliasLen, maxPackageNameLen int, reservedSymbols string) {
 			packageHelpKey:  fmt.Sprintf(packageHelpMsgRu, maxPackageNameLen, reservedSymbols),
 			linkHelpKey:     linkHelpMsgRu,
 			settingsHelpKey: settingsHelpMsgRu,
+			groupsHelpKey:   groupsHelpMsgRu,
 		},
 	}
 }
@@ -168,6 +176,8 @@ func buildInlineKeyboard(lc *loc.Context) tgbotapi.InlineKeyboardMarkup {
 			tgbotapi.NewInlineKeyboardButtonData(lc.Tr(helpCallbackButtonTrPrefix+string(packageHelpKey)), callbackDataPrefix+string(packageHelpKey)),
 			tgbotapi.NewInlineKeyboardButtonData(lc.Tr(helpCallbackButtonTrPrefix+string(linkHelpKey)), callbackDataPrefix+string(linkHelpKey)),
 			tgbotapi.NewInlineKeyboardButtonData(lc.Tr(helpCallbackButtonTrPrefix+string(settingsHelpKey)), callbackDataPrefix+string(settingsHelpKey)),
+		), tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(lc.Tr(helpCallbackButtonTrPrefix+string(groupsHelpKey)), callbackDataPrefix+string(groupsHelpKey)),
 		))
 }
 

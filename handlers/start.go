@@ -3,6 +3,7 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -49,7 +50,7 @@ func (handler *StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		handler.embeddedHandlers.Language.languageFormAction(reqenv, msg, fields)
 		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(wizard.Txt).Value)
 		reqenv.Lang = reqenv.Lang.GetContext(newLang)
-		help.SendHelpMessage(handler.appenv.Bot, reqenv.Lang, msg)
+		help.SendHelpMessage(handler.appenv, reqenv.Lang, msg)
 
 		installingPackage := fields.FindField(FieldInstallingPackage).Data.(wizard.Txt).Value
 		if len(installingPackage) > 0 {
@@ -67,7 +68,7 @@ func (*StartHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
 }
 
 func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	if isGroup(msg.Chat) {
+	if common.IsGroup(msg.Chat) {
 		return
 	}
 
@@ -92,7 +93,7 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	} else if len(installingPackage) > 0 {
 		handler.runWizardForInstallation(reqenv, msg, installingPackage)
 	} else {
-		help.SendHelpMessage(handler.appenv.Bot, reqenv.Lang, msg)
+		help.SendHelpMessage(handler.appenv, reqenv.Lang, msg)
 	}
 }
 
