@@ -45,5 +45,7 @@ func (c *CancelHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	} else {
 		answer = reqenv.Lang.Tr(SuccessTr)
 	}
-	c.appEnv.Bot.Reply(msg, answer)
+	c.appEnv.Bot.ReplyWithMessageCustomizer(msg, answer, func(m *tgbotapi.MessageConfig) {
+		m.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+	})
 }
