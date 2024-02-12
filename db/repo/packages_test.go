@@ -38,6 +38,26 @@ func TestPackageService_Create(t *testing.T) {
 	assert.Equal(t, test.Alias2ID, aliasID)
 }
 
+func TestPackageService_Exists(t *testing.T) {
+	test.InsertTestData(db)
+
+	pkgInfo := &PackageInfo{
+		UID:  test.UID,
+		Name: test.Package,
+	}
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
+
+	exists, err := packageService.Exists(pkgInfo)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	test.InsertTestPackages(db)
+
+	exists, err = packageService.Exists(pkgInfo)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+}
+
 func TestPackageService_Delete(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)

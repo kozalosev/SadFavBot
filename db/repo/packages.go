@@ -112,6 +112,13 @@ func (service *PackageService) ListAliases(pkgInfo *PackageInfo) (items []string
 	return
 }
 
+// Exists returns true if the package exists in the database.
+func (service *PackageService) Exists(pkgInfo *PackageInfo) (exists bool, err error) {
+	q := "SELECT exists(SELECT 1 FROM Packages WHERE owner_uid = $1 AND name = $2)"
+	err = service.db.QueryRow(service.ctx, q, pkgInfo.UID, pkgInfo.Name).Scan(&exists)
+	return
+}
+
 // Create a new package.
 func (service *PackageService) Create(uid int64, name string, aliases []string) (string, error) {
 	var (
