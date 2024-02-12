@@ -35,6 +35,7 @@ const (
 
 type ListHandler struct {
 	base.CommandHandlerTrait
+	common.GroupCommandTrait
 
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage

@@ -21,6 +21,7 @@ const (
 
 type RefHandler struct {
 	base.CommandHandlerTrait
+	common.GroupCommandTrait
 
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage
