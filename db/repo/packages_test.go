@@ -70,3 +70,18 @@ func TestPackageService_Delete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, packages.Items, 0)
 }
+
+func TestPackageService_FindByAliases(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
+
+	packages, err := packageService.FindByAliases(test.UID, []string{test.Alias})
+	assert.NoError(t, err)
+	assert.Len(t, packages, 0)
+
+	packages, err = packageService.FindByAliases(test.UID, []string{test.Alias2})
+	assert.NoError(t, err)
+	assert.Len(t, packages, 1)
+	assert.Contains(t, packages, test.Package)
+}

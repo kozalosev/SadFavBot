@@ -119,6 +119,28 @@ func (service *PackageService) Exists(pkgInfo *PackageInfo) (exists bool, err er
 	return
 }
 
+// FindByAliases returns the list of all user's packages associated with the given aliases.
+func (service *PackageService) FindByAliases(uid int64, aliases []string) (packageNames []string, err error) {
+	q := "SELECT DISTINCT p.name FROM package_aliases pa JOIN packages p ON pa.package_id = p.id JOIN aliases a ON pa.alias_id = a.id WHERE owner_uid = $1 AND a.name = ANY($2)"
+	rows, err := service.db.Query(service.ctx, q, uid, aliases)
+
+	if err == nil {
+		for rows.Next() {
+			var packageName string
+			if err := rows.Scan(&packageName); err == nil {
+				packageNames = append(packageNames, packageName)
+			} else {
+				log.WithField(logconst.FieldService, "PackageService").
+					WithField(logconst.FieldMethod, "FindByAlias").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
+			}
+		}
+	}
+	return
+}
+
 // Create a new package.
 func (service *PackageService) Create(uid int64, name string, aliases []string) (string, error) {
 	var (
