@@ -112,6 +112,35 @@ func (service *PackageService) ListAliases(pkgInfo *PackageInfo) (items []string
 	return
 }
 
+// Exists returns true if the package exists in the database.
+func (service *PackageService) Exists(pkgInfo *PackageInfo) (exists bool, err error) {
+	q := "SELECT exists(SELECT 1 FROM Packages WHERE owner_uid = $1 AND name = $2)"
+	err = service.db.QueryRow(service.ctx, q, pkgInfo.UID, pkgInfo.Name).Scan(&exists)
+	return
+}
+
+// FindByAliases returns the list of all user's packages associated with the given aliases.
+func (service *PackageService) FindByAliases(uid int64, aliases []string) (packageNames []string, err error) {
+	q := "SELECT DISTINCT p.name FROM package_aliases pa JOIN packages p ON pa.package_id = p.id JOIN aliases a ON pa.alias_id = a.id WHERE owner_uid = $1 AND a.name = ANY($2)"
+	rows, err := service.db.Query(service.ctx, q, uid, aliases)
+
+	if err == nil {
+		for rows.Next() {
+			var packageName string
+			if err := rows.Scan(&packageName); err == nil {
+				packageNames = append(packageNames, packageName)
+			} else {
+				log.WithField(logconst.FieldService, "PackageService").
+					WithField(logconst.FieldMethod, "FindByAlias").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
+			}
+		}
+	}
+	return
+}
+
 // Create a new package.
 func (service *PackageService) Create(uid int64, name string, aliases []string) (string, error) {
 	var (

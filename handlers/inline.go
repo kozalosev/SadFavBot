@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
@@ -57,9 +58,13 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		CacheTime:     inlineAnswerCacheTime,
 	}
 	if len(query.Query) > 0 {
+		offset := calculateOffset(query)
 		opts := reqenv.Options.(*dto.UserOptions)
-		if objects, err := handler.favService.Find(query.From.ID, query.Query, opts.SubstrSearchEnabled); err == nil {
+		if objects, err := handler.favService.Find(query.From.ID, query.Query, opts.SubstrSearchEnabled, offset); err == nil {
 			answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
+			if len(objects) > 0 {
+				answer.NextOffset = strconv.Itoa(offset + len(objects))
+			}
 		} else {
 			log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
 				WithField(logconst.FieldMethod, "Handle").
@@ -130,4 +135,15 @@ func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 			return tgbotapi.NewInlineQueryResultArticle(object.ID, lc.Tr(ErrorTitleTr), lc.Tr(UnknownTypeTr))
 		}
 	}
+}
+
+func calculateOffset(query *tgbotapi.InlineQuery) (offset int) {
+	if len(query.Offset) > 0 {
+		var err error
+		if offset, err = strconv.Atoi(query.Offset); err != nil {
+			log.WithField(logconst.FieldFunc, "calculateOffset").
+				Error(fmt.Errorf("InlineQuery.Offset must be an integer! %w", err))
+		}
+	}
+	return
 }

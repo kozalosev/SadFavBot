@@ -7,6 +7,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
+	"strconv"
 	"testing"
 )
 
@@ -29,7 +30,7 @@ func TestFavService_Find_hidden(t *testing.T) {
 func testFindImpl(t *testing.T) {
 	query := test.BuildInlineQuery()
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
-	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 2)
@@ -41,7 +42,7 @@ func TestFavService_Find_Text(t *testing.T) {
 	test.InsertTestData(db)
 
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
-	objects, err := favsService.Find(test.UID2, test.Alias2, false)
+	objects, err := favsService.Find(test.UID2, test.Alias2, false, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
@@ -59,7 +60,7 @@ func TestFavService_Find_Location(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), res.RowsAffected())
 
-	objects, err := favsService.Find(test.UID2, aliasLoc, false)
+	objects, err := favsService.Find(test.UID2, aliasLoc, false, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
@@ -74,12 +75,12 @@ func TestFavService_Find_bySubstring(t *testing.T) {
 	query.Query = "a"
 
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
-	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 0)
 
-	objects, err = favsService.Find(query.From.ID, query.Query, true)
+	objects, err = favsService.Find(query.From.ID, query.Query, true, 0)
 
 	assert.Len(t, objects, 2)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
@@ -98,7 +99,7 @@ func TestFavService_Find_bySubstring_hidden(t *testing.T) {
 	query.Query = "a"
 
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
-	objects, err := favsService.Find(query.From.ID, query.Query, true)
+	objects, err := favsService.Find(query.From.ID, query.Query, true, 0)
 
 	assert.Len(t, objects, 1)
 	assert.Equal(t, test.FileID, objects[0].File.ID)
@@ -131,7 +132,7 @@ func TestFavService_Find_bySubstring_withDuplicates(t *testing.T) {
 		assert.Equal(t, int64(1), rowsAffectedAware.RowsAffected())
 	}
 
-	objects, err := favsService.Find(query.From.ID, query.Query, true)
+	objects, err := favsService.Find(query.From.ID, query.Query, true, 0)
 	assert.NoError(t, err)
 	assert.Len(t, objects, 3)
 
@@ -149,7 +150,7 @@ func TestFavService_Find_escaping(t *testing.T) {
 	query.Query = "%a%"
 
 	favsService := NewFavsService(test.BuildApplicationEnv(db))
-	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 0)
@@ -167,7 +168,7 @@ func TestFavService_Find_byLink(t *testing.T) {
 
 	appenv := test.BuildApplicationEnv(db)
 	favsService := NewFavsService(appenv)
-	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
@@ -184,7 +185,7 @@ func TestFavService_Find_byLink(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	objects, err = favsService.Find(query.From.ID, oleas, true)
+	objects, err = favsService.Find(query.From.ID, oleas, true, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
@@ -195,9 +196,31 @@ func TestFavService_Find_byLink(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	objects, err = favsService.Find(query.From.ID, oleas, true)
+	objects, err = favsService.Find(query.From.ID, oleas, true, 0)
 	assert.NoError(t, err)
 	assert.Len(t, objects, 0)
+}
+
+func TestFavService_Find_withOffset(t *testing.T) {
+	test.InsertTestData(db)
+
+	favsService := NewFavsService(test.BuildApplicationEnv(db))
+	for i := 0; i < 50; i++ {
+		fav := &dto.Fav{
+			Type: wizard.Text,
+			Text: &wizard.Txt{Value: strconv.Itoa(i)},
+		}
+		_, err := favsService.Save(test.UID, test.Alias, fav)
+		assert.NoError(t, err)
+	}
+
+	objects, err := favsService.Find(test.UID, test.Alias, false, 0)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 50)
+
+	objects, err = favsService.Find(test.UID, test.Alias, false, 50)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 2)
 }
 
 func TestFavService_Find_PhotoWithCaptionEntity(t *testing.T) {
@@ -223,7 +246,7 @@ func TestFavService_Find_PhotoWithCaptionEntity(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Greater(t, rowsAffectedAware.RowsAffected(), int64(0))
 
-	objects, err := favsService.Find(query.From.ID, test.AliasPhoto, false)
+	objects, err := favsService.Find(query.From.ID, test.AliasPhoto, false, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
@@ -256,7 +279,7 @@ func TestFavService_DeleteFav(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, rowsAffectedAware.RowsAffected(), int64(1))
 
-	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
 	assert.NoError(t, err)
 	assert.Len(t, objects, 2)
 
@@ -264,7 +287,7 @@ func TestFavService_DeleteFav(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, rowsAffectedAware.RowsAffected(), int64(1))
 
-	objects, err = favsService.Find(query.From.ID, query.Query, false)
+	objects, err = favsService.Find(query.From.ID, query.Query, false, 0)
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
 }

@@ -21,6 +21,7 @@ const (
 
 type RemoveLinkHandler struct {
 	base.CommandHandlerTrait
+	common.GroupCommandTrait
 
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage

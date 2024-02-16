@@ -2,12 +2,15 @@ package handlers
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -18,7 +21,7 @@ func TestMapper(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 
 	favsService := repo.NewFavsService(appenv)
-	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
 	assert.NoError(t, err)
 
 	inlineAnswer := generateMapper(loc.NewPool("en").GetContext("en"))(objects[0])
@@ -37,7 +40,7 @@ func TestMapperForTextWithEntities(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 
 	favsService := repo.NewFavsService(appenv)
-	objects, err := favsService.Find(query.From.ID, query.Query, false)
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
 
@@ -75,6 +78,44 @@ func TestGetFavoritesInlineHandler_Handle(t *testing.T) {
 	assert.NotEmpty(t, sticker2.ID)
 	assert.Equal(t, string(test.Type), sticker2.Type)
 	assert.Equal(t, test.FileID2, sticker2.StickerID)
+}
+
+func TestGetFavoritesInlineHandler_Handle_withOffset(t *testing.T) {
+	test.InsertTestData(db)
+
+	favsService := repo.NewFavsService(test.BuildApplicationEnv(db))
+	for i := 0; i < 100; i++ {
+		fav := &dto.Fav{
+			Type: wizard.Text,
+			Text: &wizard.Txt{Value: strconv.Itoa(i)},
+		}
+		_, err := favsService.Save(test.UID, test.Alias, fav)
+		assert.NoError(t, err)
+	}
+
+	query := test.BuildInlineQuery()
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := test.BuildRequestEnv()
+
+	bot := appenv.Bot.(*base.FakeBotAPI)
+	handler := NewGetFavoritesInlineHandler(appenv)
+
+	offsetResultCount := map[string]int{
+		"":    50,
+		"50":  50,
+		"100": 2,
+	}
+	for offset, resultCount := range offsetResultCount {
+		query.Offset = offset
+		handler.Handle(reqenv, query)
+
+		cc := bot.GetOutput().([]tgbotapi.Chattable)
+		assert.Len(t, cc, 1)
+		c := cc[0].(tgbotapi.InlineConfig)
+		assert.Len(t, c.Results, resultCount)
+
+		bot.ClearOutput()
+	}
 }
 
 func TestGetFavoritesInlineHandler_Handle_PhotoWithCaption(t *testing.T) {

@@ -113,7 +113,7 @@ func TestInstallPackageWithLocation(t *testing.T) {
 	assert.Contains(t, installed, test.Alias2)
 
 	favsService := NewFavsService(appEnv)
-	favs, err := favsService.Find(test.UID3, test.Alias2, false)
+	favs, err := favsService.Find(test.UID3, test.Alias2, false, 0)
 	assert.NoError(t, err)
 	assert.Len(t, favs, 2)
 	locFavs := funk.Filter(favs, func(f *dto.Fav) bool {

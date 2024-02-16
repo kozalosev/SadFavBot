@@ -65,7 +65,31 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.packageAction)
 
 	createOrDeleteDesc := desc.AddField(FieldCreateOrDelete, PackageFieldsTrPrefix+FieldCreateOrDelete)
-	createOrDeleteDesc.InlineKeyboardAnswers = []string{Create, Recreate, Delete}
+	createOrDeleteDesc.InlineKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message, form *wizard.Form) []string {
+		packageName := form.Fields.FindField(FieldName).Data
+		if nameField, ok := packageName.(wizard.Txt); ok {
+			pkgInfo := &repo.PackageInfo{
+				UID:  msg.From.ID,
+				Name: nameField.Value,
+			}
+			if exists, err := handler.packageService.Exists(pkgInfo); err == nil {
+				if exists {
+					return []string{Recreate, Delete}
+				} else {
+					log.WithField(logconst.FieldHandler, "PackageHandler").
+						WithField(logconst.FieldMethod, "GetWizardDescriptor").
+						Warning("Unexpected case when a package doesn't exist but createOrDelete was requested")
+					return []string{Create}
+				}
+			} else {
+				log.WithField(logconst.FieldHandler, "PackageHandler").
+					WithField(logconst.FieldMethod, "GetWizardDescriptor").
+					WithField(logconst.FieldCalledObject, "PackageService").
+					Error(err)
+			}
+		}
+		return []string{Create, Recreate, Delete}
+	}
 
 	nameDesc := desc.AddField(FieldName, PackageFieldsTrPrefix+FieldName)
 	nameDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
@@ -100,10 +124,28 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 	name := msg.CommandArguments()
 
 	w := wizard.NewWizard(handler, 3)
-	w.AddEmptyField(FieldCreateOrDelete, wizard.Text)
 	if len(name) > 0 {
+		pkgInfo := &repo.PackageInfo{
+			UID:  msg.From.ID,
+			Name: name,
+		}
+		exists, err := handler.packageService.Exists(pkgInfo)
+		if err == nil && !exists {
+			w.AddPrefilledField(FieldCreateOrDelete, Create)
+		} else {
+			w.AddEmptyField(FieldCreateOrDelete, wizard.Text)
+		}
+		if err != nil {
+			log.WithField(logconst.FieldHandler, "PackageHandler").
+				WithField(logconst.FieldMethod, "Handle").
+				WithField(logconst.FieldCalledObject, "PackageService").
+				WithField(logconst.FieldCalledMethod, "Exists").
+				Error(err)
+		}
+
 		w.AddPrefilledField(FieldName, name)
 	} else {
+		w.AddEmptyField(FieldCreateOrDelete, wizard.Text)
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
 	w.AddEmptyField(FieldAliases, wizard.Text)

@@ -138,8 +138,6 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 }
 
 func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler) {
-	help.InitMessages(handlers.MaxAliasLen, handlers.MaxPackageNameLen, handlers.ReservedSymbolsForMessage)
-
 	languageHandler := handlers.NewLanguageHandler(appenv, stateStorage)
 	installPackageHandler := handlers.NewInstallPackageHandler(appenv, stateStorage)
 	startEmbeddedHandlers := handlers.StartEmbeddedHandlers{
@@ -171,6 +169,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 		help.NewCallbackHandler(appenv),
 		handlers.NewListPaginationCallbackHandler(appenv),
 	}
+	help.InitMessages(handlers.MaxAliasLen, handlers.MaxPackageNameLen, handlers.ReservedSymbolsForMessage, messageHandlers)
 	metrics.RegisterMessageHandlerCounters(messageHandlers...)
 	metrics.RegisterInlineHandlerCounters(inlineHandlers...)
 	return

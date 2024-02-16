@@ -38,6 +38,26 @@ func TestPackageService_Create(t *testing.T) {
 	assert.Equal(t, test.Alias2ID, aliasID)
 }
 
+func TestPackageService_Exists(t *testing.T) {
+	test.InsertTestData(db)
+
+	pkgInfo := &PackageInfo{
+		UID:  test.UID,
+		Name: test.Package,
+	}
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
+
+	exists, err := packageService.Exists(pkgInfo)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	test.InsertTestPackages(db)
+
+	exists, err = packageService.Exists(pkgInfo)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+}
+
 func TestPackageService_Delete(t *testing.T) {
 	test.InsertTestData(db)
 	test.InsertTestPackages(db)
@@ -49,4 +69,19 @@ func TestPackageService_Delete(t *testing.T) {
 	packages, err := packageService.ListWithCounts(test.UID, "")
 	assert.NoError(t, err)
 	assert.Len(t, packages.Items, 0)
+}
+
+func TestPackageService_FindByAliases(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
+
+	packages, err := packageService.FindByAliases(test.UID, []string{test.Alias})
+	assert.NoError(t, err)
+	assert.Len(t, packages, 0)
+
+	packages, err = packageService.FindByAliases(test.UID, []string{test.Alias2})
+	assert.NoError(t, err)
+	assert.Len(t, packages, 1)
+	assert.Contains(t, packages, test.Package)
 }

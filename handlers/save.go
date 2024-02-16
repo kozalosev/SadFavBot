@@ -32,6 +32,7 @@ const (
 
 type SaveHandler struct {
 	base.CommandHandlerTrait
+	common.GroupCommandTrait
 
 	appenv       *base.ApplicationEnv
 	stateStorage wizard.StateStorage

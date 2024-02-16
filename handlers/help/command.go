@@ -15,6 +15,7 @@ var helpCommands = []string{"help"}
 
 type CommandHandler struct {
 	base.CommandHandlerTrait
+	common.GroupCommandTrait
 
 	appenv *base.ApplicationEnv
 }

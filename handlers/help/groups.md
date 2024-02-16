@@ -5,11 +5,6 @@ The bot may be added and used in group chats with some restrictions. The most im
 The second one is you cannot use a chain of objects to be saved with the same alias. This is obvious, taking into account the restriction above.
 
 The third, the only a subset of commands is supported:
-— `/save`
-— `/link`
-— `/list`
-— `/delete`
-— `/rmlink`
-— `/help`
+{{commands}}
 
 The bot currently ignores all non-one-line or invalid invocations. However, this may be fixed in the future to be more user-friendly.

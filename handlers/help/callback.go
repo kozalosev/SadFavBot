@@ -4,10 +4,12 @@ import (
 	_ "embed"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"os"
 	"strings"
 )
@@ -82,7 +84,8 @@ var (
 		"\r", "")
 )
 
-func InitMessages(maxAliasLen, maxPackageNameLen int, reservedSymbols string) {
+func InitMessages(maxAliasLen, maxPackageNameLen int, reservedSymbols string, messageHandlers []base.MessageHandler) {
+	commandList := messageHandlersToCommandList(messageHandlers)
 	helpMessagesByLang = map[string]map[helpMessageKey]string{
 		"en": {
 			favHelpKey:      favHelpMsgEn,
@@ -91,7 +94,7 @@ func InitMessages(maxAliasLen, maxPackageNameLen int, reservedSymbols string) {
 			packageHelpKey:  fmt.Sprintf(packageHelpMsgEn, maxPackageNameLen, reservedSymbols),
 			linkHelpKey:     linkHelpMsgEn,
 			settingsHelpKey: settingsHelpMsgEn,
-			groupsHelpKey:   groupsHelpMsgEn,
+			groupsHelpKey:   strings.Replace(groupsHelpMsgEn, "{{commands}}", commandList, 1),
 		},
 		"ru": {
 			favHelpKey:      favHelpMsgRu,
@@ -100,7 +103,7 @@ func InitMessages(maxAliasLen, maxPackageNameLen int, reservedSymbols string) {
 			packageHelpKey:  fmt.Sprintf(packageHelpMsgRu, maxPackageNameLen, reservedSymbols),
 			linkHelpKey:     linkHelpMsgRu,
 			settingsHelpKey: settingsHelpMsgRu,
-			groupsHelpKey:   groupsHelpMsgRu,
+			groupsHelpKey:   strings.Replace(groupsHelpMsgRu, "{{commands}}", commandList, 1),
 		},
 	}
 }
@@ -181,13 +184,40 @@ func buildInlineKeyboard(lc *loc.Context) tgbotapi.InlineKeyboardMarkup {
 		))
 }
 
+func messageHandlersToCommandList(messageHandlers []base.MessageHandler) string {
+	grpCmds := funk.Filter(messageHandlers, func(cmd base.MessageHandler) bool {
+		_, ok := cmd.(common.GroupCommand)
+		return ok
+	}).([]base.MessageHandler)
+	groupCommands := funk.Map(grpCmds, func(cmd base.MessageHandler) string {
+		mainCmd := cmd.(common.GroupCommand).GetCommands()[0]
+		return fmt.Sprintf("— `/%s`", mainCmd)
+	}).([]string)
+	return strings.Join(groupCommands, "\n")
+}
+
 // test strings equality by the first 32 character after markup removal
 func testHelpMessagesEquality(m1, m2 *string) bool {
-	m1Short := (*m1)[:64]
-	m2Short := (*m2)[:64]
+	var m1Short, m2Short string
+	if len(*m1) > 64 {
+		m1Short = (*m1)[:64]
+	} else {
+		m1Short = *m1
+	}
+	if len(*m2) > 64 {
+		m2Short = (*m2)[:64]
+	} else {
+		m2Short = *m2
+	}
 
 	m1Short = markupRemover.Replace(m1Short)
 	m2Short = markupRemover.Replace(m2Short)
 
-	return m1Short[:32] == m2Short[:32]
+	if len(m1Short) > 32 && len(m2Short) > 32 {
+		return m1Short[:32] == m2Short[:32]
+	} else if len(m1Short) <= 32 && len(m2Short) <= 32 {
+		return m1Short == m2Short
+	} else {
+		return false
+	}
 }
