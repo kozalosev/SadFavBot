@@ -46,7 +46,9 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool, offset i
 		query = "%" + query + "%"
 	}
 
-	q := "SELECT DISTINCT ON (file_unique_id, text_id, location_id) f.id, type, file_id, t.text, t.entities, loc.latitude, loc.longitude FROM favs f " +
+	q := "SELECT DISTINCT ON (file_unique_id, text_id, location_id) " +
+		"f.id, type, file_id, t.text, t.entities, loc.latitude, loc.longitude, has_spoiler " +
+		"FROM favs f " +
 		"JOIN aliases a ON a.id = f.alias_id " +
 		"LEFT JOIN texts t ON t.id = f.text_id " +
 		"LEFT JOIN locations loc ON loc.id = f.location_id " +
@@ -69,8 +71,9 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool, offset i
 		var (
 			fileID, text, entities *string
 			latitude, longitude    *float64
+			hasSpoiler             bool
 		)
-		err = rows.Scan(&row.ID, &row.Type, &fileID, &text, &entities, &latitude, &longitude)
+		err = rows.Scan(&row.ID, &row.Type, &fileID, &text, &entities, &latitude, &longitude, &hasSpoiler)
 		if err != nil {
 			log.WithField(logconst.FieldService, "FavService").
 				WithField(logconst.FieldMethod, "Find").
@@ -80,7 +83,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool, offset i
 			continue
 		}
 		if fileID != nil {
-			row.File = &wizard.File{ID: *fileID}
+			row.File = &wizard.File{ID: *fileID, HasMediaSpoiler: hasSpoiler}
 			if text != nil {
 				row.File.Caption = *text
 				if entities != nil {
@@ -243,15 +246,17 @@ func (service *FavService) saveFile(tx pgx.Tx, uid int64, alias string, fileType
 			return pgconn.CommandTag{}, err
 		}
 
-		return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, file_id, file_unique_id, text_id) VALUES "+
+		return tx.Exec(service.ctx, "INSERT INTO favs (uid, type, alias_id, file_id, file_unique_id, text_id, has_spoiler) VALUES "+
 			"($1, $2, "+
 			"CASE WHEN ($3 > 0) THEN $3 ELSE (SELECT id FROM aliases WHERE name = $4) END, "+
 			"$5, $6, "+
-			"CASE WHEN ($7 = -1) THEN NULL WHEN ($7 > 0) THEN $7 ELSE (SELECT id FROM texts WHERE text = $8 AND entities = $9) END)",
+			"CASE WHEN ($7 = -1) THEN NULL WHEN ($7 > 0) THEN $7 ELSE (SELECT id FROM texts WHERE text = $8 AND entities = $9) END), "+
+			"$10",
 			uid, fileType,
 			aliasID, alias,
 			file.ID, file.UniqueID,
-			textID, file.Caption, entities)
+			textID, file.Caption, entities,
+			file.HasMediaSpoiler)
 	} else {
 		return pgconn.CommandTag{}, err
 	}
