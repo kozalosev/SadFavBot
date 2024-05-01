@@ -18,7 +18,7 @@ func TestHelpCommand(t *testing.T) {
 	msg := &tgbotapi.Message{
 		MessageID: 0,
 		From:      &tgbotapi.User{FirstName: "Test"},
-		Chat:      &tgbotapi.Chat{Type: "private"},
+		Chat:      tgbotapi.Chat{Type: "private"},
 	}
 
 	handler := NewCommandHandler(appenv)
@@ -36,7 +36,7 @@ func TestHelpCallback(t *testing.T) {
 	reqenv := test.BuildRequestEnv()
 	query := &tgbotapi.CallbackQuery{
 		Data:    callbackDataPrefix + string(groupsHelpKey),
-		Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{}},
+		Message: &tgbotapi.Message{Chat: tgbotapi.Chat{}},
 	}
 
 	InitMessages(0, 0, "", []base.MessageHandler{NewCommandHandler(appenv)})

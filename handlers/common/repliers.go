@@ -43,7 +43,7 @@ func SingleRowInlineKeyboardCustomizer(buttons []tgbotapi.InlineKeyboardButton) 
 }
 
 func replyDestroyingImpl(bot base.ExtendedBotAPI, srcMsg *tgbotapi.Message, msgToSend tgbotapi.MessageConfig) {
-	msgToSend.ReplyToMessageID = srcMsg.MessageID
+	msgToSend.ReplyParameters.MessageID = srcMsg.MessageID
 
 	if sentMsg, err := bot.Send(msgToSend); err == nil {
 		go func() {

@@ -119,7 +119,7 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	}
 
 	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
+	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
 

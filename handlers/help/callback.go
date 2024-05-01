@@ -163,7 +163,7 @@ func (handler *CallbackHandler) sendAdditionalMessagesIfNeeded(reqenv *base.Requ
 	if wasUpdated && helpKey == inlineHelpKey && len(photoExampleInline) > 0 {
 		media := tgbotapi.NewPhoto(originMsg.Chat.ID, tgbotapi.FileURL(photoExampleInline))
 		media.Caption = reqenv.Lang.Tr(helpCallbackCaptionInline)
-		media.ReplyToMessageID = originMsg.MessageID
+		media.ReplyParameters.MessageID = originMsg.MessageID
 		return handler.appenv.Bot.Request(media)
 	}
 	return nil
