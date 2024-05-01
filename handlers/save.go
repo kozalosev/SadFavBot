@@ -23,6 +23,7 @@ const (
 	SaveStatusDuplicate = SaveStatusTrPrefix + StatusDuplicate
 
 	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrInfix + "forbidden.symbols"
+	SaveObjectValidationErrorCustomEmoji   = SaveFieldsTrPrefix + FieldObject + FieldValidationErrorTrInfix + "custom.emoji"
 
 	MaxAliasLen               = 128
 	MaxTextLen                = 4096
@@ -71,6 +72,11 @@ func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		if len([]rune(msg.Text)) > MaxTextLen {
 			template := lc.Tr(SaveFieldsTrPrefix + FieldObject + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, MaxTextLen))
+		}
+		for _, entity := range msg.Entities {
+			if len(entity.CustomEmojiID) > 0 {
+				return errors.New(fmt.Sprintf(lc.Tr(SaveObjectValidationErrorCustomEmoji)))
+			}
 		}
 		return nil
 	}
