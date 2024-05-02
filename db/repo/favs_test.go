@@ -291,3 +291,57 @@ func TestFavService_DeleteFav(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, objects, 1)
 }
+
+func TestFavService_DeleteFav_savedWithNullAutoEntities(t *testing.T) {
+	test.InsertTestData(db)
+
+	query := &tgbotapi.InlineQuery{
+		From:  &tgbotapi.User{ID: test.UID2},
+		Query: test.Alias2,
+	}
+
+	spoilerText := wizard.Txt{
+		Value: test.Text + "2",
+		Entities: []tgbotapi.MessageEntity{
+			{Type: "spoiler", Length: 7},
+		},
+	}
+	urlText := spoilerText
+	urlText.Entities = []tgbotapi.MessageEntity{
+		{Type: "url", Length: 4},
+	}
+	noEntitiesText := spoilerText
+	noEntitiesText.Entities = nil
+
+	spoilerFav := dto.Fav{
+		Type: wizard.Text,
+		Text: &spoilerText,
+	}
+	urlFav := spoilerFav
+	urlFav.Text = &urlText
+	noEntitiesFav := spoilerFav
+	noEntitiesFav.Text = &noEntitiesText
+
+	appenv := test.BuildApplicationEnv(db)
+	favsService := NewFavsService(appenv)
+	rowsAffectedAware, err := favsService.Save(query.From.ID, query.Query, &noEntitiesFav)
+	assert.NoError(t, err)
+	assert.Equal(t, rowsAffectedAware.RowsAffected(), int64(1))
+
+	objects, err := favsService.Find(query.From.ID, query.Query, false, 0)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 2)
+
+	// the first won't be deleted, the second will
+	rowsAffectedAware, err = favsService.DeleteFav(query.From.ID, query.Query, &spoilerFav)
+	assert.NoError(t, err)
+	assert.Equal(t, rowsAffectedAware.RowsAffected(), int64(0))
+
+	rowsAffectedAware, err = favsService.DeleteFav(query.From.ID, query.Query, &urlFav)
+	assert.NoError(t, err)
+	assert.Equal(t, rowsAffectedAware.RowsAffected(), int64(1))
+
+	objects, err = favsService.Find(query.From.ID, query.Query, false, 0)
+	assert.NoError(t, err)
+	assert.Len(t, objects, 1)
+}
