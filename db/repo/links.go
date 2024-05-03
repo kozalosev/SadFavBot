@@ -41,7 +41,7 @@ func (service *LinkService) Create(uid int64, name, refAlias string) error {
 		}
 	}
 
-	if err != nil {
+	if err != nil && tx != nil {
 		if err := tx.Rollback(service.ctx); err != nil {
 			log.WithField(logconst.FieldService, "LinkService").
 				WithField(logconst.FieldMethod, "Create").
@@ -64,4 +64,28 @@ func (service *LinkService) Delete(uid int64, name string) error {
 		return NoRowsWereAffected
 	}
 	return nil
+}
+
+func (service *LinkService) List(uid int64) ([]string, error) {
+	q := "SELECT name FROM links l JOIN aliases a ON l.alias_id = a.id WHERE uid = $1 ORDER BY name"
+	if rows, err := service.db.Query(service.ctx, q, uid); err == nil {
+		var (
+			links []string
+			link  string
+		)
+		for rows.Next() {
+			if err = rows.Scan(&link); err == nil {
+				links = append(links, link)
+			} else {
+				log.WithField(logconst.FieldService, "LinkService").
+					WithField(logconst.FieldMethod, "List").
+					WithField(logconst.FieldCalledObject, "Rows").
+					WithField(logconst.FieldCalledMethod, "Scan").
+					Error(err)
+			}
+		}
+		return links, rows.Err()
+	} else {
+		return nil, err
+	}
 }

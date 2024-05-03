@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
+	"github.com/loctools/go-l10n/loc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,7 +47,25 @@ func (handler *RemoveLinkHandler) GetWizardEnv() *wizard.Env {
 
 func (handler *RemoveLinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(handler.rmLinkAction)
-	desc.AddField(FieldName, RmLinkFieldTrPrefix+FieldName)
+	linkNameDesc := desc.AddField(FieldName, RmLinkFieldTrPrefix+FieldName)
+	linkNameDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
+		if len([]rune(msg.Text)) > MaxAliasLen {
+			template := lc.Tr(DeleteFieldsTrPrefix + FieldName + FieldMaxLengthErrorTrSuffix)
+			return errors.New(fmt.Sprintf(template, MaxAliasLen))
+		}
+		return nil
+	}
+	linkNameDesc.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
+		aliases, err := handler.linkService.List(msg.From.ID)
+		if err != nil {
+			log.WithField(logconst.FieldHandler, "RemoveLinkHandler").
+				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
+				WithField(logconst.FieldCalledObject, "LinkService").
+				WithField(logconst.FieldCalledMethod, "List").
+				Error(err)
+		}
+		return aliases
+	}
 	return desc
 }
 

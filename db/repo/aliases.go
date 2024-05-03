@@ -137,7 +137,8 @@ func (service *AliasService) ListForFavsOnly(uid int64) ([]string, error) {
 		"SELECT DISTINCT a.name FROM favs f "+
 			"JOIN aliases a on a.id = f.alias_id "+
 			"LEFT JOIN alias_visibility av ON av.uid = f.uid AND av.alias_id = f.alias_id "+
-			"WHERE f.uid = $1 AND av.hidden IS NOT true", uid); err == nil {
+			"WHERE f.uid = $1 AND av.hidden IS NOT true "+
+			"ORDER BY a.name", uid); err == nil {
 		var (
 			aliases []string
 			alias   string
