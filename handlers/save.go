@@ -23,6 +23,7 @@ const (
 	SaveStatusDuplicate = SaveStatusTrPrefix + StatusDuplicate
 
 	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrInfix + "forbidden.symbols"
+	SaveObjectValidationErrorCustomEmoji   = SaveFieldsTrPrefix + FieldObject + FieldValidationErrorTrInfix + "custom.emoji"
 
 	MaxAliasLen               = 128
 	MaxTextLen                = 4096
@@ -72,6 +73,11 @@ func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 			template := lc.Tr(SaveFieldsTrPrefix + FieldObject + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, MaxTextLen))
 		}
+		for _, entity := range msg.Entities {
+			if len(entity.CustomEmojiID) > 0 {
+				return errors.New(fmt.Sprintf(lc.Tr(SaveObjectValidationErrorCustomEmoji)))
+			}
+		}
 		return nil
 	}
 
@@ -107,7 +113,7 @@ func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 
 	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(msg.Chat) && !wizardForm.AllRequiredFieldsFilled() {
+	if common.IsGroup(&msg.Chat) && !wizardForm.AllRequiredFieldsFilled() {
 		return
 	}
 

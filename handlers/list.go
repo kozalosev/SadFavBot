@@ -95,7 +95,7 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 	w.AddPrefilledField(FieldGrep, query)
 
-	if common.IsGroup(msg.Chat) && !w.AllRequiredFieldsFilled() {
+	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return
 	}
 

@@ -68,7 +68,7 @@ func (*StartHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
 }
 
 func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	if common.IsGroup(msg.Chat) {
+	if common.IsGroup(&msg.Chat) {
 		return
 	}
 

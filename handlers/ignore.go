@@ -13,7 +13,7 @@ func NewIgnoreUnknownInGroupsHandler() *IgnoreUnknownInGroupsHandler {
 }
 
 func (*IgnoreUnknownInGroupsHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
-	return common.IsGroup(msg.Chat)
+	return common.IsGroup(&msg.Chat)
 }
 
 func (handler *IgnoreUnknownInGroupsHandler) Handle(_ *base.RequestEnv, _ *tgbotapi.Message) {}

@@ -70,7 +70,7 @@ func (*InstallPackageHandler) GetScopes() []base.CommandScope {
 }
 
 func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	if common.IsGroup(msg.Chat) {
+	if common.IsGroup(&msg.Chat) {
 		return
 	}
 

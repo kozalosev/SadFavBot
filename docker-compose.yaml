@@ -27,6 +27,7 @@ services:
       - WEBHOOK_PATH
       - PHOTO_INLINE_EXAMPLE
       - SELF_DELETION_DELAY_SECS
+      - BUTTONS_PER_ROW
     expose:
       - ${APP_PORT}
     depends_on:

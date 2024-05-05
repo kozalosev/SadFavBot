@@ -267,9 +267,23 @@ func (service *FavService) deleteByText(uid int64, alias string, text *wizard.Tx
 	log.WithField(logconst.FieldService, "FavService").
 		WithField(logconst.FieldMethod, "deleteByText").
 		Infof("Deletion of fav with uid '%d', alias '%s' and text '%s' with entities '%s'", uid, alias, text.Value, entities)
-	return service.db.Exec(service.ctx,
-		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3 AND entities = $4)",
-		uid, alias, text.Value, entities)
+	sql := "DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3 AND entities = $4)"
+	rowsAware, err := service.db.Exec(service.ctx, sql, uid, alias, text.Value, entities)
+	if err == nil && rowsAware.RowsAffected() == 0 {
+		// workaround for https://github.com/kozalosev/SadFavBot/issues/97
+		// Old texts, containing URLs (or other automatically parsed entities) and saved before v1.1,
+		// have "entities" column set to "null".
+		for _, entity := range text.Entities {
+			switch entity.Type {
+			case "url", "email", "phone_number", "mention", "hashtag", "cashtag", "bot_command":
+				log.WithField(logconst.FieldService, "FavService").
+					WithField(logconst.FieldMethod, "deleteByText").
+					Infof("Couldn't find the text for deletion; trying the workaround...")
+				return service.db.Exec(service.ctx, sql, uid, alias, text.Value, []byte("null"))
+			}
+		}
+	}
+	return rowsAware, err
 }
 
 func (service *FavService) deleteByLocation(uid int64, alias string, location wizard.LocData) (RowsAffectedAware, error) {
