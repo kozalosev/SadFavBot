@@ -76,7 +76,7 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 
 	var installingPackage string
 	arg := msg.CommandArguments()
-	if err == nil && len(arg) > 0 {
+	if err == nil && len(arg) > 0 && arg != DeepLinkStartParam {
 		installingPackage, err = handler.packageService.ResolveName(arg)
 	}
 

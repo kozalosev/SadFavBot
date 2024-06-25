@@ -18,8 +18,10 @@ import (
 )
 
 const (
-	ErrorTitleTr  = "error"
-	UnknownTypeTr = "inline.errors.type.invalid"
+	ErrorTitleTr       = "error"
+	EmptyQueryTr       = "inline.empty.query"
+	UnknownTypeTr      = "inline.errors.type.invalid"
+	DeepLinkStartParam = "-"
 )
 
 var inlineAnswerCacheTime int
@@ -71,6 +73,11 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 				WithField(logconst.FieldCalledObject, "FavService").
 				WithField(logconst.FieldCalledMethod, "Find").
 				Error(err)
+		}
+	} else {
+		answer.Button = &tgbotapi.InlineQueryResultsButton{
+			Text:       reqenv.Lang.Tr(EmptyQueryTr),
+			StartParam: DeepLinkStartParam,
 		}
 	}
 	if err := handler.appenv.Bot.Request(answer); err != nil {
