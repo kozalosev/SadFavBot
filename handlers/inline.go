@@ -107,6 +107,8 @@ func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 			video.Caption = object.File.Caption
 			video.CaptionEntities = object.File.Entities
 			return video
+		case wizard.VideoNote:
+			return tgbotapi.NewInlineQueryResultCachedVideo(object.ID, object.File.ID, caser.String(lc.Tr("video_note")))
 		case wizard.Audio:
 			audio := tgbotapi.NewInlineQueryResultCachedAudio(object.ID, object.File.ID)
 			audio.Caption = object.File.Caption
