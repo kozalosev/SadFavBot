@@ -2,6 +2,8 @@ package repo
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/goSadTgBot/base"
@@ -26,8 +28,11 @@ func NewUserService(appenv *base.ApplicationEnv) *UserService {
 // Create a new user as a row in the database.
 // Returns false if the user was already saved there.
 func (service *UserService) Create(uid int64) (bool, error) {
-	res, err := service.db.Exec(service.ctx, "INSERT INTO Users(uid) VALUES ($1) ON CONFLICT DO NOTHING", uid)
-	return res.RowsAffected() > 0, err
+	if res, err := service.db.Exec(service.ctx, "INSERT INTO Users(uid) VALUES ($1) ON CONFLICT DO NOTHING", uid); err == nil {
+		return res.RowsAffected() > 0, nil
+	} else {
+		return false, err
+	}
 }
 
 // FetchUserOptions from the database if they exist.
@@ -37,11 +42,13 @@ func (service *UserService) FetchUserOptions(uid int64, defaultLang string) (set
 		opts dto.UserOptions
 	)
 	if err := service.db.QueryRow(service.ctx, "SELECT language, substring_search FROM users WHERE uid = $1", uid).Scan(&lang, &opts.SubstrSearchEnabled); err != nil {
-		log.WithField(logconst.FieldService, "UserService").
-			WithField(logconst.FieldMethod, "FetchUserOptions").
-			WithField(logconst.FieldCalledObject, "Row").
-			WithField(logconst.FieldCalledMethod, "Scan").
-			Error(err)
+		if !errors.Is(err, pgx.ErrNoRows) {
+			log.WithField(logconst.FieldService, "UserService").
+				WithField(logconst.FieldMethod, "FetchUserOptions").
+				WithField(logconst.FieldCalledObject, "Row").
+				WithField(logconst.FieldCalledMethod, "Scan").
+				Error(err)
+		}
 		return settings.LangCode(defaultLang), &opts
 	} else if lang != nil && len(*lang) > 0 {
 		return settings.LangCode(*lang), &opts
