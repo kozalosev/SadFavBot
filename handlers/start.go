@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
@@ -9,6 +10,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 const (
@@ -19,6 +21,7 @@ const (
 type StartEmbeddedHandlers struct {
 	Language       *LanguageHandler
 	InstallPackage *InstallPackageHandler
+	Save           *SaveHandler
 }
 
 type StartHandler struct {
@@ -76,8 +79,18 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 
 	var installingPackage string
 	arg := msg.CommandArguments()
-	if err == nil && len(arg) > 0 && arg != DeepLinkStartParam {
-		installingPackage, err = handler.packageService.ResolveName(arg)
+	if err == nil && len(arg) > 0 {
+		if strings.HasPrefix(arg, DeepLinkSavePrefix) {
+			if alias, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(arg, DeepLinkSavePrefix)); err == nil {
+				w := wizard.NewWizard(handler.embeddedHandlers.Save, 2)
+				w.AddPrefilledField(FieldAlias, string(alias))
+				w.AddEmptyField(FieldObject, wizard.Auto)
+				w.ProcessNextField(reqenv, msg)
+				return
+			}
+		} else {
+			installingPackage, err = handler.packageService.ResolveName(arg)
+		}
 	}
 
 	if err != nil {

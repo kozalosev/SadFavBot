@@ -140,13 +140,15 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler) {
 	languageHandler := handlers.NewLanguageHandler(appenv, stateStorage)
 	installPackageHandler := handlers.NewInstallPackageHandler(appenv, stateStorage)
+	saveHandler := handlers.NewSaveHandler(appenv, stateStorage)
 	startEmbeddedHandlers := handlers.StartEmbeddedHandlers{
 		Language:       languageHandler,
 		InstallPackage: installPackageHandler,
+		Save:           saveHandler,
 	}
 
 	messageHandlers = []base.MessageHandler{
-		handlers.NewSaveHandler(appenv, stateStorage),
+		saveHandler,
 		handlers.NewListHandler(appenv, stateStorage),
 		handlers.NewRefHandler(appenv, stateStorage),
 		handlers.NewDeleteHandler(appenv, stateStorage),

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kozalosev/SadFavBot/db/dto"
@@ -18,10 +19,15 @@ import (
 )
 
 const (
-	ErrorTitleTr       = "error"
-	EmptyQueryTr       = "inline.empty.query"
-	UnknownTypeTr      = "inline.errors.type.invalid"
-	DeepLinkStartParam = "-"
+	ErrorTitleTr  = "error"
+	UnknownTypeTr = "inline.errors.type.invalid"
+	EmptyQueryTr  = "inline.empty.query"
+	EmptyResultTr = "inline.empty.result"
+
+	DeepLinkSavePrefix = "save-"
+	DeepLinkStartParam = DeepLinkSavePrefix + "_"
+
+	DeepLinkMaxAliasBytes = 42 // 64 allowed bytes = 5 bytes of prefix + base64(21 general UTF-8 characters (2 bytes per each)), where 3 bytes are transformed into 4 bytes, + 3 spare bytes
 )
 
 var inlineAnswerCacheTime int
@@ -63,9 +69,17 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		offset := calculateOffset(query)
 		opts := reqenv.Options.(*dto.UserOptions)
 		if objects, err := handler.favService.Find(query.From.ID, query.Query, opts.SubstrSearchEnabled, offset); err == nil {
-			answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
 			if len(objects) > 0 {
+				answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
 				answer.NextOffset = strconv.Itoa(offset + len(objects))
+			} else if offset == 0 && len(query.Query) <= DeepLinkMaxAliasBytes {
+				answer.Button = &tgbotapi.InlineQueryResultsButton{
+					Text:       fmt.Sprintf(reqenv.Lang.Tr(EmptyResultTr), query.Query),
+					StartParam: DeepLinkSavePrefix + base64.RawURLEncoding.EncodeToString([]byte(query.Query)),
+				}
+				log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
+					WithField(logconst.FieldMethod, "Handle").
+					Debug("Answer.Button.StartParam:", answer.Button.StartParam)
 			}
 		} else {
 			log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
