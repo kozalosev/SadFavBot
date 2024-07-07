@@ -81,11 +81,13 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	arg := msg.CommandArguments()
 	if err == nil && len(arg) > 0 {
 		if strings.HasPrefix(arg, DeepLinkSavePrefix) {
-			if alias, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(arg, DeepLinkSavePrefix)); err == nil {
-				w := wizard.NewWizard(handler.embeddedHandlers.Save, 2)
-				w.AddPrefilledField(FieldAlias, string(alias))
-				w.AddEmptyField(FieldObject, wizard.Auto)
-				w.ProcessNextField(reqenv, msg)
+			var alias []byte
+			if arg == DeepLinkStartParamEmpty {
+				handler.runWizardToSave(reqenv, msg, nil)
+				return
+			} else if alias, err = base64.RawURLEncoding.DecodeString(strings.TrimPrefix(arg, DeepLinkSavePrefix)); err == nil {
+				a := string(alias)
+				handler.runWizardToSave(reqenv, msg, &a)
 				return
 			}
 		} else {
@@ -108,6 +110,17 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	} else {
 		help.SendHelpMessage(handler.appenv, reqenv.Lang, msg)
 	}
+}
+
+func (handler *StartHandler) runWizardToSave(reqenv *base.RequestEnv, msg *tgbotapi.Message, alias *string) {
+	w := wizard.NewWizard(handler.embeddedHandlers.Save, 2)
+	if alias == nil {
+		w.AddEmptyField(FieldAlias, wizard.Text)
+	} else {
+		w.AddPrefilledField(FieldAlias, *alias)
+	}
+	w.AddEmptyField(FieldObject, wizard.Auto)
+	w.ProcessNextField(reqenv, msg)
 }
 
 func (handler *StartHandler) runWizardForInstallation(reqenv *base.RequestEnv, msg *tgbotapi.Message, pkgName string) {

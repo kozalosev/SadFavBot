@@ -24,8 +24,8 @@ const (
 	EmptyQueryTr  = "inline.empty.query"
 	EmptyResultTr = "inline.empty.result"
 
-	DeepLinkSavePrefix = "save-"
-	DeepLinkStartParam = DeepLinkSavePrefix + "_"
+	DeepLinkSavePrefix      = "save-"
+	DeepLinkStartParamEmpty = DeepLinkSavePrefix + "_"
 
 	DeepLinkMaxAliasBytes = 42 // 64 allowed bytes = 5 bytes of prefix + base64(21 general UTF-8 characters (2 bytes per each)), where 3 bytes are transformed into 4 bytes, + 3 spare bytes
 )
@@ -91,7 +91,7 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 	} else {
 		answer.Button = &tgbotapi.InlineQueryResultsButton{
 			Text:       reqenv.Lang.Tr(EmptyQueryTr),
-			StartParam: DeepLinkStartParam,
+			StartParam: DeepLinkStartParamEmpty,
 		}
 	}
 	if err := handler.appenv.Bot.Request(answer); err != nil {
