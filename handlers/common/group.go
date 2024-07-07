@@ -13,3 +13,7 @@ type GroupCommandTrait struct{}
 func (*GroupCommandTrait) isGroupCommand() bool {
 	return true
 }
+
+func (*GroupCommandTrait) GetScopes() []base.CommandScope {
+	return CommandScopePrivateAndGroupChats
+}

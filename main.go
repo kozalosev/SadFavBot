@@ -8,6 +8,7 @@ import (
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers"
 	"github.com/kozalosev/SadFavBot/handlers/help"
+	"github.com/kozalosev/SadFavBot/handlers/privacy"
 	"github.com/kozalosev/goSadTgBot/app"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -155,6 +156,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 		installPackageHandler,
 		handlers.NewStartHandler(appenv, stateStorage, startEmbeddedHandlers),
 		help.NewCommandHandler(appenv),
+		privacy.NewPrivacyHandler(appenv),
 		handlers.NewCancelHandler(appenv, stateStorage),
 		languageHandler,
 		handlers.NewLinkHandler(appenv, stateStorage),

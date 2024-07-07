@@ -88,10 +88,6 @@ func (*SaveHandler) GetCommands() []string {
 	return saveCommands
 }
 
-func (*SaveHandler) GetScopes() []base.CommandScope {
-	return common.CommandScopePrivateAndGroupChats
-}
-
 func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	wizardForm := wizard.NewWizard(handler, 2)
 	title := msg.CommandArguments()

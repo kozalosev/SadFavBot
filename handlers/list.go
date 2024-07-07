@@ -73,10 +73,6 @@ func (*ListHandler) GetCommands() []string {
 	return listCommands
 }
 
-func (*ListHandler) GetScopes() []base.CommandScope {
-	return common.CommandScopePrivateAndGroupChats
-}
-
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	arg := strings.ToLower(msg.CommandArguments())

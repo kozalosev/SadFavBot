@@ -19,6 +19,7 @@ Commands
 --------
 
 * `/help` — prints help message
+* `/privacy` — prints Privacy Policy detailing what data we store
 * `/save` — starts a wizard that helps you store a meme associated with some textual alias
 * `/link` — starts a wizard that helps you link another phrase to the already existing alias
 * `/rmlink` — starts a wizard that helps you remove the link created by the previous command

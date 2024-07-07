@@ -96,10 +96,6 @@ func (*DeleteHandler) GetCommands() []string {
 	return deleteCommands
 }
 
-func (*DeleteHandler) GetScopes() []base.CommandScope {
-	return common.CommandScopePrivateAndGroupChats
-}
-
 func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 3)
 	arg := msg.CommandArguments()

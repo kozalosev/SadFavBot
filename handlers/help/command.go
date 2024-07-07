@@ -36,10 +36,6 @@ func (*CommandHandler) GetCommands() []string {
 	return helpCommands
 }
 
-func (*CommandHandler) GetScopes() []base.CommandScope {
-	return common.CommandScopePrivateAndGroupChats
-}
-
 func (handler *CommandHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	SendHelpMessage(handler.appenv, reqenv.Lang, msg)
 }

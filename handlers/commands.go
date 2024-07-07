@@ -5,7 +5,8 @@ package handlers
 var (
 	cancelCommands = []string{"cancel"}
 	deleteCommands = []string{"delete", "del"}
-	// helpCommands	in handlers/help/command.go
+	// helpCommands	   in handlers/help/command.go
+	// privacyCommands in handlers/privacy/privacy.go
 	installCommands    = []string{"install"}
 	languageCommands   = []string{"language", "lang"}
 	linkCommands       = []string{"link", "ln"}

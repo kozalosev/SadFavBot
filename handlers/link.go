@@ -87,10 +87,6 @@ func (*LinkHandler) GetCommands() []string {
 	return linkCommands
 }
 
-func (*LinkHandler) GetScopes() []base.CommandScope {
-	return common.CommandScopePrivateAndGroupChats
-}
-
 func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	if name := msg.CommandArguments(); len(name) > 0 {

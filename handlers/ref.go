@@ -58,10 +58,6 @@ func (*RefHandler) GetCommands() []string {
 	return refCommands
 }
 
-func (*RefHandler) GetScopes() []base.CommandScope {
-	return common.CommandScopePrivateAndGroupChats
-}
-
 func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	if len(msg.CommandArguments()) > 0 {
 		alias := msg.CommandArguments()

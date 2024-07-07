@@ -73,10 +73,6 @@ func (*RemoveLinkHandler) GetCommands() []string {
 	return rmLinkCommands
 }
 
-func (*RemoveLinkHandler) GetScopes() []base.CommandScope {
-	return common.CommandScopePrivateAndGroupChats
-}
-
 func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	if name := msg.CommandArguments(); len(name) > 0 {
