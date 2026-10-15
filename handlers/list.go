@@ -2,16 +2,17 @@ package handlers
 
 import (
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"net/url"
+	"strings"
+	"unicode/utf8"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
-	"net/url"
-	"strings"
-	"unicode/utf8"
 )
 
 const (
@@ -122,10 +123,11 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "ListHandler").
-			WithField(logconst.FieldMethod, "listAction").
-			WithField(logconst.FieldCalledMethod, "ListWithCounts").
-			Error(err)
+		log.Error("Failed to call ListWithCounts",
+			logconst.FieldHandler, "ListHandler",
+			logconst.FieldMethod, "listAction",
+			logconst.FieldCalledMethod, "ListWithCounts",
+			logconst.FieldError, err)
 		replyWith(ListStatusFailure)
 	} else if len(page.Items) == 0 {
 		replyWith(noRowsTitle)
@@ -189,21 +191,20 @@ func (handler *ListPaginationCallbackHandler) GetCallbackPrefix() string {
 func (handler *ListPaginationCallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.CallbackQuery) {
 	data := strings.Split(strings.TrimPrefix(query.Data, callbackPrefix), ":")
 	answerWith := newAnswerer(handler.appenv, reqenv, query)
-	logTemplate := log.
-		WithField(logconst.FieldHandler, "ListPaginationCallbackHandler").
-		WithField(logconst.FieldMethod, "Handle")
+	logger := logconst.NewLoggerForHandler("ListPaginationCallbackHandler")
 
 	msg := query.Message
 	if msg == nil {
-		logTemplate.WithField(logconst.FieldObject, "query.Message").
-			Error("Message is nil")
+		logger.Use().Error("Message is nil",
+			logconst.FieldObject, "query.Message")
 		answerWith.err(ListStatusFailure)
 		return
 	}
 
 	if len(data) != 3 {
-		logTemplate.WithField(logconst.FieldObject, "CallbackQuery.Data").
-			Error("unexpected format of the callback data: " + query.Data)
+		logger.Use().Error("Unexpected format of the callback data",
+			logconst.FieldObject, "CallbackQuery.Data",
+			logconst.FieldQuery, query.Data)
 		answerWith.err(ListStatusFailure)
 		return
 	}
@@ -213,9 +214,10 @@ func (handler *ListPaginationCallbackHandler) Handle(reqenv *base.RequestEnv, qu
 	lastItem, err := url.QueryUnescape(data[2])
 
 	if err != nil {
-		logTemplate.WithField(logconst.FieldObject, "CallbackQuery.Data[2]").
-			WithField(logconst.FieldCalledFunc, "QueryUnescape").
-			Error(err)
+		logger.Use().Error("Failed to unescape the last item",
+			logconst.FieldObject, "CallbackQuery.Data[2]",
+			logconst.FieldCalledFunc, "QueryUnescape",
+			logconst.FieldError, err)
 		answerWith.err(ListStatusFailure)
 		return
 	}
@@ -232,14 +234,16 @@ func (handler *ListPaginationCallbackHandler) Handle(reqenv *base.RequestEnv, qu
 		page, err = handler.packageService.ListWithCounts(query.From.ID, lastItem)
 		successTitle = ListStatusSuccessPackages
 	default:
-		logTemplate.WithField(logconst.FieldObject, "favsOrPacks").
-			Error("unexpected value of the favsOrPackages field: " + favsOrPacks)
+		logger.Use().Error("Unexpected value of the favsOrPackages field",
+			logconst.FieldObject, "favsOrPacks",
+			"value", favsOrPacks)
 		answerWith.err(ListStatusFailure)
 		return
 	}
 	if err != nil {
-		logTemplate.WithField(logconst.FieldCalledMethod, "ListWithCounts").
-			Error(err)
+		logger.Use().Error("Failed to call ListWithCounts",
+			logconst.FieldCalledMethod, "ListWithCounts",
+			logconst.FieldError, err)
 		answerWith.err(ListStatusFailure)
 		return
 	}
@@ -254,10 +258,7 @@ func (handler *ListPaginationCallbackHandler) Handle(reqenv *base.RequestEnv, qu
 		editReq = tgbotapi.NewEditMessageText(msg.Chat.ID, msg.MessageID, text)
 	}
 	if err = handler.appenv.Bot.Request(editReq); err != nil {
-		logTemplate.
-			WithField(logconst.FieldCalledObject, "Bot").
-			WithField(logconst.FieldCalledMethod, "Request").
-			Error(err)
+		logger.LogFailedTelegramApiRequest(err)
 		answerWith.err(ListStatusFailure)
 	} else {
 		answerWith.ok()
@@ -281,11 +282,12 @@ func newAnswerer(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, query *tg
 func (a *answerer) ok() {
 	req := tgbotapi.CallbackConfig{CallbackQueryID: a.query.ID}
 	if err := a.appenv.Bot.Request(req); err != nil {
-		log.WithField(logconst.FieldObject, "list.answerer").
-			WithField(logconst.FieldMethod, "ok").
-			WithField(logconst.FieldCalledObject, "Bot").
-			WithField(logconst.FieldCalledMethod, "Request").
-			Error(err)
+		log.Error("Failed to execute a request to Telegram API",
+			logconst.FieldObject, "list.answerer",
+			logconst.FieldMethod, "ok",
+			logconst.FieldCalledObject, "Bot",
+			logconst.FieldCalledMethod, "Request",
+			logconst.FieldError, err)
 	}
 }
 
@@ -293,10 +295,11 @@ func (a *answerer) err(key string) {
 	err := a.reqenv.Lang.Tr(key)
 	req := tgbotapi.NewCallbackWithAlert(a.query.ID, err)
 	if err := a.appenv.Bot.Request(req); err != nil {
-		log.WithField(logconst.FieldObject, "list.answerer").
-			WithField(logconst.FieldMethod, "err").
-			WithField(logconst.FieldCalledObject, "Bot").
-			WithField(logconst.FieldCalledMethod, "Request").
-			Error(err)
+		log.Error("Failed to execute a request to Telegram API",
+			logconst.FieldObject, "list.answerer",
+			logconst.FieldMethod, "err",
+			logconst.FieldCalledObject, "Bot",
+			logconst.FieldCalledMethod, "Request",
+			logconst.FieldError, err)
 	}
 }

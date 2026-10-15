@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
 )
 
 func TestListActionFavs(t *testing.T) {

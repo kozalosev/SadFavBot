@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"testing"
+
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSaveFormAction(t *testing.T) {

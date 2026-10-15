@@ -3,13 +3,14 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -54,11 +55,12 @@ func (handler *AliasVisibilityHandler) GetWizardDescriptor() *wizard.FormDescrip
 	aliasField.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
 		aliases, err := handler.aliasService.ListForFavsOnly(msg.From.ID)
 		if err != nil {
-			log.WithField(logconst.FieldHandler, "AliasVisibilityHandler").
-				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
-				WithField(logconst.FieldCalledObject, "AliasService").
-				WithField(logconst.FieldCalledMethod, "ListForFavsOnly").
-				Error(err)
+			log.Error("Failed to call AliasService.ListForFavsOnly",
+				logconst.FieldHandler, "AliasVisibilityHandler",
+				logconst.FieldFunc, "ReplyKeyboardBuilder",
+				logconst.FieldCalledObject, "AliasService",
+				logconst.FieldCalledMethod, "ListForFavsOnly",
+				logconst.FieldError, err)
 		}
 		return aliases
 	}
@@ -112,9 +114,10 @@ func (handler *AliasVisibilityHandler) action(reqenv *base.RequestEnv, msg *tgbo
 	if errors.Is(err, repo.NoRowsWereAffected) {
 		reply(AliasVisibilityStatusNoRows)
 	} else if err != nil {
-		log.WithField(logconst.FieldHandler, "AliasVisibilityHandler").
-			WithField(logconst.FieldMethod, "action").
-			Error(err)
+		log.Error("Unexpected error",
+			logconst.FieldHandler, "AliasVisibilityHandler",
+			logconst.FieldMethod, "action",
+			logconst.FieldError, err)
 		reply(AliasVisibilityStatusFailure)
 	} else {
 		reply(StatusSuccess)

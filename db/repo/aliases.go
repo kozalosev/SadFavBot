@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	log "log/slog"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 var trimCountRegex = regexp.MustCompile("\\(\\d+\\)$")
@@ -23,9 +24,10 @@ var ResultsPerPage int
 
 func init() {
 	if parsed, err := strconv.Atoi(os.Getenv("RESULTS_PER_PAGE")); err != nil {
-		log.WithField(logconst.FieldFunc, "init").
-			WithField(logconst.FieldConst, "RESULTS_PER_PAGE").
-			Error(err)
+		log.Error("Failed to parse an environment variable",
+			logconst.FieldFunc, "init",
+			logconst.FieldConst, "RESULTS_PER_PAGE",
+			logconst.FieldError, err)
 		ResultsPerPage = 100 // default
 	} else {
 		ResultsPerPage = parsed
@@ -97,11 +99,7 @@ func (service *AliasService) ListWithCounts(uid int64, grep string, lastAlias st
 					aliases = append(aliases, fmt.Sprintf("%s (%d)", alias, *count))
 				}
 			} else {
-				log.WithField(logconst.FieldService, "AliasService").
-					WithField(logconst.FieldMethod, "ListWithCounts").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("AliasService", "ListWithCounts", err)
 			}
 		}
 		if len(aliases) > ResultsPerPage {
@@ -147,11 +145,7 @@ func (service *AliasService) ListForFavsOnly(uid int64) ([]string, error) {
 			if err := res.Scan(&alias); err == nil {
 				aliases = append(aliases, alias)
 			} else {
-				log.WithField(logconst.FieldService, "AliasService").
-					WithField(logconst.FieldMethod, "ListForFavsOnly").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("AliasService", "ListForFavsOnly", err)
 			}
 		}
 		return aliases, res.Err()
@@ -179,11 +173,7 @@ func (service *AliasService) ListByFile(uid int64, file *wizard.File) ([]string,
 		if err := res.Scan(&alias); err == nil {
 			aliases = append(aliases, alias)
 		} else {
-			log.WithField(logconst.FieldService, "AliasService").
-				WithField(logconst.FieldMethod, "ListByFile").
-				WithField(logconst.FieldCalledObject, "Rows").
-				WithField(logconst.FieldCalledMethod, "Scan").
-				Error(err)
+			logconst.LogFailToScanDatabaseRow("AliasService", "ListByFile", err)
 		}
 	}
 	return aliases, res.Err()
@@ -220,11 +210,7 @@ func (service *AliasService) ListByText(uid int64, text *wizard.Txt) ([]string, 
 		if err := res.Scan(&alias); err == nil {
 			aliases = append(aliases, alias)
 		} else {
-			log.WithField(logconst.FieldService, "AliasService").
-				WithField(logconst.FieldMethod, "ListByText").
-				WithField(logconst.FieldCalledObject, "Rows").
-				WithField(logconst.FieldCalledMethod, "Scan").
-				Error(err)
+			logconst.LogFailToScanDatabaseRow("AliasService", "ListByText", err)
 		}
 	}
 	return aliases, res.Err()
@@ -250,11 +236,7 @@ func (service *AliasService) ListByLocation(uid int64, loc *wizard.LocData) ([]s
 		if err := res.Scan(&alias); err == nil {
 			aliases = append(aliases, alias)
 		} else {
-			log.WithField(logconst.FieldService, "AliasService").
-				WithField(logconst.FieldMethod, "ListByLocation").
-				WithField(logconst.FieldCalledObject, "Rows").
-				WithField(logconst.FieldCalledMethod, "Scan").
-				Error(err)
+			logconst.LogFailToScanDatabaseRow("AliasService", "ListByLocation", err)
 		}
 	}
 	return aliases, res.Err()
@@ -278,25 +260,22 @@ func (service *AliasService) changeVisibility(uid int64, alias string, hidden bo
 		return err
 	} else if res.RowsAffected() < 1 {
 		return NoRowsWereAffected
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func trimCountSuffix(s string) string {
 	if indexes := trimCountRegex.FindStringIndex(s); indexes != nil {
 		return strings.TrimSpace(s[:indexes[0]])
-	} else {
-		return s
 	}
+	return s
 }
 
 func trimLinkSuffix(s string) string {
 	if i := strings.Index(s, "→"); i >= 0 {
 		return strings.TrimSpace(s[:i])
-	} else {
-		return s
 	}
+	return s
 }
 
 func trimSuffix(s string) string {

@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/settings"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
 
@@ -90,11 +91,12 @@ func (handler *LanguageHandler) languageFormAction(reqenv *base.RequestEnv, msg 
 func (handler *LanguageHandler) saveLangConfig(reqenv *base.RequestEnv, msg *tgbotapi.Message, language string) {
 	err := handler.userService.ChangeLanguage(msg.From.ID, settings.LangCode(langFlagToCode(language)))
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "LanguageHandler").
-			WithField(logconst.FieldMethod, "saveLangConfig").
-			WithField(logconst.FieldCalledObject, "UserService").
-			WithField(logconst.FieldCalledMethod, "ChangeLanguage").
-			Error(err)
+		log.Error("Failed to call UserService.ChangeLanguage",
+			logconst.FieldHandler, "LanguageHandler",
+			logconst.FieldMethod, "saveLangConfig",
+			logconst.FieldCalledObject, "UserService",
+			logconst.FieldCalledMethod, "ChangeLanguage",
+			logconst.FieldError, err)
 		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(LanguageStatusFailure))
 	} else {
 		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(SuccessTr))

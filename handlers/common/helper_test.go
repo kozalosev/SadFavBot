@@ -1,10 +1,11 @@
 package common
 
 import (
+	"testing"
+
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestExtractItemValues_File(t *testing.T) {

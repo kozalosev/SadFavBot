@@ -2,8 +2,16 @@ package main
 
 import (
 	"context"
+	log "log/slog"
+	"os"
+	"os/signal"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/go-redis/redis/v8"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers"
@@ -17,13 +25,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
-	"os"
-	"os/signal"
-	"strings"
-	"sync"
-	"syscall"
-	"time"
 )
 
 var (
@@ -71,8 +72,8 @@ func main() {
 	}
 
 	if wasPopulated := wizard.PopulateWizardDescriptors(messageHandlers); !wasPopulated {
-		log.WithField(logconst.FieldFunc, "main").
-			Warning("Wizard actions map already has been populated; skipping...")
+		log.Warn("Wizard actions map already has been populated; skipping...",
+			logconst.FieldFunc, "main")
 	}
 
 	var (
@@ -182,9 +183,10 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool) {
 	dbPool.Close()
 	if err := stateStorage.Close(); err != nil {
-		log.WithField(logconst.FieldFunc, "shutdown").
-			WithField(logconst.FieldCalledObject, "StateStorage").
-			WithField(logconst.FieldCalledMethod, "Close").
-			Error(err)
+		log.Error("Failed to call StateStorage.Close",
+			logconst.FieldFunc, "shutdown",
+			logconst.FieldCalledObject, "StateStorage",
+			logconst.FieldCalledMethod, "Close",
+			logconst.FieldError, err)
 	}
 }

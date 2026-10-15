@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,8 +15,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 var sqlEscaper = strings.NewReplacer(
@@ -72,11 +73,7 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool, offset i
 		)
 		err = rows.Scan(&row.ID, &row.Type, &fileID, &text, &entities, &latitude, &longitude)
 		if err != nil {
-			log.WithField(logconst.FieldService, "FavService").
-				WithField(logconst.FieldMethod, "Find").
-				WithField(logconst.FieldCalledObject, "Rows").
-				WithField(logconst.FieldCalledMethod, "Scan").
-				Error(err)
+			logconst.LogFailToScanDatabaseRow("FavService", "Find", err)
 			continue
 		}
 		if fileID != nil {
@@ -86,11 +83,12 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool, offset i
 				if entities != nil {
 					var dest []tgbotapi.MessageEntity
 					if err := json.Unmarshal([]byte(*entities), &dest); err != nil {
-						log.WithField(logconst.FieldService, "FavService").
-							WithField(logconst.FieldMethod, "Find").
-							WithField(logconst.FieldCalledObject, "File.Entities").
-							WithField(logconst.FieldCalledMethod, "Unmarshal").
-							Error(err)
+						log.Error("Failed to call File.Entities.Unmarshal",
+							logconst.FieldService, "FavService",
+							logconst.FieldMethod, "Find",
+							logconst.FieldCalledObject, "File.Entities",
+							logconst.FieldCalledMethod, "Unmarshal",
+							logconst.FieldError, err)
 						continue
 					}
 					row.File.Entities = dest
@@ -101,11 +99,12 @@ func (service *FavService) Find(uid int64, query string, bySubstr bool, offset i
 			if entities != nil {
 				var dest []tgbotapi.MessageEntity
 				if err := json.Unmarshal([]byte(*entities), &dest); err != nil {
-					log.WithField(logconst.FieldService, "FavService").
-						WithField(logconst.FieldMethod, "Find").
-						WithField(logconst.FieldCalledObject, "Text.Entities").
-						WithField(logconst.FieldCalledMethod, "Unmarshal").
-						Error(err)
+					log.Error("Failed to call Text.Entities.Unmarshal",
+						logconst.FieldService, "FavService",
+						logconst.FieldMethod, "Find",
+						logconst.FieldCalledObject, "Text.Entities",
+						logconst.FieldCalledMethod, "Unmarshal",
+						logconst.FieldError, err)
 					continue
 				}
 				row.Text.Entities = dest
@@ -138,11 +137,12 @@ func (service *FavService) Save(uid int64, alias string, fav *dto.Fav) (RowsAffe
 	}
 	if err != nil {
 		if err := tx.Rollback(service.ctx); err != nil {
-			log.WithField(logconst.FieldService, "FavService").
-				WithField(logconst.FieldMethod, "Save").
-				WithField(logconst.FieldCalledObject, "Tx").
-				WithField(logconst.FieldCalledMethod, "Rollback").
-				Error(err)
+			log.Error("Failed to rollback a transaction",
+				logconst.FieldService, "FavService",
+				logconst.FieldMethod, "Save",
+				logconst.FieldCalledObject, "Tx",
+				logconst.FieldCalledMethod, "Rollback",
+				logconst.FieldError, err)
 		}
 		return &res, err
 	}
@@ -151,9 +151,11 @@ func (service *FavService) Save(uid int64, alias string, fav *dto.Fav) (RowsAffe
 
 // DeleteByAlias deletes all the user's favs associated with alias.
 func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedAware, error) {
-	log.WithField(logconst.FieldService, "FavService").
-		WithField(logconst.FieldMethod, "DeleteByAlias").
-		Infof("Deletion of favs and/or links with uid '%d' and alias '%s'", uid, alias)
+	log.Info("Deletion of favs and/or links",
+		logconst.FieldService, "FavService",
+		logconst.FieldMethod, "DeleteByAlias",
+		"uid", uid,
+		"alias", alias)
 	var (
 		tx       pgx.Tx
 		res      pgconn.CommandTag
@@ -170,11 +172,12 @@ func (service *FavService) DeleteByAlias(uid int64, alias string) (RowsAffectedA
 		}
 		if err != nil {
 			if err := tx.Rollback(service.ctx); err != nil {
-				log.WithField(logconst.FieldService, "FavService").
-					WithField(logconst.FieldMethod, "DeleteByAlias").
-					WithField(logconst.FieldCalledObject, "Tx").
-					WithField(logconst.FieldCalledMethod, "Rollback").
-					Error(err)
+				log.Error("Failed to rollback a transaction",
+					logconst.FieldService, "FavService",
+					logconst.FieldMethod, "DeleteByAlias",
+					logconst.FieldCalledObject, "Tx",
+					logconst.FieldCalledMethod, "Rollback",
+					logconst.FieldError, err)
 			}
 		}
 	}
@@ -264,9 +267,13 @@ func (service *FavService) deleteByText(uid int64, alias string, text *wizard.Tx
 		return nil, err
 	}
 
-	log.WithField(logconst.FieldService, "FavService").
-		WithField(logconst.FieldMethod, "deleteByText").
-		Infof("Deletion of fav with uid '%d', alias '%s' and text '%s' with entities '%s'", uid, alias, text.Value, entities)
+	log.Info("Deletion of a textual fav",
+		logconst.FieldService, "FavService",
+		logconst.FieldMethod, "deleteByText",
+		"uid", uid,
+		"alias", alias,
+		"text", text.Value,
+		"entities", string(entities))
 	sql := "DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND text_id = (SELECT id FROM texts WHERE text = $3 AND entities = $4)"
 	rowsAware, err := service.db.Exec(service.ctx, sql, uid, alias, text.Value, entities)
 	if err == nil && rowsAware.RowsAffected() == 0 {
@@ -276,9 +283,9 @@ func (service *FavService) deleteByText(uid int64, alias string, text *wizard.Tx
 		for _, entity := range text.Entities {
 			switch entity.Type {
 			case "url", "email", "phone_number", "mention", "hashtag", "cashtag", "bot_command":
-				log.WithField(logconst.FieldService, "FavService").
-					WithField(logconst.FieldMethod, "deleteByText").
-					Infof("Couldn't find the text for deletion; trying the workaround...")
+				log.Info("Couldn't find the text for deletion; trying the workaround...",
+					logconst.FieldService, "FavService",
+					logconst.FieldMethod, "deleteByText")
 				return service.db.Exec(service.ctx, sql, uid, alias, text.Value, []byte("null"))
 			}
 		}
@@ -287,18 +294,25 @@ func (service *FavService) deleteByText(uid int64, alias string, text *wizard.Tx
 }
 
 func (service *FavService) deleteByLocation(uid int64, alias string, location wizard.LocData) (RowsAffectedAware, error) {
-	log.WithField(logconst.FieldService, "FavService").
-		WithField(logconst.FieldMethod, "deleteByLocation").
-		Infof("Deletion of fav with uid '%d', alias '%s' and location (%f, %f)", uid, alias, location.Latitude, location.Longitude)
+	log.Info("Deletion of a location fav",
+		logconst.FieldService, "FavService",
+		logconst.FieldMethod, "deleteByLocation",
+		"uid", uid,
+		"alias", alias,
+		"latitude", location.Latitude,
+		"longitude", location.Longitude)
 	return service.db.Exec(service.ctx,
 		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND location_id = (SELECT id FROM locations WHERE latitude = $3 AND longitude = $4)",
 		uid, alias, location.Latitude, location.Longitude)
 }
 
 func (service *FavService) deleteByFileID(uid int64, alias string, file wizard.File) (RowsAffectedAware, error) {
-	log.WithField(logconst.FieldService, "FavService").
-		WithField(logconst.FieldMethod, "deleteByFileID").
-		Infof("Deletion of fav with uid '%d', alias '%s' and file_id '%s'", uid, alias, file.UniqueID)
+	log.Info("Deletion of a file fav",
+		logconst.FieldService, "FavService",
+		logconst.FieldMethod, "deleteByFileID",
+		"uid", uid,
+		"alias", alias,
+		"fileUniqueID", file.UniqueID)
 	return service.db.Exec(service.ctx,
 		"DELETE FROM favs WHERE uid = $1 AND alias_id = (SELECT id FROM aliases WHERE name = $2) AND file_unique_id = $3",
 		uid, alias, file.UniqueID)

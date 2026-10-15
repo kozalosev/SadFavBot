@@ -3,7 +3,10 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
@@ -12,9 +15,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"strings"
 )
 
 const (
@@ -70,11 +71,12 @@ func (handler *LinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	aliasField.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
 		aliases, err := handler.aliasService.ListForFavsOnly(msg.From.ID)
 		if err != nil {
-			log.WithField(logconst.FieldHandler, "LinkHandler").
-				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
-				WithField(logconst.FieldCalledObject, "AliasService").
-				WithField(logconst.FieldCalledMethod, "ListForFavsOnly").
-				Error(err)
+			log.Error("Failed to call AliasService.ListForFavsOnly",
+				logconst.FieldHandler, "LinkHandler",
+				logconst.FieldFunc, "ReplyKeyboardBuilder",
+				logconst.FieldCalledObject, "AliasService",
+				logconst.FieldCalledMethod, "ListForFavsOnly",
+				logconst.FieldError, err)
 		}
 		return aliases
 	}
@@ -136,11 +138,12 @@ func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 	} else if isAttemptToLinkNonExistingAlias(err) {
 		reply(LinkStatusNoAlias)
 	} else if err != nil {
-		log.WithField(logconst.FieldHandler, "LinkHandler").
-			WithField(logconst.FieldMethod, "linkAction").
-			WithField(logconst.FieldCalledObject, "LinkService").
-			WithField(logconst.FieldCalledMethod, "Create").
-			Error(err)
+		log.Error("Failed to call LinkService.Create",
+			logconst.FieldHandler, "LinkHandler",
+			logconst.FieldMethod, "linkAction",
+			logconst.FieldCalledObject, "LinkService",
+			logconst.FieldCalledMethod, "Create",
+			logconst.FieldError, err)
 		reply(LinkStatusFailure)
 	} else {
 		reply(LinkStatusSuccess)

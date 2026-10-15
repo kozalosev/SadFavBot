@@ -3,15 +3,16 @@ package help
 import (
 	_ "embed"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"os"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"os"
-	"strings"
 )
 
 const (
@@ -127,9 +128,10 @@ func (handler *CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.
 	helpKey := strings.TrimPrefix(query.Data, callbackDataPrefix)
 	var msg string
 	if msg, ok = messages[helpMessageKey(helpKey)]; !ok {
-		log.WithField(logconst.FieldHandler, "help.CallbackHandler").
-			WithField(logconst.FieldMethod, "Handle").
-			Error("Unexpected help key: ", helpKey)
+		log.Error("Unexpected help key",
+			logconst.FieldHandler, "help.CallbackHandler",
+			logconst.FieldMethod, "Handle",
+			"helpKey", helpKey)
 		msg = messages[startHelpMessage]
 	}
 
@@ -150,11 +152,12 @@ func (handler *CallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbotapi.
 		err = handler.sendAdditionalMessagesIfNeeded(reqenv, query.Message, &answer, helpMessageKey(helpKey))
 	}
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "help.CallbackHandler").
-			WithField(logconst.FieldMethod, "Handle").
-			WithField(logconst.FieldCalledObject, "BotAPI").
-			WithField(logconst.FieldCalledMethod, "Request").
-			Error(err)
+		log.Error("Failed to execute a request to Telegram API",
+			logconst.FieldHandler, "help.CallbackHandler",
+			logconst.FieldMethod, "Handle",
+			logconst.FieldCalledObject, "BotAPI",
+			logconst.FieldCalledMethod, "Request",
+			logconst.FieldError, err)
 	}
 }
 
@@ -217,7 +220,6 @@ func testHelpMessagesEquality(m1, m2 *string) bool {
 		return m1Short[:32] == m2Short[:32]
 	} else if len(m1Short) <= 32 && len(m2Short) <= 32 {
 		return m1Short == m2Short
-	} else {
-		return false
 	}
+	return false
 }

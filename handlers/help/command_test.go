@@ -2,11 +2,12 @@ package help
 
 import (
 	"context"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"testing"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestHelpCommand(t *testing.T) {

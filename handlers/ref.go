@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 const (
@@ -65,11 +66,12 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 
 		replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 		if err != nil {
-			log.WithField(logconst.FieldHandler, "RefHandler").
-				WithField(logconst.FieldMethod, "Handle").
-				WithField(logconst.FieldCalledObject, "PackageService").
-				WithField(logconst.FieldCalledMethod, "FindByAliases").
-				Error(err)
+			log.Error("Failed to call PackageService.FindByAliases",
+				logconst.FieldHandler, "RefHandler",
+				logconst.FieldMethod, "Handle",
+				logconst.FieldCalledObject, "PackageService",
+				logconst.FieldCalledMethod, "FindByAliases",
+				logconst.FieldError, err)
 			replyWith(RefStatusFailure)
 		} else if len(packages) == 0 {
 			replyWith(RefStatusNoPacks)
@@ -115,10 +117,11 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "RefHandler").
-			WithField(logconst.FieldMethod, "refAction").
-			WithField(logconst.FieldCalledObject, "AliasService").
-			Error(err)
+		log.Error("Failed to call AliasService",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction",
+			logconst.FieldCalledObject, "AliasService",
+			logconst.FieldError, err)
 		replyWith(RefStatusFailure)
 		return
 	} else if len(aliases) == 0 {
@@ -134,11 +137,12 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		title := reqenv.Lang.Tr(RefStatusSuccessWithPackages)
 		text += "\n\n" + title + "\n\n" + buildPackagesList(packages)
 	} else if err != nil {
-		log.WithField(logconst.FieldHandler, "RefHandler").
-			WithField(logconst.FieldMethod, "refAction").
-			WithField(logconst.FieldCalledObject, "PackageService").
-			WithField(logconst.FieldCalledMethod, "FindByAliases").
-			Error(err)
+		log.Error("Failed to call PackageService.FindByAliases",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction",
+			logconst.FieldCalledObject, "PackageService",
+			logconst.FieldCalledMethod, "FindByAliases",
+			logconst.FieldError, err)
 	}
 
 	common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)

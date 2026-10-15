@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestPackageAction(t *testing.T) {

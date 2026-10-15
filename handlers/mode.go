@@ -1,15 +1,16 @@
 package handlers
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 const (
@@ -95,11 +96,12 @@ func (handler *SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg 
 
 	reply := base.NewReplier(handler.appenv, reqenv, msg)
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "SearchModeHandler").
-			WithField(logconst.FieldMethod, "searchModeAction").
-			WithField(logconst.FieldCalledObject, "UserService").
-			WithField(logconst.FieldCalledMethod, "ChangeSubstringMode").
-			Error(err)
+		log.Error("Failed to call UserService.ChangeSubstringMode",
+			logconst.FieldHandler, "SearchModeHandler",
+			logconst.FieldMethod, "searchModeAction",
+			logconst.FieldCalledObject, "UserService",
+			logconst.FieldCalledMethod, "ChangeSubstringMode",
+			logconst.FieldError, err)
 		reply(ModeStatusFailure)
 	} else {
 		reply(ModeStatusSuccess)

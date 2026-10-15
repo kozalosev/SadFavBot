@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"encoding/base64"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 const (
@@ -96,9 +97,10 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	}
 
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "StartHandler").
-			WithField(logconst.FieldMethod, "Handle").
-			Error(err)
+		log.Error("Unexpected error",
+			logconst.FieldHandler, "StartHandler",
+			logconst.FieldMethod, "Handle",
+			logconst.FieldError, err)
 		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(StartStatusFailure))
 	} else if wasCreated {
 		w := wizard.NewWizard(handler, 2)

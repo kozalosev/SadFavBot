@@ -1,7 +1,11 @@
 package handlers
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"reflect"
+	"strconv"
+	"testing"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/test"
@@ -9,9 +13,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
-	"reflect"
-	"strconv"
-	"testing"
 )
 
 func TestMapper(t *testing.T) {

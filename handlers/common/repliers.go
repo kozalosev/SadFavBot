@@ -1,11 +1,12 @@
 package common
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"time"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
-	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func PossiblySelfDestroyingReplier(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
@@ -37,9 +38,8 @@ func SingleRowInlineKeyboardCustomizer(buttons []tgbotapi.InlineKeyboardButton) 
 				tgbotapi.NewInlineKeyboardRow(buttons...),
 			)
 		}
-	} else {
-		return base.NoOpCustomizer
 	}
+	return base.NoOpCustomizer
 }
 
 func replyDestroyingImpl(bot base.ExtendedBotAPI, srcMsg *tgbotapi.Message, msgToSend tgbotapi.MessageConfig) {
@@ -49,14 +49,16 @@ func replyDestroyingImpl(bot base.ExtendedBotAPI, srcMsg *tgbotapi.Message, msgT
 		go func() {
 			time.Sleep(selfDeletionDelay)
 			if err := bot.Request(tgbotapi.NewDeleteMessage(sentMsg.Chat.ID, sentMsg.MessageID)); err != nil {
-				log.WithField(logconst.FieldFunc, "replyDestroyingImpl").
-					Error("Couldn't delete a self-destroying message", err)
+				log.Error("Couldn't delete a self-destroying message",
+					logconst.FieldFunc, "replyDestroyingImpl",
+					logconst.FieldError, err)
 			}
 		}()
 	} else {
-		log.WithField(logconst.FieldFunc, "replyDestroyingImpl").
-			WithField(logconst.FieldCalledObject, "ExtendedBotAPI").
-			WithField(logconst.FieldCalledMethod, "Send").
-			Error(err)
+		log.Error("Failed to call ExtendedBotAPI.Send",
+			logconst.FieldFunc, "replyDestroyingImpl",
+			logconst.FieldCalledObject, "ExtendedBotAPI",
+			logconst.FieldCalledMethod, "Send",
+			logconst.FieldError, err)
 	}
 }

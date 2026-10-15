@@ -3,7 +3,10 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
@@ -11,8 +14,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 const (
@@ -75,7 +76,7 @@ func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		}
 		for _, entity := range msg.Entities {
 			if len(entity.CustomEmojiID) > 0 {
-				return errors.New(fmt.Sprintf(lc.Tr(SaveObjectValidationErrorCustomEmoji)))
+				return errors.New(lc.Tr(SaveObjectValidationErrorCustomEmoji))
 			}
 		}
 		return nil
@@ -132,11 +133,12 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 		if storage.DuplicateConstraintViolation(err) {
 			replyWith(SaveStatusDuplicate)
 		} else {
-			log.WithField(logconst.FieldHandler, "SaveHandler").
-				WithField(logconst.FieldMethod, "saveFormAction").
-				WithField(logconst.FieldCalledObject, "FavService").
-				WithField(logconst.FieldCalledMethod, "Save").
-				Error(err)
+			log.Error("Failed to call FavService.Save",
+				logconst.FieldHandler, "SaveHandler",
+				logconst.FieldMethod, "saveFormAction",
+				logconst.FieldCalledObject, "FavService",
+				logconst.FieldCalledMethod, "Save",
+				logconst.FieldError, err)
 			replyWith(SaveStatusFailure)
 		}
 	} else {
@@ -144,9 +146,9 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), common.MarkdownEscaper.Replace(alias))
 			common.ReplyPossiblySelfDestroying(handler.appenv, msg, answer, base.MarkdownCustomizer)
 		} else {
-			log.WithField(logconst.FieldHandler, "SaveHandler").
-				WithField(logconst.FieldMethod, "saveFormAction").
-				Warning("No rows were affected!")
+			log.Warn("No rows were affected!",
+				logconst.FieldHandler, "SaveHandler",
+				logconst.FieldMethod, "saveFormAction")
 			replyWith(SaveStatusFailure)
 		}
 	}
@@ -156,7 +158,6 @@ func verifyNoReservedSymbols(text string, lc *loc.Context, errTemplateName strin
 	if strings.ContainsAny(text, ReservedSymbols) {
 		template := lc.Tr(errTemplateName)
 		return errors.New(fmt.Sprintf(template, ReservedSymbolsForMessage))
-	} else {
-		return nil
 	}
+	return nil
 }

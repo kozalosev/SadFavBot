@@ -2,11 +2,12 @@ package help
 
 import (
 	_ "embed"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/loctools/go-l10n/loc"
-	"strings"
 )
 
 const ruCode = "ru"

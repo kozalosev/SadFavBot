@@ -3,19 +3,20 @@ package handlers
 import (
 	"encoding/base64"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"os"
+	"strconv"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"os"
-	"strconv"
 )
 
 const (
@@ -34,9 +35,10 @@ var inlineAnswerCacheTime int
 
 func init() {
 	if cacheTime, err := strconv.Atoi(os.Getenv("INLINE_CACHE_TIME")); err != nil {
-		log.WithField(logconst.FieldFunc, "init").
-			WithField(logconst.FieldConst, "INLINE_CACHE_TIME").
-			Error(err)
+		log.Error("Failed to parse an environment variable",
+			logconst.FieldFunc, "init",
+			logconst.FieldConst, "INLINE_CACHE_TIME",
+			logconst.FieldError, err)
 		inlineAnswerCacheTime = 300 // default
 	} else {
 		inlineAnswerCacheTime = cacheTime
@@ -77,16 +79,18 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 					Text:       fmt.Sprintf(reqenv.Lang.Tr(EmptyResultTr), query.Query),
 					StartParam: DeepLinkSavePrefix + base64.RawURLEncoding.EncodeToString([]byte(query.Query)),
 				}
-				log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
-					WithField(logconst.FieldMethod, "Handle").
-					Debug("Answer.Button.StartParam:", answer.Button.StartParam)
+				log.Debug("A deep-linked button was added to the answer",
+					logconst.FieldHandler, "GetFavoritesInlineHandler",
+					logconst.FieldMethod, "Handle",
+					"startParam", answer.Button.StartParam)
 			}
 		} else {
-			log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
-				WithField(logconst.FieldMethod, "Handle").
-				WithField(logconst.FieldCalledObject, "FavService").
-				WithField(logconst.FieldCalledMethod, "Find").
-				Error(err)
+			log.Error("Failed to call FavService.Find",
+				logconst.FieldHandler, "GetFavoritesInlineHandler",
+				logconst.FieldMethod, "Handle",
+				logconst.FieldCalledObject, "FavService",
+				logconst.FieldCalledMethod, "Find",
+				logconst.FieldError, err)
 		}
 	} else {
 		answer.Button = &tgbotapi.InlineQueryResultsButton{
@@ -95,11 +99,8 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		}
 	}
 	if err := handler.appenv.Bot.Request(answer); err != nil {
-		log.WithField(logconst.FieldHandler, "GetFavoritesInlineHandler").
-			WithField(logconst.FieldMethod, "Handle").
-			WithField(logconst.FieldCalledObject, "BotAPI").
-			WithField(logconst.FieldCalledMethod, "Request").
-			Error("Telegram Bot API request error: ", err)
+		logconst.NewLoggerForHandler("GetFavoritesInlineHandler").
+			LogFailedTelegramApiRequest(err)
 	}
 }
 
@@ -153,8 +154,9 @@ func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
 		case wizard.Location:
 			return tgbotapi.NewInlineQueryResultLocation(object.ID, caser.String(lc.Tr("location")), object.Location.Latitude, object.Location.Longitude)
 		default:
-			log.WithField(logconst.FieldFunc, "generateMapper").
-				Warning("Unsupported type: ", object)
+			log.Warn("Unsupported type",
+				logconst.FieldFunc, "generateMapper",
+				logconst.FieldObject, fmt.Sprintf("%+v", object))
 			return tgbotapi.NewInlineQueryResultArticle(object.ID, lc.Tr(ErrorTitleTr), lc.Tr(UnknownTypeTr))
 		}
 	}
@@ -164,8 +166,9 @@ func calculateOffset(query *tgbotapi.InlineQuery) (offset int) {
 	if len(query.Offset) > 0 {
 		var err error
 		if offset, err = strconv.Atoi(query.Offset); err != nil {
-			log.WithField(logconst.FieldFunc, "calculateOffset").
-				Error(fmt.Errorf("InlineQuery.Offset must be an integer! %w", err))
+			log.Error("InlineQuery.Offset must be an integer!",
+				logconst.FieldFunc, "calculateOffset",
+				logconst.FieldError, err)
 		}
 	}
 	return
