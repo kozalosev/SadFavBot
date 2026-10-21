@@ -95,7 +95,7 @@ func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 
 func (handler *RemoveLinkHandler) rmLinkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	name := fields.FindField(FieldName).Data.(wizard.Txt).Value
+	name := common.TextValue(fields, FieldName)
 
 	err := handler.linkService.Delete(uid, name)
 

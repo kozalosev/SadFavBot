@@ -2,6 +2,7 @@ package handlers
 
 import (
 	log "log/slog"
+	"slices"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
@@ -10,7 +11,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/settings"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -83,7 +83,7 @@ func (handler *LanguageHandler) languageFormAction(reqenv *base.RequestEnv, msg 
 	if slices.Contains(supportedLangCodes, msg.Text) {
 		lang = msg.Text
 	} else {
-		lang = fields.FindField(FieldLanguage).Data.(wizard.Txt).Value
+		lang = common.TextValue(fields, FieldLanguage)
 	}
 	handler.saveLangConfig(reqenv, msg, lang)
 }

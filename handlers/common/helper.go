@@ -43,67 +43,69 @@ func init() {
 	selfDeletionDelay = time.Duration(delay) * time.Second
 }
 
-func ExtractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
-	aliasField := fields.FindField(FieldAlias)
-	objectField := fields.FindField(FieldObject)
+// TextValue returns the text value of the field, or an empty string if there is no such field or its value is not text.
+func TextValue(fields wizard.Fields, name string) string {
+	txt, _ := wizard.FieldData[wizard.Txt](fields, name)
+	return txt.Value
+}
 
-	var alias string
-	if a, ok := aliasField.Data.(wizard.Txt); ok {
-		alias = a.Value
-	} else {
-		log.Error("Invalid type for alias",
-			logconst.FieldFunc, "extractFavInfo",
-			"type", fmt.Sprintf("%T", aliasField),
-			"value", fmt.Sprintf("%+v", aliasField))
+func ExtractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
+	alias, ok := getDataOrLog[wizard.Txt](fields.FindField(FieldAlias))
+	if !ok {
 		return "", nil
 	}
 
-	if objectField.Data == nil {
-		return alias, &dto.Fav{}
+	objectField := fields.FindField(FieldObject)
+	if objectField == nil || objectField.Data == nil {
+		return alias.Value, &dto.Fav{}
 	}
 
 	var (
 		text     wizard.Txt
 		file     wizard.File
 		location wizard.LocData
-		ok       bool
 	)
 	switch objectField.Type {
 	case wizard.Text:
-		text, ok = objectField.Data.(wizard.Txt)
-		if !ok {
-			log.Error("Invalid type: string was expected",
-				logconst.FieldFunc, "extractFavInfo",
-				"type", fmt.Sprintf("%T", objectField.Data),
-				"value", fmt.Sprintf("%+v", objectField.Data))
+		if text, ok = getDataOrLog[wizard.Txt](objectField); !ok {
 			return "", nil
 		}
 	case wizard.Location:
-		location, ok = objectField.Data.(wizard.LocData)
-		if !ok {
-			log.Error("Invalid type: LocData was expected",
-				logconst.FieldFunc, "extractFavInfo",
-				"type", fmt.Sprintf("%T", objectField.Data),
-				"value", fmt.Sprintf("%+v", objectField.Data))
+		if location, ok = getDataOrLog[wizard.LocData](objectField); !ok {
 			return "", nil
 		}
 	default:
-		file, ok = objectField.Data.(wizard.File)
-		if !ok {
-			log.Error("Invalid type: File was expected",
-				logconst.FieldFunc, "extractFavInfo",
-				"type", fmt.Sprintf("%T", objectField.Data),
-				"value", fmt.Sprintf("%+v", objectField.Data))
+		if file, ok = getDataOrLog[wizard.File](objectField); !ok {
 			return "", nil
 		}
 	}
 
-	return alias, &dto.Fav{
+	return alias.Value, &dto.Fav{
 		Type:     objectField.Type,
 		Text:     &text,
 		File:     &file,
 		Location: &location,
 	}
+}
+
+func getDataOrLog[T any](field *wizard.Field) (T, bool) {
+	data, ok := wizard.GetData[T](field)
+	if !ok {
+		logInvalidFieldType[T](field)
+	}
+	return data, ok
+}
+
+func logInvalidFieldType[Expected any](field *wizard.Field) {
+	var data any
+	if field != nil {
+		data = field.Data
+	}
+	log.Error("Invalid type of the field value",
+		logconst.FieldFunc, "ExtractFavInfo",
+		"expectedType", fmt.Sprintf("%T", *new(Expected)),
+		"type", fmt.Sprintf("%T", data),
+		logconst.FieldValue, data)
 }
 
 func IsGroup(chat *tgbotapi.Chat) bool {

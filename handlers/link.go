@@ -125,8 +125,8 @@ func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 
 func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	name := fields.FindField(FieldName).Data.(wizard.Txt).Value
-	refAlias := fields.FindField(FieldAlias).Data.(wizard.Txt).Value
+	name := common.TextValue(fields, FieldName)
+	refAlias := common.TextValue(fields, FieldAlias)
 
 	err := handler.linkService.Create(uid, name, refAlias)
 

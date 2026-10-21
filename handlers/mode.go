@@ -80,9 +80,9 @@ func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 
 	w := wizard.NewWizard(handler, 1)
 	if arg := strings.ToLower(msg.CommandArguments()); arg == "true" || arg == "1" {
-		w.AddPrefilledField(FieldSubstrSearchEnabled, true)
+		w.AddPrefilledField(FieldSubstrSearchEnabled, Yes)
 	} else if arg == "false" || arg == "0" {
-		w.AddPrefilledField(FieldSubstrSearchEnabled, false)
+		w.AddPrefilledField(FieldSubstrSearchEnabled, No)
 	} else {
 		w.AddEmptyField(FieldSubstrSearchEnabled, wizard.Text)
 	}
@@ -90,7 +90,7 @@ func (handler *SearchModeHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 }
 
 func (handler *SearchModeHandler) searchModeAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	substrSearchEnabled := fields.FindField(FieldSubstrSearchEnabled).Data.(wizard.Txt).Value == Yes
+	substrSearchEnabled := common.TextValue(fields, FieldSubstrSearchEnabled) == Yes
 
 	err := handler.userService.ChangeSubstringMode(msg.From.ID, substrSearchEnabled)
 

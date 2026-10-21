@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	log "log/slog"
 	"strings"
 
@@ -97,26 +98,44 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	w.ProcessNextField(reqenv, msg)
 }
 
+var errInvalidObjectType = errors.New("invalid type of the object field value")
+
 func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	var (
 		aliases []string
 		err     error
 	)
-	objField := fields.FindField(FieldObject)
-	switch objField.Type {
+	objectField := fields.FindField(FieldObject)
+	switch objectField.Type {
 	case wizard.Text:
-		txt := objField.Data.(wizard.Txt)
-		aliases, err = handler.aliasService.ListByText(msg.From.ID, &txt)
+		if txt, ok := wizard.GetData[wizard.Txt](objectField); ok {
+			aliases, err = handler.aliasService.ListByText(msg.From.ID, &txt)
+		} else {
+			err = errInvalidObjectType
+		}
 	case wizard.Location:
-		loc := objField.Data.(wizard.LocData)
-		aliases, err = handler.aliasService.ListByLocation(msg.From.ID, &loc)
+		if loc, ok := wizard.GetData[wizard.LocData](objectField); ok {
+			aliases, err = handler.aliasService.ListByLocation(msg.From.ID, &loc)
+		} else {
+			err = errInvalidObjectType
+		}
 	default:
-		file := objField.Data.(wizard.File)
-		aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
+		if file, ok := wizard.GetData[wizard.File](objectField); ok {
+			aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
+		} else {
+			err = errInvalidObjectType
+		}
 	}
 
 	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
-	if err != nil {
+	if errors.Is(err, errInvalidObjectType) {
+		log.Error("Invalid type of the object field value",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction",
+			logconst.FieldValue, objectField.Data)
+		replyWith(RefStatusFailure)
+		return
+	} else if err != nil {
 		log.Error("Failed to call AliasService",
 			logconst.FieldHandler, "RefHandler",
 			logconst.FieldMethod, "refAction",

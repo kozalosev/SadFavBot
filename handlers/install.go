@@ -119,8 +119,8 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 }
 
 func (handler *InstallPackageHandler) installPackageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	if fields.FindField(FieldConfirmation).Data.(wizard.Txt).Value == Yes {
-		name := fields.FindField(FieldName).Data.(wizard.Txt).Value
+	if common.TextValue(fields, FieldConfirmation) == Yes {
+		name := common.TextValue(fields, FieldName)
 		handler.installPackageWithMessageHandling(reqenv, msg, name)
 	}
 }

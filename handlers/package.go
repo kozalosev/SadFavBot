@@ -157,8 +157,8 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 
 func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	intent := fields.FindField(FieldCreateOrDelete).Data.(wizard.Txt).Value
-	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(wizard.Txt).Value, " ", "-")
+	intent := common.TextValue(fields, FieldCreateOrDelete)
+	name := strings.ReplaceAll(common.TextValue(fields, FieldName), " ", "-")
 
 	var (
 		packID string
@@ -167,7 +167,7 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	if intent == Delete {
 		err = handler.packageService.Delete(uid, name)
 	} else {
-		aliasesStr := fields.FindField(FieldAliases).Data.(wizard.Txt).Value
+		aliasesStr := common.TextValue(fields, FieldAliases)
 		aliases := strings.Split(aliasesStr, "\n")
 		aliases = funk.Map(aliases, func(a string) string {
 			return strings.TrimPrefix(a, LinePrefix)
