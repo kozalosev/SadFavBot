@@ -2,7 +2,9 @@ package test
 
 import (
 	"context"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"testing"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/db/dto"
@@ -10,7 +12,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var ctx = context.Background()
@@ -108,13 +109,10 @@ func BuildInlineQuery() *tgbotapi.InlineQuery {
 	}
 }
 
-func NewTextField(name string, data interface{}) *wizard.Field {
-	if dataStr, isStr := data.(string); isStr {
-		data = wizard.Txt{Value: dataStr}
-	}
+func NewTextField(name string, data string) *wizard.Field {
 	return &wizard.Field{
 		Type: wizard.Text,
 		Name: name,
-		Data: data,
+		Data: wizard.Txt{Value: data},
 	}
 }

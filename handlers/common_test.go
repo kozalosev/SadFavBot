@@ -9,7 +9,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -58,7 +57,7 @@ func setup() {
 
 	host, err := container.Host(ctx)
 	containerPort, err := container.MappedPort(ctx, test.ExposedDBPort)
-	port := strings.TrimSuffix(string(containerPort), "/tcp")
+	port := containerPort.Port()
 
 	dbConfig := storage.NewDatabaseConfig(host, port, test.User, test.Password, test.DB)
 	db = storage.ConnectToDatabase(ctx, dbConfig)

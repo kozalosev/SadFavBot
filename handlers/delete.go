@@ -3,14 +3,15 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -64,11 +65,12 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	aliasDesc.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
 		aliases, err := handler.aliasService.List(msg.From.ID)
 		if err != nil {
-			log.WithField(logconst.FieldHandler, "DeleteHandler").
-				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
-				WithField(logconst.FieldCalledObject, "AliasService").
-				WithField(logconst.FieldCalledMethod, "List").
-				Error(err)
+			log.Error("Failed to call AliasService.List",
+				logconst.FieldHandler, "DeleteHandler",
+				logconst.FieldFunc, "ReplyKeyboardBuilder",
+				logconst.FieldCalledObject, "AliasService",
+				logconst.FieldCalledMethod, "List",
+				logconst.FieldError, err)
 		}
 		return aliases
 	}
@@ -85,7 +87,7 @@ func (handler *DeleteHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	objDesc.InlineKeyboardAnswers = []string{SelectObjectBtnTr}
 	objDesc.DisableKeyboardValidation = true
 	objDesc.InlineButtonCustomizer(SelectObjectBtnTr, func(btn *tgbotapi.InlineKeyboardButton, f *wizard.Field) {
-		query := f.Form.Fields.FindField(FieldAlias).Data.(wizard.Txt).Value
+		query := common.TextValue(f.Form.Fields, FieldAlias)
 		btn.SwitchInlineQueryCurrentChat = &query
 	})
 
@@ -101,13 +103,13 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	arg := msg.CommandArguments()
 
 	if len(arg) > 0 {
-		w.AddPrefilledField(FieldAlias, arg)
+		w.AddPrefilledText(FieldAlias, arg)
 	} else {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
 
 	if msg.ReplyToMessage != nil {
-		w.AddPrefilledField(FieldDeleteAll, No)
+		w.AddPrefilledText(FieldDeleteAll, No)
 		w.AddPrefilledAutoField(FieldObject, msg.ReplyToMessage)
 	} else {
 		w.AddEmptyField(FieldDeleteAll, wizard.Text)
@@ -133,9 +135,11 @@ func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgb
 	if data, ok := deleteAllField.(wizard.Txt); ok {
 		deleteAll = data.Value == Yes
 	} else {
-		log.WithField(logconst.FieldHandler, "DeleteHandler").
-			WithField(logconst.FieldMethod, "deleteFormAction").
-			Errorf("Invalid type of Data: %T %+v", deleteAllField, deleteAllField)
+		log.Error("Invalid type of Data",
+			logconst.FieldHandler, "DeleteHandler",
+			logconst.FieldMethod, "deleteFormAction",
+			"type", fmt.Sprintf("%T", deleteAllField),
+			"value", fmt.Sprintf("%+v", deleteAllField))
 		replyWith(DeleteStatusFailure)
 		return
 	}
@@ -157,10 +161,11 @@ func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgb
 	}
 
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "DeleteHandler").
-			WithField(logconst.FieldMethod, "deleteFormAction").
-			WithField(logconst.FieldCalledObject, "FavService").
-			Error(err)
+		log.Error("Failed to call FavService",
+			logconst.FieldHandler, "DeleteHandler",
+			logconst.FieldMethod, "deleteFormAction",
+			logconst.FieldCalledObject, "FavService",
+			logconst.FieldError, err)
 		replyWith(DeleteStatusFailure)
 	} else {
 		if res.RowsAffected() > 0 {

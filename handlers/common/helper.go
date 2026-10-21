@@ -1,16 +1,18 @@
 package common
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/kozalosev/SadFavBot/db/dto"
-	"github.com/kozalosev/goSadTgBot/base"
-	"github.com/kozalosev/goSadTgBot/logconst"
-	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
+	"fmt"
+	log "log/slog"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/kozalosev/goSadTgBot/wizard"
 )
 
 const (
@@ -31,68 +33,81 @@ var selfDeletionDelay time.Duration
 func init() {
 	var delay int64 = 60 // default
 	if d, err := strconv.ParseInt(os.Getenv("SELF_DELETION_DELAY_SECS"), 10, 64); err != nil {
-		log.WithField(logconst.FieldFunc, "init").
-			WithField(logconst.FieldConst, "selfDeletionDelay").
-			Error(err)
+		log.Error("Failed to parse an environment variable",
+			logconst.FieldFunc, "init",
+			logconst.FieldConst, "selfDeletionDelay",
+			logconst.FieldError, err)
 	} else {
 		delay = d
 	}
 	selfDeletionDelay = time.Duration(delay) * time.Second
 }
 
-func ExtractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
-	aliasField := fields.FindField(FieldAlias)
-	objectField := fields.FindField(FieldObject)
+// TextValue returns the text value of the field, or an empty string if there is no such field or its value is not text.
+func TextValue(fields wizard.Fields, name string) string {
+	txt, _ := wizard.GetData[wizard.Txt](fields, name)
+	return txt.Value
+}
 
-	var alias string
-	if a, ok := aliasField.Data.(wizard.Txt); ok {
-		alias = a.Value
-	} else {
-		log.WithField(logconst.FieldFunc, "extractFavInfo").
-			Errorf("Invalid type for alias: %T %+v", aliasField, aliasField)
+func ExtractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
+	alias, ok := getDataOrLog[wizard.Txt](fields.FindField(FieldAlias))
+	if !ok {
 		return "", nil
 	}
 
-	if objectField.Data == nil {
-		return alias, &dto.Fav{}
+	objectField := fields.FindField(FieldObject)
+	if objectField == nil || objectField.Data == nil {
+		return alias.Value, &dto.Fav{}
 	}
 
 	var (
 		text     wizard.Txt
 		file     wizard.File
 		location wizard.LocData
-		ok       bool
 	)
 	switch objectField.Type {
 	case wizard.Text:
-		text, ok = objectField.Data.(wizard.Txt)
-		if !ok {
-			log.WithField(logconst.FieldFunc, "extractFavInfo").
-				Errorf("Invalid type: string was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+		if text, ok = getDataOrLog[wizard.Txt](objectField); !ok {
 			return "", nil
 		}
 	case wizard.Location:
-		location, ok = objectField.Data.(wizard.LocData)
-		if !ok {
-			log.WithField(logconst.FieldFunc, "extractFavInfo").
-				Errorf("Invalid type: LocData was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+		if location, ok = getDataOrLog[wizard.LocData](objectField); !ok {
 			return "", nil
 		}
 	default:
-		file, ok = objectField.Data.(wizard.File)
-		if !ok {
-			log.WithField(logconst.FieldFunc, "extractFavInfo").
-				Errorf("Invalid type: File was expected but '%T %+v' is got", objectField.Data, objectField.Data)
+		if file, ok = getDataOrLog[wizard.File](objectField); !ok {
 			return "", nil
 		}
 	}
 
-	return alias, &dto.Fav{
+	return alias.Value, &dto.Fav{
 		Type:     objectField.Type,
 		Text:     &text,
 		File:     &file,
 		Location: &location,
 	}
+}
+
+func getDataOrLog[T wizard.Value](field *wizard.Field) (data T, ok bool) {
+	if field != nil {
+		data, ok = field.Data.(T)
+	}
+	if !ok {
+		logInvalidFieldType[T](field)
+	}
+	return data, ok
+}
+
+func logInvalidFieldType[Expected wizard.Value](field *wizard.Field) {
+	var data any
+	if field != nil {
+		data = field.Data
+	}
+	log.Error("Invalid type of the field value",
+		logconst.FieldFunc, "ExtractFavInfo",
+		"expectedType", fmt.Sprintf("%T", *new(Expected)),
+		"type", fmt.Sprintf("%T", data),
+		logconst.FieldValue, data)
 }
 
 func IsGroup(chat *tgbotapi.Chat) bool {

@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"strings"
 )
 
 var NoRowsWereAffected = errors.New("no rows were affected")
@@ -62,11 +62,7 @@ func (service *PackageService) ListWithCounts(uid int64, lastPackage string) (*P
 			if err = rows.Scan(&pkg, &count); err == nil {
 				packages = append(packages, fmt.Sprintf("%s (%d)", pkg, count))
 			} else {
-				log.WithField(logconst.FieldService, "PackageService").
-					WithField(logconst.FieldMethod, "ListWithCounts").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("PackageService", "ListWithCounts", err)
 			}
 		}
 		lines := funk.Map(packages, func(s string) string {
@@ -100,11 +96,7 @@ func (service *PackageService) ListAliases(pkgInfo *PackageInfo) (items []string
 			if err := res.Scan(&item); err == nil {
 				items = append(items, item)
 			} else {
-				log.WithField(logconst.FieldService, "PackageService").
-					WithField(logconst.FieldMethod, "ListAliases").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("PackageService", "ListAliases", err)
 			}
 		}
 		err = res.Err()
@@ -130,11 +122,7 @@ func (service *PackageService) FindByAliases(uid int64, aliases []string) (packa
 			if err := rows.Scan(&packageName); err == nil {
 				packageNames = append(packageNames, packageName)
 			} else {
-				log.WithField(logconst.FieldService, "PackageService").
-					WithField(logconst.FieldMethod, "FindByAlias").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("PackageService", "FindByAlias", err)
 			}
 		}
 	}
@@ -205,11 +193,7 @@ func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, 
 				if err = res.Scan(&aliasID); err == nil {
 					b.Queue("INSERT INTO package_aliases(package_id, alias_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", packID, aliasID)
 				} else {
-					log.WithField(logconst.FieldService, "PackageService").
-						WithField(logconst.FieldMethod, "createPackage").
-						WithField(logconst.FieldCalledObject, "Rows").
-						WithField(logconst.FieldCalledMethod, "Scan").
-						Error(err)
+					logconst.LogFailToScanDatabaseRow("PackageService", "createPackage", err)
 				}
 			}
 			batchRes := tx.SendBatch(service.ctx, &b)

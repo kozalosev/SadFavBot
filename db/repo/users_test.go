@@ -1,11 +1,12 @@
 package repo
 
 import (
+	"testing"
+
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/settings"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestFetchLanguage(t *testing.T) {

@@ -3,7 +3,10 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
@@ -11,9 +14,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"strings"
 )
 
 const (
@@ -75,17 +76,17 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 			if exists, err := handler.packageService.Exists(pkgInfo); err == nil {
 				if exists {
 					return []string{Recreate, Delete}
-				} else {
-					log.WithField(logconst.FieldHandler, "PackageHandler").
-						WithField(logconst.FieldMethod, "GetWizardDescriptor").
-						Warning("Unexpected case when a package doesn't exist but createOrDelete was requested")
-					return []string{Create}
 				}
+				log.Warn("Unexpected case when a package doesn't exist but createOrDelete was requested",
+					logconst.FieldHandler, "PackageHandler",
+					logconst.FieldMethod, "GetWizardDescriptor")
+				return []string{Create}
 			} else {
-				log.WithField(logconst.FieldHandler, "PackageHandler").
-					WithField(logconst.FieldMethod, "GetWizardDescriptor").
-					WithField(logconst.FieldCalledObject, "PackageService").
-					Error(err)
+				log.Error("Failed to call PackageService",
+					logconst.FieldHandler, "PackageHandler",
+					logconst.FieldMethod, "GetWizardDescriptor",
+					logconst.FieldCalledObject, "PackageService",
+					logconst.FieldError, err)
 			}
 		}
 		return []string{Create, Recreate, Delete}
@@ -131,19 +132,20 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 		}
 		exists, err := handler.packageService.Exists(pkgInfo)
 		if err == nil && !exists {
-			w.AddPrefilledField(FieldCreateOrDelete, Create)
+			w.AddPrefilledText(FieldCreateOrDelete, Create)
 		} else {
 			w.AddEmptyField(FieldCreateOrDelete, wizard.Text)
 		}
 		if err != nil {
-			log.WithField(logconst.FieldHandler, "PackageHandler").
-				WithField(logconst.FieldMethod, "Handle").
-				WithField(logconst.FieldCalledObject, "PackageService").
-				WithField(logconst.FieldCalledMethod, "Exists").
-				Error(err)
+			log.Error("Failed to call PackageService.Exists",
+				logconst.FieldHandler, "PackageHandler",
+				logconst.FieldMethod, "Handle",
+				logconst.FieldCalledObject, "PackageService",
+				logconst.FieldCalledMethod, "Exists",
+				logconst.FieldError, err)
 		}
 
-		w.AddPrefilledField(FieldName, name)
+		w.AddPrefilledText(FieldName, name)
 	} else {
 		w.AddEmptyField(FieldCreateOrDelete, wizard.Text)
 		w.AddEmptyField(FieldName, wizard.Text)
@@ -155,8 +157,8 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 
 func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	intent := fields.FindField(FieldCreateOrDelete).Data.(wizard.Txt).Value
-	name := strings.ReplaceAll(fields.FindField(FieldName).Data.(wizard.Txt).Value, " ", "-")
+	intent := common.TextValue(fields, FieldCreateOrDelete)
+	name := strings.ReplaceAll(common.TextValue(fields, FieldName), " ", "-")
 
 	var (
 		packID string
@@ -165,7 +167,7 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	if intent == Delete {
 		err = handler.packageService.Delete(uid, name)
 	} else {
-		aliasesStr := fields.FindField(FieldAliases).Data.(wizard.Txt).Value
+		aliasesStr := common.TextValue(fields, FieldAliases)
 		aliases := strings.Split(aliasesStr, "\n")
 		aliases = funk.Map(aliases, func(a string) string {
 			return strings.TrimPrefix(a, LinePrefix)
@@ -184,10 +186,11 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else if errors.Is(err, repo.NoRowsWereAffected) {
 		reply(PackageStatusNoRows)
 	} else if err != nil {
-		log.WithField(logconst.FieldHandler, "PackageHandler").
-			WithField(logconst.FieldMethod, "packageAction").
-			WithField(logconst.FieldCalledObject, "PackageService").
-			Error(err)
+		log.Error("Failed to call PackageService",
+			logconst.FieldHandler, "PackageHandler",
+			logconst.FieldMethod, "packageAction",
+			logconst.FieldCalledObject, "PackageService",
+			logconst.FieldError, err)
 		reply(PackageStatusFailure)
 	} else if intent == Delete {
 		reply(PackageStatusDeletionSuccess)

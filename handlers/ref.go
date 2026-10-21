@@ -1,14 +1,16 @@
 package handlers
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"errors"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 const (
@@ -65,11 +67,12 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 
 		replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 		if err != nil {
-			log.WithField(logconst.FieldHandler, "RefHandler").
-				WithField(logconst.FieldMethod, "Handle").
-				WithField(logconst.FieldCalledObject, "PackageService").
-				WithField(logconst.FieldCalledMethod, "FindByAliases").
-				Error(err)
+			log.Error("Failed to call PackageService.FindByAliases",
+				logconst.FieldHandler, "RefHandler",
+				logconst.FieldMethod, "Handle",
+				logconst.FieldCalledObject, "PackageService",
+				logconst.FieldCalledMethod, "FindByAliases",
+				logconst.FieldError, err)
 			replyWith(RefStatusFailure)
 		} else if len(packages) == 0 {
 			replyWith(RefStatusNoPacks)
@@ -95,30 +98,57 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 	w.ProcessNextField(reqenv, msg)
 }
 
+var errInvalidObjectType = errors.New("invalid type of the object field value")
+
 func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	var (
 		aliases []string
 		err     error
 	)
-	objField := fields.FindField(FieldObject)
-	switch objField.Type {
-	case wizard.Text:
-		txt := objField.Data.(wizard.Txt)
-		aliases, err = handler.aliasService.ListByText(msg.From.ID, &txt)
-	case wizard.Location:
-		loc := objField.Data.(wizard.LocData)
-		aliases, err = handler.aliasService.ListByLocation(msg.From.ID, &loc)
-	default:
-		file := objField.Data.(wizard.File)
-		aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	objectField := fields.FindField(FieldObject)
+	if objectField == nil {
+		log.Error("Object field not found",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction")
+		replyWith(RefStatusFailure)
+		return
 	}
 
-	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
-	if err != nil {
-		log.WithField(logconst.FieldHandler, "RefHandler").
-			WithField(logconst.FieldMethod, "refAction").
-			WithField(logconst.FieldCalledObject, "AliasService").
-			Error(err)
+	switch objectField.Type {
+	case wizard.Text:
+		if txt, ok := objectField.Data.(wizard.Txt); ok {
+			aliases, err = handler.aliasService.ListByText(msg.From.ID, &txt)
+		} else {
+			err = errInvalidObjectType
+		}
+	case wizard.Location:
+		if loc, ok := objectField.Data.(wizard.LocData); ok {
+			aliases, err = handler.aliasService.ListByLocation(msg.From.ID, &loc)
+		} else {
+			err = errInvalidObjectType
+		}
+	default:
+		if file, ok := objectField.Data.(wizard.File); ok {
+			aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
+		} else {
+			err = errInvalidObjectType
+		}
+	}
+
+	if errors.Is(err, errInvalidObjectType) {
+		log.Error("Invalid type of the object field value",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction",
+			logconst.FieldValue, objectField.Data)
+		replyWith(RefStatusFailure)
+		return
+	} else if err != nil {
+		log.Error("Failed to call AliasService",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction",
+			logconst.FieldCalledObject, "AliasService",
+			logconst.FieldError, err)
 		replyWith(RefStatusFailure)
 		return
 	} else if len(aliases) == 0 {
@@ -134,11 +164,12 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		title := reqenv.Lang.Tr(RefStatusSuccessWithPackages)
 		text += "\n\n" + title + "\n\n" + buildPackagesList(packages)
 	} else if err != nil {
-		log.WithField(logconst.FieldHandler, "RefHandler").
-			WithField(logconst.FieldMethod, "refAction").
-			WithField(logconst.FieldCalledObject, "PackageService").
-			WithField(logconst.FieldCalledMethod, "FindByAliases").
-			Error(err)
+		log.Error("Failed to call PackageService.FindByAliases",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction",
+			logconst.FieldCalledObject, "PackageService",
+			logconst.FieldCalledMethod, "FindByAliases",
+			logconst.FieldError, err)
 	}
 
 	common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)

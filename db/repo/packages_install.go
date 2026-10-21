@@ -1,11 +1,12 @@
 package repo
 
 import (
+	log "log/slog"
+	"strconv"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/kozalosev/goSadTgBot/logconst"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"strconv"
 )
 
 // PackageInfo is a simple struct which consists of the UID of the package's owner and the Name of the package.
@@ -33,41 +34,38 @@ func (service *PackageService) Install(uid int64, pkgInfo *PackageInfo) ([]strin
 
 	if err != nil {
 		if err := tx.Rollback(service.ctx); err != nil {
-			log.WithField(logconst.FieldService, "PackageService").
-				WithField(logconst.FieldMethod, "Install").
-				WithField(logconst.FieldCalledObject, "Tx").
-				WithField(logconst.FieldCalledMethod, "Rollback").
-				Error(err)
+			log.Error("Failed to rollback a transaction",
+				logconst.FieldService, "PackageService",
+				logconst.FieldMethod, "Install",
+				logconst.FieldCalledObject, "Tx",
+				logconst.FieldCalledMethod, "Rollback",
+				logconst.FieldError, err)
 		}
 		return nil, err
 	} else if len(aliasIDs) == 0 {
 		return nil, NoRowsWereAffected
-	} else {
-		aliasIDs = removeDuplicates(aliasIDs)
-		aliasIDsAsStr := funk.Reduce(aliasIDs[1:], func(acc string, elem int) string {
-			return acc + "," + strconv.Itoa(elem)
-		}, strconv.Itoa(aliasIDs[0])).(string)
-
-		res, err = service.db.Query(service.ctx, "SELECT name FROM aliases WHERE id IN ("+aliasIDsAsStr+")")
-
-		var installedAliases []string
-		if err == nil {
-			var installedAlias string
-			for res.Next() {
-				if err = res.Scan(&installedAlias); err == nil {
-					installedAliases = append(installedAliases, installedAlias)
-				} else {
-					log.WithField(logconst.FieldService, "PackageService").
-						WithField(logconst.FieldMethod, "Install").
-						WithField(logconst.FieldCalledObject, "Rows").
-						WithField(logconst.FieldCalledMethod, "Scan").
-						Error(err)
-				}
-			}
-			err = res.Err()
-		}
-		return installedAliases, err
 	}
+
+	aliasIDs = removeDuplicates(aliasIDs)
+	aliasIDsAsStr := funk.Reduce(aliasIDs[1:], func(acc string, elem int) string {
+		return acc + "," + strconv.Itoa(elem)
+	}, strconv.Itoa(aliasIDs[0])).(string)
+
+	res, err = service.db.Query(service.ctx, "SELECT name FROM aliases WHERE id IN ("+aliasIDsAsStr+")")
+
+	var installedAliases []string
+	if err == nil {
+		var installedAlias string
+		for res.Next() {
+			if err = res.Scan(&installedAlias); err == nil {
+				installedAliases = append(installedAliases, installedAlias)
+			} else {
+				logconst.LogFailToScanDatabaseRow("PackageService", "Install", err)
+			}
+		}
+		err = res.Err()
+	}
+	return installedAliases, err
 }
 
 func (service *PackageService) installItems(tx pgx.Tx, uid int64, pkgInfo *PackageInfo) ([]int, error) {
@@ -93,17 +91,12 @@ func (service *PackageService) installItems(tx pgx.Tx, uid int64, pkgInfo *Packa
 			if err = res.Scan(&aliasID); err == nil {
 				aliasIDs = append(aliasIDs, aliasID)
 			} else {
-				log.WithField(logconst.FieldService, "PackageService").
-					WithField(logconst.FieldMethod, "installItems").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("PackageService", "installItems", err)
 			}
 		}
 		return aliasIDs, res.Err()
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
 func (service *PackageService) installLinks(tx pgx.Tx, uid int64, pkgInfo *PackageInfo) ([]int, error) {
@@ -123,17 +116,12 @@ func (service *PackageService) installLinks(tx pgx.Tx, uid int64, pkgInfo *Packa
 			if err = res.Scan(&aliasID); err == nil {
 				aliasIDs = append(aliasIDs, aliasID)
 			} else {
-				log.WithField(logconst.FieldService, "PackageService").
-					WithField(logconst.FieldMethod, "installLinks").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("PackageService", "installLinks", err)
 			}
 		}
 		return aliasIDs, res.Err()
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
 func removeDuplicates[T comparable](arr []T) []T {

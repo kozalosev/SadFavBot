@@ -3,14 +3,15 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -58,11 +59,12 @@ func (handler *RemoveLinkHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	linkNameDesc.ReplyKeyboardBuilder = func(reqenv *base.RequestEnv, msg *tgbotapi.Message) []string {
 		aliases, err := handler.linkService.List(msg.From.ID)
 		if err != nil {
-			log.WithField(logconst.FieldHandler, "RemoveLinkHandler").
-				WithField(logconst.FieldFunc, "ReplyKeyboardBuilder").
-				WithField(logconst.FieldCalledObject, "LinkService").
-				WithField(logconst.FieldCalledMethod, "List").
-				Error(err)
+			log.Error("Failed to call LinkService.List",
+				logconst.FieldHandler, "RemoveLinkHandler",
+				logconst.FieldFunc, "ReplyKeyboardBuilder",
+				logconst.FieldCalledObject, "LinkService",
+				logconst.FieldCalledMethod, "List",
+				logconst.FieldError, err)
 		}
 		return aliases
 	}
@@ -76,9 +78,9 @@ func (*RemoveLinkHandler) GetCommands() []string {
 func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	if name := msg.CommandArguments(); len(name) > 0 {
-		w.AddPrefilledField(FieldName, name)
+		w.AddPrefilledText(FieldName, name)
 	} else if msg.ReplyToMessage != nil && len(msg.ReplyToMessage.Text) > 0 {
-		w.AddPrefilledField(FieldName, msg.ReplyToMessage.Text)
+		w.AddPrefilledText(FieldName, msg.ReplyToMessage.Text)
 	} else {
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
@@ -93,7 +95,7 @@ func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 
 func (handler *RemoveLinkHandler) rmLinkAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	name := fields.FindField(FieldName).Data.(wizard.Txt).Value
+	name := common.TextValue(fields, FieldName)
 
 	err := handler.linkService.Delete(uid, name)
 
@@ -101,11 +103,12 @@ func (handler *RemoveLinkHandler) rmLinkAction(reqenv *base.RequestEnv, msg *tgb
 	if errors.Is(err, repo.NoRowsWereAffected) {
 		reply(RmLinkStatusNoRows)
 	} else if err != nil {
-		log.WithField(logconst.FieldHandler, "RemoveLinkHandler").
-			WithField(logconst.FieldMethod, "rmLinkAction").
-			WithField(logconst.FieldCalledObject, "LinkService").
-			WithField(logconst.FieldCalledMethod, "Delete").
-			Error(err)
+		log.Error("Failed to call LinkService.Delete",
+			logconst.FieldHandler, "RemoveLinkHandler",
+			logconst.FieldMethod, "rmLinkAction",
+			logconst.FieldCalledObject, "LinkService",
+			logconst.FieldCalledMethod, "Delete",
+			logconst.FieldError, err)
 		reply(RmLinkStatusFailure)
 	} else {
 		reply(RmLinkStatusSuccess)

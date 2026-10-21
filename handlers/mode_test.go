@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"testing"
+
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSearchModeAction(t *testing.T) {

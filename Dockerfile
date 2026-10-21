@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.20-alpine as builder
+FROM golang:1.26-alpine as builder
 WORKDIR /app
 
 # Create an unprivileged user
@@ -15,7 +15,6 @@ RUN adduser \
     --uid "${UID}" \
     "${USER}"
 
-COPY telegram-bot-api/ ./telegram-bot-api/
 COPY go.mod go.sum ./
 RUN go mod download
 

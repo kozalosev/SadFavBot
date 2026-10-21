@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"encoding/base64"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 const (
@@ -51,11 +52,11 @@ func (handler *StartHandler) GetWizardEnv() *wizard.Env {
 func (handler *StartHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	desc := wizard.NewWizardDescriptor(func(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 		handler.embeddedHandlers.Language.languageFormAction(reqenv, msg, fields)
-		newLang := langFlagToCode(fields.FindField(FieldLanguage).Data.(wizard.Txt).Value)
+		newLang := langFlagToCode(common.TextValue(fields, FieldLanguage))
 		reqenv.Lang = reqenv.Lang.GetContext(newLang)
 		help.SendHelpMessage(handler.appenv, reqenv.Lang, msg)
 
-		installingPackage := fields.FindField(FieldInstallingPackage).Data.(wizard.Txt).Value
+		installingPackage := common.TextValue(fields, FieldInstallingPackage)
 		if len(installingPackage) > 0 {
 			handler.runWizardForInstallation(reqenv, msg, installingPackage)
 		}
@@ -96,14 +97,15 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	}
 
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "StartHandler").
-			WithField(logconst.FieldMethod, "Handle").
-			Error(err)
+		log.Error("Unexpected error",
+			logconst.FieldHandler, "StartHandler",
+			logconst.FieldMethod, "Handle",
+			logconst.FieldError, err)
 		handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(StartStatusFailure))
 	} else if wasCreated {
 		w := wizard.NewWizard(handler, 2)
 		w.AddEmptyField(FieldLanguage, wizard.Text)
-		w.AddPrefilledField(FieldInstallingPackage, installingPackage)
+		w.AddPrefilledText(FieldInstallingPackage, installingPackage)
 		w.ProcessNextField(reqenv, msg)
 	} else if len(installingPackage) > 0 {
 		handler.runWizardForInstallation(reqenv, msg, installingPackage)
@@ -117,7 +119,7 @@ func (handler *StartHandler) runWizardToSave(reqenv *base.RequestEnv, msg *tgbot
 	if alias == nil {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	} else {
-		w.AddPrefilledField(FieldAlias, *alias)
+		w.AddPrefilledText(FieldAlias, *alias)
 	}
 	w.AddEmptyField(FieldObject, wizard.Auto)
 	w.ProcessNextField(reqenv, msg)
@@ -127,7 +129,7 @@ func (handler *StartHandler) runWizardForInstallation(reqenv *base.RequestEnv, m
 	sendCountOfAliasesInPackage(handler.embeddedHandlers.InstallPackage, reqenv, msg, pkgName)
 
 	w := wizard.NewWizard(handler.embeddedHandlers.InstallPackage, 2)
-	w.AddPrefilledField(FieldName, pkgName)
+	w.AddPrefilledText(FieldName, pkgName)
 	w.AddEmptyField(FieldConfirmation, wizard.Text)
 	w.ProcessNextField(reqenv, msg)
 }

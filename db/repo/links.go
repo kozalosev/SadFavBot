@@ -2,11 +2,12 @@ package repo
 
 import (
 	"context"
+	log "log/slog"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
-	log "github.com/sirupsen/logrus"
 )
 
 // LinkService is a simple "create" service for the Link entity.
@@ -43,11 +44,12 @@ func (service *LinkService) Create(uid int64, name, refAlias string) error {
 
 	if err != nil && tx != nil {
 		if err := tx.Rollback(service.ctx); err != nil {
-			log.WithField(logconst.FieldService, "LinkService").
-				WithField(logconst.FieldMethod, "Create").
-				WithField(logconst.FieldCalledObject, "Tx").
-				WithField(logconst.FieldCalledMethod, "Rollback").
-				Error(err)
+			log.Error("Failed to rollback a transaction",
+				logconst.FieldService, "LinkService",
+				logconst.FieldMethod, "Create",
+				logconst.FieldCalledObject, "Tx",
+				logconst.FieldCalledMethod, "Rollback",
+				logconst.FieldError, err)
 		}
 	}
 	return err
@@ -77,11 +79,7 @@ func (service *LinkService) List(uid int64) ([]string, error) {
 			if err = rows.Scan(&link); err == nil {
 				links = append(links, link)
 			} else {
-				log.WithField(logconst.FieldService, "LinkService").
-					WithField(logconst.FieldMethod, "List").
-					WithField(logconst.FieldCalledObject, "Rows").
-					WithField(logconst.FieldCalledMethod, "Scan").
-					Error(err)
+				logconst.LogFailToScanDatabaseRow("LinkService", "List", err)
 			}
 		}
 		return links, rows.Err()

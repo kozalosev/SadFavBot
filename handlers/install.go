@@ -3,16 +3,17 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "log/slog"
+	"strconv"
+	"strings"
+
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -77,7 +78,7 @@ func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 	w := wizard.NewWizard(handler, 2)
 	name := msg.CommandArguments()
 	if len(name) > 0 {
-		w.AddPrefilledField(FieldName, name)
+		w.AddPrefilledText(FieldName, name)
 		sendCountOfAliasesInPackage(handler, reqenv, msg, name)
 	} else {
 		w.AddEmptyField(FieldName, wizard.Text)
@@ -89,10 +90,11 @@ func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.RequestEnv, msg *tgbotapi.Message, name string) {
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
-			WithField(logconst.FieldMethod, "sendCountOfAliasesInPackage").
-			WithField(logconst.FieldCalledFunc, "parsePackageName").
-			Error(err)
+		log.Error("Failed to call parsePackageName",
+			logconst.FieldHandler, "InstallPackageHandler",
+			logconst.FieldMethod, "sendCountOfAliasesInPackage",
+			logconst.FieldCalledFunc, "parsePackageName",
+			logconst.FieldError, err)
 		return
 	}
 
@@ -102,22 +104,23 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
 			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
 		} else {
-			log.WithField(logconst.FieldHandler, "InstallPackageHandler").
-				WithField(logconst.FieldMethod, "sendCountOfAliasesInPackage").
-				Warning("Empty package: " + name)
+			log.Warn("Empty package: "+name,
+				logconst.FieldHandler, "InstallPackageHandler",
+				logconst.FieldMethod, "sendCountOfAliasesInPackage")
 		}
 	} else {
-		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
-			WithField(logconst.FieldMethod, "sendCountOfAliasesInPackage").
-			WithField(logconst.FieldCalledObject, "PackageService").
-			WithField(logconst.FieldCalledFunc, "ListAliases").
-			Error(err)
+		log.Error("Failed to call PackageService.ListAliases",
+			logconst.FieldHandler, "InstallPackageHandler",
+			logconst.FieldMethod, "sendCountOfAliasesInPackage",
+			logconst.FieldCalledObject, "PackageService",
+			logconst.FieldCalledFunc, "ListAliases",
+			logconst.FieldError, err)
 	}
 }
 
 func (handler *InstallPackageHandler) installPackageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	if fields.FindField(FieldConfirmation).Data.(wizard.Txt).Value == Yes {
-		name := fields.FindField(FieldName).Data.(wizard.Txt).Value
+	if common.TextValue(fields, FieldConfirmation) == Yes {
+		name := common.TextValue(fields, FieldName)
 		handler.installPackageWithMessageHandling(reqenv, msg, name)
 	}
 }
@@ -128,10 +131,11 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 
 	pkgInfo, err := parsePackageName(name)
 	if err != nil {
-		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
-			WithField(logconst.FieldMethod, "installPackageWithMessageHandling").
-			WithField(logconst.FieldCalledFunc, "parsePackageName").
-			Error(err)
+		log.Error("Failed to call parsePackageName",
+			logconst.FieldHandler, "InstallPackageHandler",
+			logconst.FieldMethod, "installPackageWithMessageHandling",
+			logconst.FieldCalledFunc, "parsePackageName",
+			logconst.FieldError, err)
 		reply(InstallStatusFailure)
 		return
 	}
@@ -141,11 +145,12 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 	} else if isAttemptToInsertLinkForExistingFav(err) {
 		reply(InstallStatusLinkToExisingFav)
 	} else if err != nil {
-		log.WithField(logconst.FieldHandler, "InstallPackageHandler").
-			WithField(logconst.FieldMethod, "installPackageWithMessageHandling").
-			WithField(logconst.FieldCalledObject, "PackageService").
-			WithField(logconst.FieldCalledMethod, "Install").
-			Error(err)
+		log.Error("Failed to call PackageService.Install",
+			logconst.FieldHandler, "InstallPackageHandler",
+			logconst.FieldMethod, "installPackageWithMessageHandling",
+			logconst.FieldCalledObject, "PackageService",
+			logconst.FieldCalledMethod, "Install",
+			logconst.FieldError, err)
 		reply(InstallStatusFailure)
 	} else {
 		if len(installedAliases) > 0 {
