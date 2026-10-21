@@ -97,7 +97,7 @@ func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 			handler.appenv.Bot.ReplyWithMarkdown(msg, err.Error())
 			wizardForm.AddEmptyField(FieldAlias, wizard.Text)
 		} else {
-			wizardForm.AddPrefilledField(FieldAlias, title)
+			wizardForm.AddPrefilledText(FieldAlias, title)
 		}
 	} else {
 		wizardForm.AddEmptyField(FieldAlias, wizard.Text)

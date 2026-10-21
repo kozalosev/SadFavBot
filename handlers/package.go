@@ -132,7 +132,7 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 		}
 		exists, err := handler.packageService.Exists(pkgInfo)
 		if err == nil && !exists {
-			w.AddPrefilledField(FieldCreateOrDelete, Create)
+			w.AddPrefilledText(FieldCreateOrDelete, Create)
 		} else {
 			w.AddEmptyField(FieldCreateOrDelete, wizard.Text)
 		}
@@ -145,7 +145,7 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 				logconst.FieldError, err)
 		}
 
-		w.AddPrefilledField(FieldName, name)
+		w.AddPrefilledText(FieldName, name)
 	} else {
 		w.AddEmptyField(FieldCreateOrDelete, wizard.Text)
 		w.AddEmptyField(FieldName, wizard.Text)

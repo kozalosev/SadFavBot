@@ -6,7 +6,7 @@ require (
 	github.com/OvyFlash/telegram-bot-api v0.0.0-20260826195316-83c4eada97a1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/kozalosev/goSadTgBot v0.4.1
+	github.com/kozalosev/goSadTgBot v0.5.0
 	github.com/loctools/go-l10n v0.0.0-20191031185225-4f8f121cf651
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0

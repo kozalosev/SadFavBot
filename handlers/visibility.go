@@ -87,7 +87,7 @@ func (handler *AliasVisibilityHandler) Handle(reqenv *base.RequestEnv, msg *tgbo
 
 	w := wizard.NewWizard(handler, 2)
 	if alias := msg.CommandArguments(); len(alias) > 0 {
-		w.AddPrefilledField(FieldAlias, alias)
+		w.AddPrefilledText(FieldAlias, alias)
 	} else {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	}

@@ -89,6 +89,8 @@ github.com/klauspost/compress v1.20.3 h1:zWNoFqq/lSuYQRim3dUXlXeA0IqwuZGicdG5ZTf
 github.com/klauspost/compress v1.20.3/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/kozalosev/goSadTgBot v0.4.1 h1:lmS04yTgOv97hHHCygee8sWZ0tUP6EhKHKtc3kiDVD0=
 github.com/kozalosev/goSadTgBot v0.4.1/go.mod h1:kqgsIiTR+oG8tVFdePZJUHHhn5GpV8JPfE3czB3h0r0=
+github.com/kozalosev/goSadTgBot v0.5.0 h1:AEUbpIhNo7tXRqJMqzmz9xCMQJknMvEhnI9mJQSgn8A=
+github.com/kozalosev/goSadTgBot v0.5.0/go.mod h1:kqgsIiTR+oG8tVFdePZJUHHhn5GpV8JPfE3czB3h0r0=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lib/pq v1.12.3 h1:tTWxr2YLKwIvK90ZXEw8GP7UFHtcbTtty8zsI+YjrfQ=

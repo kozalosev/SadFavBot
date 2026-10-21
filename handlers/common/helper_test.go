@@ -66,7 +66,7 @@ func TestExtractItemValues_Location(t *testing.T) {
 func TestExtractItemValues_MismatchError(t *testing.T) {
 	fields := wizard.Fields{
 		test.NewTextField(FieldAlias, test.Alias),
-		&wizard.Field{Name: FieldObject, Type: test.Type, Data: test.Text},
+		&wizard.Field{Name: FieldObject, Type: test.Type, Data: wizard.Txt{Value: test.Text}},
 	}
 
 	alias, fav := ExtractFavInfo(fields)

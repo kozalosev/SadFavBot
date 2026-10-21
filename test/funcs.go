@@ -109,13 +109,10 @@ func BuildInlineQuery() *tgbotapi.InlineQuery {
 	}
 }
 
-func NewTextField(name string, data interface{}) *wizard.Field {
-	if dataStr, isStr := data.(string); isStr {
-		data = wizard.Txt{Value: dataStr}
-	}
+func NewTextField(name string, data string) *wizard.Field {
 	return &wizard.Field{
 		Type: wizard.Text,
 		Name: name,
-		Data: data,
+		Data: wizard.Txt{Value: data},
 	}
 }

@@ -105,7 +105,7 @@ func (handler *StartHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messa
 	} else if wasCreated {
 		w := wizard.NewWizard(handler, 2)
 		w.AddEmptyField(FieldLanguage, wizard.Text)
-		w.AddPrefilledField(FieldInstallingPackage, installingPackage)
+		w.AddPrefilledText(FieldInstallingPackage, installingPackage)
 		w.ProcessNextField(reqenv, msg)
 	} else if len(installingPackage) > 0 {
 		handler.runWizardForInstallation(reqenv, msg, installingPackage)
@@ -119,7 +119,7 @@ func (handler *StartHandler) runWizardToSave(reqenv *base.RequestEnv, msg *tgbot
 	if alias == nil {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	} else {
-		w.AddPrefilledField(FieldAlias, *alias)
+		w.AddPrefilledText(FieldAlias, *alias)
 	}
 	w.AddEmptyField(FieldObject, wizard.Auto)
 	w.ProcessNextField(reqenv, msg)
@@ -129,7 +129,7 @@ func (handler *StartHandler) runWizardForInstallation(reqenv *base.RequestEnv, m
 	sendCountOfAliasesInPackage(handler.embeddedHandlers.InstallPackage, reqenv, msg, pkgName)
 
 	w := wizard.NewWizard(handler.embeddedHandlers.InstallPackage, 2)
-	w.AddPrefilledField(FieldName, pkgName)
+	w.AddPrefilledText(FieldName, pkgName)
 	w.AddEmptyField(FieldConfirmation, wizard.Text)
 	w.ProcessNextField(reqenv, msg)
 }

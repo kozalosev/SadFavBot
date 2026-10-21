@@ -45,7 +45,7 @@ func init() {
 
 // TextValue returns the text value of the field, or an empty string if there is no such field or its value is not text.
 func TextValue(fields wizard.Fields, name string) string {
-	txt, _ := wizard.FieldData[wizard.Txt](fields, name)
+	txt, _ := wizard.GetData[wizard.Txt](fields, name)
 	return txt.Value
 }
 
@@ -88,15 +88,17 @@ func ExtractFavInfo(fields wizard.Fields) (string, *dto.Fav) {
 	}
 }
 
-func getDataOrLog[T any](field *wizard.Field) (T, bool) {
-	data, ok := wizard.GetData[T](field)
+func getDataOrLog[T wizard.Value](field *wizard.Field) (data T, ok bool) {
+	if field != nil {
+		data, ok = field.Data.(T)
+	}
 	if !ok {
 		logInvalidFieldType[T](field)
 	}
 	return data, ok
 }
 
-func logInvalidFieldType[Expected any](field *wizard.Field) {
+func logInvalidFieldType[Expected wizard.Value](field *wizard.Field) {
 	var data any
 	if field != nil {
 		data = field.Data

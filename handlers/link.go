@@ -97,14 +97,14 @@ func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		}).([]string)
 		if len(argParts) == 2 {
 			if len(argParts[0]) <= MaxAliasLen && verifyNoReservedSymbols(argParts[0], reqenv.Lang, LinkStatusErrorForbiddenSymbolsInName) == nil {
-				w.AddPrefilledField(FieldName, argParts[0])
+				w.AddPrefilledText(FieldName, argParts[0])
 			} else {
 				w.AddEmptyField(FieldName, wizard.Text)
 			}
-			w.AddPrefilledField(FieldAlias, argParts[1])
+			w.AddPrefilledText(FieldAlias, argParts[1])
 		} else {
 			if len(name) <= MaxAliasLen && verifyNoReservedSymbols(name, reqenv.Lang, LinkStatusErrorForbiddenSymbolsInName) == nil {
-				w.AddPrefilledField(FieldName, name)
+				w.AddPrefilledText(FieldName, name)
 			} else {
 				w.AddEmptyField(FieldName, wizard.Text)
 			}

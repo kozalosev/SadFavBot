@@ -84,13 +84,13 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		query = args[1]
 	}
 	if kind == "favs" || kind == "f" || kind == "fav" {
-		w.AddPrefilledField(FieldFavsOrPackages, Favs)
+		w.AddPrefilledText(FieldFavsOrPackages, Favs)
 	} else if kind == "packages" || kind == "p" || kind == "packs" || kind == "package" || kind == "pack" {
-		w.AddPrefilledField(FieldFavsOrPackages, Packages)
+		w.AddPrefilledText(FieldFavsOrPackages, Packages)
 	} else {
 		w.AddEmptyField(FieldFavsOrPackages, wizard.Text)
 	}
-	w.AddPrefilledField(FieldGrep, query)
+	w.AddPrefilledText(FieldGrep, query)
 
 	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
 		return

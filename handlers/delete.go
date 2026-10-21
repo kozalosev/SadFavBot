@@ -103,13 +103,13 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	arg := msg.CommandArguments()
 
 	if len(arg) > 0 {
-		w.AddPrefilledField(FieldAlias, arg)
+		w.AddPrefilledText(FieldAlias, arg)
 	} else {
 		w.AddEmptyField(FieldAlias, wizard.Text)
 	}
 
 	if msg.ReplyToMessage != nil {
-		w.AddPrefilledField(FieldDeleteAll, No)
+		w.AddPrefilledText(FieldDeleteAll, No)
 		w.AddPrefilledAutoField(FieldObject, msg.ReplyToMessage)
 	} else {
 		w.AddEmptyField(FieldDeleteAll, wizard.Text)

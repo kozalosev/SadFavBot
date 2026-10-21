@@ -105,29 +105,37 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		aliases []string
 		err     error
 	)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	objectField := fields.FindField(FieldObject)
+	if objectField == nil {
+		log.Error("Object field not found",
+			logconst.FieldHandler, "RefHandler",
+			logconst.FieldMethod, "refAction")
+		replyWith(RefStatusFailure)
+		return
+	}
+
 	switch objectField.Type {
 	case wizard.Text:
-		if txt, ok := wizard.GetData[wizard.Txt](objectField); ok {
+		if txt, ok := objectField.Data.(wizard.Txt); ok {
 			aliases, err = handler.aliasService.ListByText(msg.From.ID, &txt)
 		} else {
 			err = errInvalidObjectType
 		}
 	case wizard.Location:
-		if loc, ok := wizard.GetData[wizard.LocData](objectField); ok {
+		if loc, ok := objectField.Data.(wizard.LocData); ok {
 			aliases, err = handler.aliasService.ListByLocation(msg.From.ID, &loc)
 		} else {
 			err = errInvalidObjectType
 		}
 	default:
-		if file, ok := wizard.GetData[wizard.File](objectField); ok {
+		if file, ok := objectField.Data.(wizard.File); ok {
 			aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
 		} else {
 			err = errInvalidObjectType
 		}
 	}
 
-	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	if errors.Is(err, errInvalidObjectType) {
 		log.Error("Invalid type of the object field value",
 			logconst.FieldHandler, "RefHandler",
