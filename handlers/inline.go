@@ -72,7 +72,7 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		opts := reqenv.Options.(*dto.UserOptions)
 		if objects, err := handler.favService.Find(query.From.ID, query.Query, opts.SubstrSearchEnabled, offset); err == nil {
 			if len(objects) > 0 {
-				answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
+				answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]any)
 				answer.NextOffset = strconv.Itoa(offset + len(objects))
 			} else if offset == 0 && len(query.Query) <= DeepLinkMaxAliasBytes {
 				answer.Button = &tgbotapi.InlineQueryResultsButton{
@@ -104,9 +104,9 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 	}
 }
 
-func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
+func generateMapper(lc *loc.Context) func(object *dto.Fav) any {
 	caser := cases.Title(language.Make(lc.GetLanguage()))
-	return func(object *dto.Fav) interface{} {
+	return func(object *dto.Fav) any {
 		switch object.Type {
 		case wizard.Text:
 			article := tgbotapi.NewInlineQueryResultArticle(object.ID, object.Text.Value, object.Text.Value)

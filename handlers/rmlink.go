@@ -75,6 +75,11 @@ func (*RemoveLinkHandler) GetCommands() []string {
 	return rmLinkCommands
 }
 
+// IsEphemeral makes the command ephemeral in group chats: nobody except the sender sees the reply.
+func (*RemoveLinkHandler) IsEphemeral() bool {
+	return true
+}
+
 func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 1)
 	if name := msg.CommandArguments(); len(name) > 0 {
@@ -99,18 +104,24 @@ func (handler *RemoveLinkHandler) rmLinkAction(reqenv *base.RequestEnv, msg *tgb
 
 	err := handler.linkService.Delete(uid, name)
 
-	reply := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
-	if errors.Is(err, repo.NoRowsWereAffected) {
-		reply(RmLinkStatusNoRows)
-	} else if err != nil {
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith(rmLinkStatus(err))
+}
+
+// rmLinkStatus converts the result of LinkService.Delete to the key of the status message.
+func rmLinkStatus(err error) string {
+	switch {
+	case errors.Is(err, repo.NoRowsWereAffected):
+		return RmLinkStatusNoRows
+	case err != nil:
 		log.Error("Failed to call LinkService.Delete",
 			logconst.FieldHandler, "RemoveLinkHandler",
 			logconst.FieldMethod, "rmLinkAction",
 			logconst.FieldCalledObject, "LinkService",
 			logconst.FieldCalledMethod, "Delete",
 			logconst.FieldError, err)
-		reply(RmLinkStatusFailure)
-	} else {
-		reply(RmLinkStatusSuccess)
+		return RmLinkStatusFailure
+	default:
+		return RmLinkStatusSuccess
 	}
 }

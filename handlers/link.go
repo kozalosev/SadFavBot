@@ -130,23 +130,29 @@ func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 	err := handler.linkService.Create(uid, name, refAlias)
 
-	reply := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
-	if isAttemptToInsertLinkForExistingFav(err) {
-		reply(LinkStatusDuplicateFav)
-	} else if storage.DuplicateConstraintViolation(err) {
-		reply(LinkStatusDuplicate)
-	} else if isAttemptToLinkNonExistingAlias(err) {
-		reply(LinkStatusNoAlias)
-	} else if err != nil {
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith(linkStatus(err))
+}
+
+// linkStatus converts the result of LinkService.Create to the key of the status message.
+func linkStatus(err error) string {
+	switch {
+	case isAttemptToInsertLinkForExistingFav(err):
+		return LinkStatusDuplicateFav
+	case storage.DuplicateConstraintViolation(err):
+		return LinkStatusDuplicate
+	case isAttemptToLinkNonExistingAlias(err):
+		return LinkStatusNoAlias
+	case err != nil:
 		log.Error("Failed to call LinkService.Create",
 			logconst.FieldHandler, "LinkHandler",
 			logconst.FieldMethod, "linkAction",
 			logconst.FieldCalledObject, "LinkService",
 			logconst.FieldCalledMethod, "Create",
 			logconst.FieldError, err)
-		reply(LinkStatusFailure)
-	} else {
-		reply(LinkStatusSuccess)
+		return LinkStatusFailure
+	default:
+		return LinkStatusSuccess
 	}
 }
 

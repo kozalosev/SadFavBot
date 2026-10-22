@@ -74,6 +74,11 @@ func (*ListHandler) GetCommands() []string {
 	return listCommands
 }
 
+// IsEphemeral makes the command ephemeral in group chats: nobody except the sender sees the reply.
+func (*ListHandler) IsEphemeral() bool {
+	return true
+}
+
 func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	arg := strings.ToLower(msg.CommandArguments())
@@ -250,19 +255,32 @@ func (handler *ListPaginationCallbackHandler) Handle(reqenv *base.RequestEnv, qu
 
 	title := reqenv.Lang.Tr(successTitle)
 	text := buildText(title, page)
-	var editReq tgbotapi.EditMessageTextConfig
+	var keyboard *tgbotapi.InlineKeyboardMarkup
 	if page.HasNextPage {
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(buildPaginationButtons(page, favsOrPacks, grep))
-		editReq = tgbotapi.NewEditMessageTextAndMarkup(msg.Chat.ID, msg.MessageID, text, keyboard)
-	} else {
-		editReq = tgbotapi.NewEditMessageText(msg.Chat.ID, msg.MessageID, text)
+		k := tgbotapi.NewInlineKeyboardMarkup(buildPaginationButtons(page, favsOrPacks, grep))
+		keyboard = &k
 	}
+	editReq := buildEditRequest(msg, query.From.ID, text, keyboard)
 	if err = handler.appenv.Bot.Request(editReq); err != nil {
 		logger.LogFailedTelegramApiRequest(err)
 		answerWith.err(ListStatusFailure)
 	} else {
 		answerWith.ok()
 	}
+}
+
+// buildEditRequest creates a request to replace the text of the message with the list. The message may be ephemeral,
+// such messages are edited by other means.
+func buildEditRequest(msg *tgbotapi.Message, receiverUID int64, text string, keyboard *tgbotapi.InlineKeyboardMarkup) tgbotapi.Chattable {
+	if msg.EphemeralMessageID != 0 {
+		req := tgbotapi.NewEditEphemeralMessageText(msg.Chat.ID, receiverUID, msg.EphemeralMessageID, text)
+		req.ReplyMarkup = keyboard
+		return req
+	}
+	if keyboard != nil {
+		return tgbotapi.NewEditMessageTextAndMarkup(msg.Chat.ID, msg.MessageID, text, *keyboard)
+	}
+	return tgbotapi.NewEditMessageText(msg.Chat.ID, msg.MessageID, text)
 }
 
 type answerer struct {

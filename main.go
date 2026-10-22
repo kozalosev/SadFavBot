@@ -56,7 +56,7 @@ func main() {
 		Ctx:      ctx,
 	}
 
-	messageHandlers, inlineHandlers, callbackHandlers := initHandlers(appenv, stateStorage)
+	messageHandlers, inlineHandlers, callbackHandlers, guestHandlers := initHandlers(appenv, stateStorage)
 	api.SetCommands(locpool, supportedLanguages, base.ConvertHandlersToCommands(messageHandlers))
 
 	appParams := &app.Params{
@@ -64,6 +64,7 @@ func main() {
 		MessageHandlers:  messageHandlers,
 		InlineHandlers:   inlineHandlers,
 		CallbackHandlers: callbackHandlers,
+		GuestHandlers:    guestHandlers,
 		Settings:         repo.NewUserService(appenv),
 		LangPool:         locpool,
 		API:              api,
@@ -85,12 +86,7 @@ func main() {
 			panic(err)
 		}
 
-		updateConfig := tgbotapi.UpdateConfig{Offset: 0, Timeout: 30, AllowedUpdates: []string{
-			tgbotapi.UpdateTypeMessage,
-			tgbotapi.UpdateTypeInlineQuery,
-			tgbotapi.UpdateTypeCallbackQuery,
-			tgbotapi.UpdateTypeChosenInlineResult,
-		}}
+		updateConfig := tgbotapi.UpdateConfig{Offset: 0, Timeout: 30, AllowedUpdates: app.AllowedUpdates(appParams)}
 		updates := bot.GetUpdatesChan(updateConfig)
 
 		// Unfortunately, the loop won't exit immediately.
@@ -139,7 +135,7 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 	return
 }
 
-func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler) {
+func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler, guestHandlers []base.GuestHandler) {
 	languageHandler := handlers.NewLanguageHandler(appenv, stateStorage)
 	installPackageHandler := handlers.NewInstallPackageHandler(appenv, stateStorage)
 	saveHandler := handlers.NewSaveHandler(appenv, stateStorage)
@@ -174,9 +170,14 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 		help.NewCallbackHandler(appenv),
 		handlers.NewListPaginationCallbackHandler(appenv),
 	}
+	guestHandlers = []base.GuestHandler{
+		handlers.NewGuestCommandsHandler(appenv), // must go before the search handler
+		handlers.NewGuestFavoritesHandler(appenv),
+	}
 	help.InitMessages(handlers.MaxAliasLen, handlers.MaxPackageNameLen, handlers.ReservedSymbolsForMessage, messageHandlers)
 	metrics.RegisterMessageHandlerCounters(messageHandlers...)
 	metrics.RegisterInlineHandlerCounters(inlineHandlers...)
+	metrics.RegisterGuestHandlerCounters(guestHandlers...)
 	return
 }
 
