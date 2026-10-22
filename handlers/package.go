@@ -8,13 +8,13 @@ import (
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -169,9 +169,9 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else {
 		aliasesStr := common.TextValue(fields, FieldAliases)
 		aliases := strings.Split(aliasesStr, "\n")
-		aliases = funk.Map(aliases, func(a string) string {
+		aliases = fp.Map(aliases, func(a string) string {
 			return strings.TrimPrefix(a, LinePrefix)
-		}).([]string)
+		})
 
 		if intent == Recreate {
 			packID, err = handler.packageService.Recreate(uid, name, aliases)

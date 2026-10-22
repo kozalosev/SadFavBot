@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/kozalosev/goSadTgBot/logconst"
-	"github.com/thoas/go-funk"
+	"github.com/samber/lo"
 )
 
 // PackageInfo is a simple struct which consists of the UID of the package's owner and the Name of the package.
@@ -47,9 +47,9 @@ func (service *PackageService) Install(uid int64, pkgInfo *PackageInfo) ([]strin
 	}
 
 	aliasIDs = removeDuplicates(aliasIDs)
-	aliasIDsAsStr := funk.Reduce(aliasIDs[1:], func(acc string, elem int) string {
+	aliasIDsAsStr := lo.Reduce(aliasIDs[1:], func(acc string, elem int, _ int) string {
 		return acc + "," + strconv.Itoa(elem)
-	}, strconv.Itoa(aliasIDs[0])).(string)
+	}, strconv.Itoa(aliasIDs[0]))
 
 	res, err = service.db.Query(service.ctx, "SELECT name FROM aliases WHERE id IN ("+aliasIDsAsStr+")")
 

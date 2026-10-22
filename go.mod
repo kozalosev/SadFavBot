@@ -8,9 +8,9 @@ require (
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/kozalosev/goSadTgBot v0.5.0
 	github.com/loctools/go-l10n v0.0.0-20191031185225-4f8f121cf651
+	github.com/samber/lo v1.52.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/thoas/go-funk v0.9.3
 	golang.org/x/text v0.43.0
 )
 

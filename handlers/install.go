@@ -9,11 +9,11 @@ import (
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -100,7 +100,7 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 
 	if items, err := handler.packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
-			escapedItems := funk.Map(items, common.MarkdownEscaper.Replace).([]string)
+			escapedItems := fp.Map(items, common.MarkdownEscaper.Replace)
 			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
 			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
 		} else {
@@ -140,7 +140,7 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 		return
 	}
 
-	if installedAliases, err := handler.packageService.Install(uid, pkgInfo); err == repo.NoRowsWereAffected {
+	if installedAliases, err := handler.packageService.Install(uid, pkgInfo); errors.Is(err, repo.NoRowsWereAffected) {
 		reply(InstallStatusNoRows)
 	} else if isAttemptToInsertLinkForExistingFav(err) {
 		reply(InstallStatusLinkToExisingFav)

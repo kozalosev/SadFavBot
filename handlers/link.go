@@ -9,13 +9,13 @@ import (
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -92,9 +92,7 @@ func (*LinkHandler) GetCommands() []string {
 func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	if name := msg.CommandArguments(); len(name) > 0 {
-		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
-			return strings.TrimSpace(s)
-		}).([]string)
+		argParts := fp.Map(strings.Split(name, "->"), strings.TrimSpace)
 		if len(argParts) == 2 {
 			if len(argParts[0]) <= MaxAliasLen && verifyNoReservedSymbols(argParts[0], reqenv.Lang, LinkStatusErrorForbiddenSymbolsInName) == nil {
 				w.AddPrefilledText(FieldName, argParts[0])
