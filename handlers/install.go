@@ -101,7 +101,9 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 	if items, err := handler.packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
 			escapedItems := fp.Map(items, common.MarkdownEscaper.Replace)
-			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems), name, LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
+			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems),
+				common.MarkdownEscaper.Replace(name),
+				LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
 			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
 		} else {
 			log.Warn("Empty package: "+name,

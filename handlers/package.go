@@ -197,6 +197,10 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else {
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := repo.FormatPackageName(uid, name)
-		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, handler.appenv.Bot.GetName(), packID))
+		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template,
+			common.MarkdownEscaper.Replace(packName),
+			packName,
+			handler.appenv.Bot.GetName(),
+			packID))
 	}
 }

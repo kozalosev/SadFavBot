@@ -6,6 +6,7 @@ import (
 
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 )
@@ -49,4 +50,25 @@ func TestPackageAction(t *testing.T) {
 	packages, err = packageService.ListWithCounts(test.UID3, "")
 	assert.NoError(t, err)
 	assert.Len(t, packages.Items, 0)
+}
+
+func TestPackageAction_MarkdownEscapedInCreationMessage(t *testing.T) {
+	test.InsertTestData(db)
+
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := buildRequestEnvWithStrings(map[string]string{
+		PackageStatusCreationSuccess: "Package: *%s*\n`/install %s`\n%s %s",
+	})
+	fields := wizard.Fields{
+		test.NewTextField(FieldName, "kdr_flood"),
+		test.NewTextField(FieldCreateOrDelete, Create),
+		test.NewTextField(FieldAliases, test.Alias),
+	}
+
+	NewPackageHandler(appenv, nil).packageAction(reqenv, buildMessage(test.UID3), fields)
+
+	output := appenv.Bot.(*base.FakeBotAPI).GetOutput().([]string)
+	assert.Len(t, output, 1)
+	assert.Contains(t, output[0], fmt.Sprintf("*%d@kdr\\_flood*", test.UID3))
+	assert.Contains(t, output[0], fmt.Sprintf("`/install %d@kdr_flood`", test.UID3))
 }
