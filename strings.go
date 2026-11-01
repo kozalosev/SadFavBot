@@ -1,34 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/kozalosev/SadFavBot/handlers/help"
+)
 
 const (
 	trStatusFailureTemplateEn      = "An error occurred while %s; please, try again later or contact @kozalo"
 	trStatusFailureTemplateRu      = "При %s произошла ошибка, попробуйте позже или напишите @kozalo"
 	trValidationForbiddenSymbolsEn = "The following symbols are forbidden for use: `%s` (+ new line character)"
 	trValidationForbiddenSymbolsRu = "Следующие символы не могут быть использованы для названия: `%s` (+ перенос строки)"
-
-	guestHelpEn = "Mention me and write what to do:\n" +
-		"• <alias> — get the fav\n" +
-		"• save <alias> — save the message you reply to\n" +
-		"• delete <alias> — delete the message you reply to from the alias\n" +
-		"• ref — show the aliases of the message you reply to (or ref <alias> for packages)\n" +
-		"• list [text] — show your favs\n" +
-		"• link <name> -> <alias> — create a link\n" +
-		"• remove link <name> — remove the link\n" +
-		"• help — this message"
-	guestHelpRu = "Упомяните меня и напишите, что сделать:\n" +
-		"• <название> — получить закладку\n" +
-		"• сохранить <название> — сохранить сообщение, на которое вы отвечаете\n" +
-		"• удалить <название> — убрать сообщение, на которое вы отвечаете, из закладки\n" +
-		"• инфо — показать названия закладок для сообщения, на которое вы отвечаете (или инфо <название> для пакетов)\n" +
-		"• список [текст] — показать ваши закладки\n" +
-		"• ссылка <название> -> <закладка> — создать ссылку\n" +
-		"• удалить ссылку <название> — удалить ссылку\n" +
-		"• помощь — это сообщение"
 )
 
 func init() {
+	guestHelpEn, guestHelpRu := help.GuestHelp()
+
 	locpool.Resources["en"] = map[string]string{
 		"error":                                              "Error",
 		"success":                                            "👍👌",
@@ -137,17 +124,17 @@ func init() {
 		"inline.empty.query":                                              "Save new favs in the bot…",
 		"inline.empty.result":                                             "Save new favs for '%s'…",
 		"inline.errors.type.invalid":                                      "Unknown type; contact me if you want it to be supported: @kozalo",
-		"guest.empty.query":                                               "Write an alias of your fav after my name",
+		"guest.empty.query":                                               "Write an alias for your fav after my name",
 		"guest.empty.result":                                              "You have no favs for '%s'",
-		"guest.save.hint.alias":                                           "Write an alias after the keyword: save <alias>",
+		"guest.save.hint.alias":                                           "Write an alias after the keyword: `save <alias>`",
 		"guest.save.hint.reply":                                           "To save a fav, mention me in a reply to the message you want to save",
-		"guest.save.unsupported":                                          "This kind of message can't be saved",
+		"guest.save.unsupported":                                          "This kind of object can't be saved",
 		"guest.save.success":                                              "The fav has been saved! Type @%s %s to use it",
 		"guest.list.placeholder":                                          "🧹 The list was hidden to keep the chat tidy. Ask me again to see it",
 		"guest.hint.reply":                                                "This command works with a message: mention me in a reply to it",
-		"guest.delete.hint.alias":                                         "Write an alias after the keyword: delete <alias>",
-		"guest.link.hint":                                                 "Write the name of the link and the alias it leads to: link <name> -> <alias>",
-		"guest.rmlink.hint":                                               "Write the name of the link after the keywords: remove link <name>",
+		"guest.delete.hint.alias":                                         "Write an alias after the keyword: `delete <alias>`",
+		"guest.link.hint":                                                 "Write a new alias and the existing one it leads to: `link <new> -> <existing>`",
+		"guest.rmlink.hint":                                               "Write the name of the link after the keywords: `remove link <name>`",
 		"guest.help":                                                      guestHelpEn,
 		"errors.validation.option.not.in.list":                            "option is not from the suggested variants",
 		"callbacks.error":                                                 "An unknown error has been occurred, try again later or contact @kozalo",
@@ -265,15 +252,15 @@ func init() {
 		"inline.errors.type.invalid":                                      "Неизвестный тип; свяжитесь со мной, если хотите, чтобы он поддерживался: @kozalo",
 		"guest.empty.query":                                               "Напишите название закладки после моего имени",
 		"guest.empty.result":                                              "У вас нет закладок для \"%s\"",
-		"guest.save.hint.alias":                                           "Напишите название после ключевого слова: сохранить <название>",
+		"guest.save.hint.alias":                                           "Напишите название для закладки после ключевого слова: `сохранить <алиас>`",
 		"guest.save.hint.reply":                                           "Чтобы сохранить закладку, упомяните меня в ответе на сообщение, которое хотите сохранить",
-		"guest.save.unsupported":                                          "Такое сообщение сохранить нельзя",
-		"guest.save.success":                                              "Закладка сохранена! Введите @%s %s, чтобы использовать её",
+		"guest.save.unsupported":                                          "Такой объект сохранить нельзя",
+		"guest.save.success":                                              "Закладка сохранена! Чтобы использовать её, наберите @%s %s",
 		"guest.list.placeholder":                                          "🧹 Список скрыт, чтобы не засорять чат. Спросите меня снова, чтобы увидеть его",
 		"guest.hint.reply":                                                "Эта команда работает с сообщением: упомяните меня в ответе на него",
-		"guest.delete.hint.alias":                                         "Напишите название после ключевого слова: удалить <название>",
-		"guest.link.hint":                                                 "Напишите название ссылки и закладку, на которую она ведёт: ссылка <название> -> <закладка>",
-		"guest.rmlink.hint":                                               "Напишите название ссылки после ключевых слов: удалить ссылку <название>",
+		"guest.delete.hint.alias":                                         "Напишите алиас после ключевого слова: `удалить <алиас>`",
+		"guest.link.hint":                                                 "Напишите новый алиас и существующий, на который он ведёт: `ссылка <новый> -> <существующий>`",
+		"guest.rmlink.hint":                                               "Напишите название ссылки после ключевых слов: `удалить ссылку <алиас>`",
 		"guest.help":                                                      guestHelpRu,
 		"errors.validation.option.not.in.list":                            "введённого варианта нет в предложенном списке",
 		"callbacks.error":                                                 "Произошла неизвестная ошибка, попробуйте позже или напишите @kozalo",
