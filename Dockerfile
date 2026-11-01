@@ -21,6 +21,7 @@ RUN go mod download
 COPY *.go ./
 COPY db/dto/* ./db/dto/
 COPY db/repo/* ./db/repo/
+COPY fp/* ./fp/
 COPY handlers/ ./handlers/
 
 # Build without debugging info

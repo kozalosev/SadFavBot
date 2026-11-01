@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/loctools/go-l10n/loc"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -188,14 +188,14 @@ func buildInlineKeyboard(lc *loc.Context) tgbotapi.InlineKeyboardMarkup {
 }
 
 func messageHandlersToCommandList(messageHandlers []base.MessageHandler) string {
-	grpCmds := funk.Filter(messageHandlers, func(cmd base.MessageHandler) bool {
+	grpCmds := fp.Filter(messageHandlers, func(cmd base.MessageHandler) bool {
 		_, ok := cmd.(common.GroupCommand)
 		return ok
-	}).([]base.MessageHandler)
-	groupCommands := funk.Map(grpCmds, func(cmd base.MessageHandler) string {
+	})
+	groupCommands := fp.Map(grpCmds, func(cmd base.MessageHandler) string {
 		mainCmd := cmd.(common.GroupCommand).GetCommands()[0]
 		return fmt.Sprintf("— `/%s`", mainCmd)
-	}).([]string)
+	})
 	return strings.Join(groupCommands, "\n")
 }
 

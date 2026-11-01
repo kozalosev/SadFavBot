@@ -8,9 +8,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
-	"github.com/thoas/go-funk"
 )
 
 var NoRowsWereAffected = errors.New("no rows were affected")
@@ -65,9 +65,9 @@ func (service *PackageService) ListWithCounts(uid int64, lastPackage string) (*P
 				logconst.LogFailToScanDatabaseRow("PackageService", "ListWithCounts", err)
 			}
 		}
-		lines := funk.Map(packages, func(s string) string {
+		lines := fp.Map(packages, func(s string) string {
 			return FormatPackageName(uid, s)
-		}).([]string)
+		})
 		if len(lines) > ResultsPerPage {
 			return &Page{
 				Items:       lines[:ResultsPerPage],
@@ -181,9 +181,9 @@ func (service *PackageService) createPackage(tx pgx.Tx, uid int64, name string, 
 		err      error
 	)
 	if err = tx.QueryRow(service.ctx, "INSERT INTO packages(owner_uid, name) VALUES ($1, $2) RETURNING id, unique_id", uid, name).Scan(&packID, &packUUID); err == nil {
-		aliases = funk.Map(aliases, func(a string) string {
+		aliases = fp.Map(aliases, func(a string) string {
 			return strings.Replace(a, "'", "''", -1)
-		}).([]string)
+		})
 		if res, err = service.db.Query(service.ctx, fmt.Sprintf("SELECT id FROM aliases WHERE name IN ('%s')", strings.Join(aliases, "', '"))); err == nil {
 			var (
 				aliasID int

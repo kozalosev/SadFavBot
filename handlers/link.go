@@ -9,13 +9,13 @@ import (
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -92,9 +92,7 @@ func (*LinkHandler) GetCommands() []string {
 func (handler *LinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 2)
 	if name := msg.CommandArguments(); len(name) > 0 {
-		argParts := funk.Map(strings.Split(name, "->"), func(s string) string {
-			return strings.TrimSpace(s)
-		}).([]string)
+		argParts := fp.Map(strings.Split(name, "->"), strings.TrimSpace)
 		if len(argParts) == 2 {
 			if len(argParts[0]) <= MaxAliasLen && verifyNoReservedSymbols(argParts[0], reqenv.Lang, LinkStatusErrorForbiddenSymbolsInName) == nil {
 				w.AddPrefilledText(FieldName, argParts[0])
@@ -130,23 +128,29 @@ func (handler *LinkHandler) linkAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 
 	err := handler.linkService.Create(uid, name, refAlias)
 
-	reply := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
-	if isAttemptToInsertLinkForExistingFav(err) {
-		reply(LinkStatusDuplicateFav)
-	} else if storage.DuplicateConstraintViolation(err) {
-		reply(LinkStatusDuplicate)
-	} else if isAttemptToLinkNonExistingAlias(err) {
-		reply(LinkStatusNoAlias)
-	} else if err != nil {
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith(linkStatus(err))
+}
+
+// linkStatus converts the result of LinkService.Create to the key of the status message.
+func linkStatus(err error) string {
+	switch {
+	case isAttemptToInsertLinkForExistingFav(err):
+		return LinkStatusDuplicateFav
+	case storage.DuplicateConstraintViolation(err):
+		return LinkStatusDuplicate
+	case isAttemptToLinkNonExistingAlias(err):
+		return LinkStatusNoAlias
+	case err != nil:
 		log.Error("Failed to call LinkService.Create",
 			logconst.FieldHandler, "LinkHandler",
 			logconst.FieldMethod, "linkAction",
 			logconst.FieldCalledObject, "LinkService",
 			logconst.FieldCalledMethod, "Create",
 			logconst.FieldError, err)
-		reply(LinkStatusFailure)
-	} else {
-		reply(LinkStatusSuccess)
+		return LinkStatusFailure
+	default:
+		return LinkStatusSuccess
 	}
 }
 

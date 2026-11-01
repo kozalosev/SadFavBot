@@ -98,6 +98,11 @@ func (*DeleteHandler) GetCommands() []string {
 	return deleteCommands
 }
 
+// IsEphemeral makes the command ephemeral in group chats: nobody except the sender sees the reply.
+func (*DeleteHandler) IsEphemeral() bool {
+	return true
+}
+
 func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	w := wizard.NewWizard(handler, 3)
 	arg := msg.CommandArguments()
@@ -126,7 +131,7 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, common.ReplyToOriginal(msg))
 
 	var (
 		deleteAll      bool

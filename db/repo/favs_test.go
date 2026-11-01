@@ -1,14 +1,15 @@
 package repo
 
 import (
+	"strconv"
+	"testing"
+
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
-	"github.com/thoas/go-funk"
-	"strconv"
-	"testing"
 )
 
 func TestFavService_Find(t *testing.T) {
@@ -136,9 +137,9 @@ func TestFavService_Find_bySubstring_withDuplicates(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, objects, 3)
 
-	types := funk.Map(objects, func(fav *dto.Fav) wizard.FieldType {
+	types := fp.Map(objects, func(fav *dto.Fav) wizard.FieldType {
 		return fav.Type
-	}).([]wizard.FieldType)
+	})
 	assert.Contains(t, types, wizard.Sticker)
 	assert.Contains(t, types, wizard.Text)
 }

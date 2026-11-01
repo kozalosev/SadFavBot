@@ -10,11 +10,11 @@ import (
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/SadFavBot/db/repo"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
-	"github.com/thoas/go-funk"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -72,7 +72,7 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		opts := reqenv.Options.(*dto.UserOptions)
 		if objects, err := handler.favService.Find(query.From.ID, query.Query, opts.SubstrSearchEnabled, offset); err == nil {
 			if len(objects) > 0 {
-				answer.Results = funk.Map(objects, generateMapper(reqenv.Lang)).([]interface{})
+				answer.Results = fp.Map(objects, generateMapper(reqenv.Lang))
 				answer.NextOffset = strconv.Itoa(offset + len(objects))
 			} else if offset == 0 && len(query.Query) <= DeepLinkMaxAliasBytes {
 				answer.Button = &tgbotapi.InlineQueryResultsButton{
@@ -104,9 +104,9 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 	}
 }
 
-func generateMapper(lc *loc.Context) func(object *dto.Fav) interface{} {
+func generateMapper(lc *loc.Context) func(object *dto.Fav) any {
 	caser := cases.Title(language.Make(lc.GetLanguage()))
-	return func(object *dto.Fav) interface{} {
+	return func(object *dto.Fav) any {
 		switch object.Type {
 		case wizard.Text:
 			article := tgbotapi.NewInlineQueryResultArticle(object.ID, object.Text.Value, object.Text.Value)

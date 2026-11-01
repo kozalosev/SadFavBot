@@ -12,10 +12,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	"github.com/thoas/go-funk"
 )
 
 var trimCountRegex = regexp.MustCompile("\\(\\d+\\)$")
@@ -124,7 +124,7 @@ func (service *AliasService) ListWithCounts(uid int64, grep string, lastAlias st
 func (service *AliasService) List(uid int64) ([]string, error) {
 	res, err := service.ListWithCounts(uid, "", "")
 	if err == nil {
-		return funk.Map(res.Items, trimSuffix).([]string), nil
+		return fp.Map(res.Items, trimSuffix), nil
 	}
 	return nil, err
 }

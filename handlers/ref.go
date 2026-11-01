@@ -11,6 +11,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
+	"github.com/loctools/go-l10n/loc"
 )
 
 const (
@@ -60,6 +61,11 @@ func (*RefHandler) GetCommands() []string {
 	return refCommands
 }
 
+// IsEphemeral makes the command ephemeral in group chats: nobody except the sender sees the reply.
+func (*RefHandler) IsEphemeral() bool {
+	return true
+}
+
 func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	if len(msg.CommandArguments()) > 0 {
 		alias := msg.CommandArguments()
@@ -101,10 +107,7 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 var errInvalidObjectType = errors.New("invalid type of the object field value")
 
 func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	var (
-		aliases []string
-		err     error
-	)
+	msg = common.ReplyToOriginal(msg)
 	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 	objectField := fields.FindField(FieldObject)
 	if objectField == nil {
@@ -115,27 +118,7 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		return
 	}
 
-	switch objectField.Type {
-	case wizard.Text:
-		if txt, ok := objectField.Data.(wizard.Txt); ok {
-			aliases, err = handler.aliasService.ListByText(msg.From.ID, &txt)
-		} else {
-			err = errInvalidObjectType
-		}
-	case wizard.Location:
-		if loc, ok := objectField.Data.(wizard.LocData); ok {
-			aliases, err = handler.aliasService.ListByLocation(msg.From.ID, &loc)
-		} else {
-			err = errInvalidObjectType
-		}
-	default:
-		if file, ok := objectField.Data.(wizard.File); ok {
-			aliases, err = handler.aliasService.ListByFile(msg.From.ID, &file)
-		} else {
-			err = errInvalidObjectType
-		}
-	}
-
+	aliases, err := findAliasesByObject(handler.aliasService, msg.From.ID, objectField)
 	if errors.Is(err, errInvalidObjectType) {
 		log.Error("Invalid type of the object field value",
 			logconst.FieldHandler, "RefHandler",
@@ -156,14 +139,8 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		return
 	}
 
-	title := reqenv.Lang.Tr(RefStatusSuccess)
-	text := title + "\n\n" + LinePrefix + strings.Join(aliases, "\n"+LinePrefix)
-
 	packages, err := handler.packageService.FindByAliases(msg.From.ID, aliases)
-	if err == nil && len(packages) > 0 {
-		title := reqenv.Lang.Tr(RefStatusSuccessWithPackages)
-		text += "\n\n" + title + "\n\n" + buildPackagesList(packages)
-	} else if err != nil {
+	if err != nil {
 		log.Error("Failed to call PackageService.FindByAliases",
 			logconst.FieldHandler, "RefHandler",
 			logconst.FieldMethod, "refAction",
@@ -172,7 +149,36 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 			logconst.FieldError, err)
 	}
 
+	text := buildRefText(reqenv.Lang, aliases, packages)
 	common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
+}
+
+// findAliasesByObject returns all aliases of the user the object is saved under.
+func findAliasesByObject(service *repo.AliasService, uid int64, objectField *wizard.Field) ([]string, error) {
+	switch objectField.Type {
+	case wizard.Text:
+		if txt, ok := objectField.Data.(wizard.Txt); ok {
+			return service.ListByText(uid, &txt)
+		}
+	case wizard.Location:
+		if loc, ok := objectField.Data.(wizard.LocData); ok {
+			return service.ListByLocation(uid, &loc)
+		}
+	default:
+		if file, ok := objectField.Data.(wizard.File); ok {
+			return service.ListByFile(uid, &file)
+		}
+	}
+	return nil, errInvalidObjectType
+}
+
+// buildRefText builds the answer with the aliases of an object and the packages containing them, if any.
+func buildRefText(lc *loc.Context, aliases, packages []string) string {
+	text := lc.Tr(RefStatusSuccess) + "\n\n" + LinePrefix + strings.Join(aliases, "\n"+LinePrefix)
+	if len(packages) > 0 {
+		text += "\n\n" + lc.Tr(RefStatusSuccessWithPackages) + "\n\n" + buildPackagesList(packages)
+	}
+	return text
 }
 
 func buildPackagesList(packages []string) string {

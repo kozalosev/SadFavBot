@@ -1,11 +1,12 @@
 package repo
 
 import (
+	"testing"
+
 	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/thoas/go-funk"
-	"testing"
 )
 
 var (
@@ -116,7 +117,7 @@ func TestInstallPackageWithLocation(t *testing.T) {
 	favs, err := favsService.Find(test.UID3, test.Alias2, false, 0)
 	assert.NoError(t, err)
 	assert.Len(t, favs, 2)
-	locFavs := funk.Filter(favs, func(f *dto.Fav) bool {
+	locFavs := fp.Filter(favs, func(f *dto.Fav) bool {
 		return f.Location != nil
 	})
 	assert.Len(t, locFavs, 1)
