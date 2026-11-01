@@ -146,6 +146,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 	}
 
 	messageHandlers = []base.MessageHandler{
+		handlers.NewIgnoreForeignCommandsHandler(appenv.Bot.GetName()), // must go before the command handlers
 		saveHandler,
 		handlers.NewListHandler(appenv, stateStorage),
 		handlers.NewRefHandler(appenv, stateStorage),
