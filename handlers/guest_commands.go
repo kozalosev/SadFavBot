@@ -78,6 +78,7 @@ var guestKeywords = map[string]guestCommand{
 	"help":    guestCmdHelp,
 	"помощь":  guestCmdHelp,
 	"справка": guestCmdHelp,
+	"хелп":    guestCmdHelp,
 }
 
 const guestMaxKeywordWords = 2
@@ -116,7 +117,7 @@ func (handler *GuestCommandsHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi
 	if msg.GuestQueryID == "" {
 		return false
 	}
-	cmd, _ := parseGuestCommand(stripBotMention(msg.Text, handler.mention))
+	cmd, _, _ := parseGuestCommand(stripBotMention(msg.Text, handler.mention))
 	return cmd != 0
 }
 
@@ -129,8 +130,10 @@ func (handler *GuestCommandsHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 		return nil
 	}
 
-	cmd, args := parseGuestCommand(stripBotMention(msg.Text, handler.mention))
-	result := handler.execute(cmd, reqenv.Lang, user.ID, msg.ReplyToMessage, args)
+	cmd, lang, args := parseGuestCommand(stripBotMention(msg.Text, handler.mention))
+	// the language of the keyword is more reliable than the settings of the user
+	lc := reqenv.Lang.GetContext(lang)
+	result := handler.execute(cmd, lc, user.ID, msg.ReplyToMessage, args)
 	if result == nil {
 		return nil
 	}
@@ -141,7 +144,7 @@ func (handler *GuestCommandsHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 		return base.PlaceholderGuestResult{
 			Result:      result,
 			After:       common.SelfDeletionDelay(),
-			Placeholder: reqenv.Lang.Tr(GuestListPlaceholderTr),
+			Placeholder: lc.Tr(GuestListPlaceholderTr),
 		}
 	}
 	return result
@@ -323,15 +326,25 @@ func guestMarkdownAnswer(text string) tgbotapi.InlineQueryResult {
 }
 
 // parseGuestCommand splits the text into the command by its keyword (the longest one wins) and the rest of the text,
-// which are the arguments. It returns zero if the text doesn't start with a keyword.
-func parseGuestCommand(text string) (cmd guestCommand, args string) {
+// which are the arguments. It also returns the language of the keyword. It returns zero if the text doesn't start
+// with a keyword.
+func parseGuestCommand(text string) (cmd guestCommand, lang string, args string) {
 	words := strings.Fields(strings.ToLower(text))
 	for n := min(guestMaxKeywordWords, len(words)); n > 0; n-- {
-		if cmd, ok := guestKeywords[strings.Join(words[:n], " ")]; ok {
-			return cmd, dropWords(text, n)
+		keyword := strings.Join(words[:n], " ")
+		if cmd, ok := guestKeywords[keyword]; ok {
+			return cmd, guestKeywordLang(keyword), dropWords(text, n)
 		}
 	}
-	return 0, ""
+	return 0, "", ""
+}
+
+// guestKeywordLang detects the language of the keyword by its alphabet.
+func guestKeywordLang(keyword string) string {
+	if strings.IndexFunc(keyword, func(r rune) bool { return unicode.Is(unicode.Cyrillic, r) }) >= 0 {
+		return "ru"
+	}
+	return "en"
 }
 
 // dropWords removes n first words from the text, keeping the spaces inside the rest of it.

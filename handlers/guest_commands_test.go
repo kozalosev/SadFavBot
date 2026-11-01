@@ -6,6 +6,7 @@ import (
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,7 @@ func TestParseGuestCommand(t *testing.T) {
 		{"", 0, ""},
 	}
 	for _, c := range cases {
-		cmd, args := parseGuestCommand(c.text)
+		cmd, _, args := parseGuestCommand(c.text)
 		assert.Equal(t, c.cmd, cmd, c.text)
 		assert.Equal(t, c.args, args, c.text)
 	}
@@ -246,4 +247,28 @@ func answerMessage(t *testing.T, result tgbotapi.InlineQueryResult) string {
 
 func stickerMessage() *tgbotapi.Message {
 	return &tgbotapi.Message{Sticker: &tgbotapi.Sticker{FileID: test.FileID, FileUniqueID: test.UniqueFileID}}
+}
+
+func TestGuestKeywordLang(t *testing.T) {
+	for keyword, lang := range map[string]string{
+		"list": "en", "remove link": "en", "help": "en",
+		"список": "ru", "покажи все": "ru", "удалить ссылку": "ru", "хелп": "ru",
+	} {
+		assert.Equal(t, lang, guestKeywordLang(keyword), keyword)
+	}
+}
+
+func TestGuestCommandsHandler_languageOfKeyword(t *testing.T) {
+	handler := NewGuestCommandsHandler(test.BuildApplicationEnv(db))
+	pool := loc.NewPool("en")
+	pool.Resources["en"] = map[string]string{GuestHelpTr: "Help"}
+	pool.Resources["ru"] = map[string]string{GuestHelpTr: "Справка"}
+
+	for _, lang := range []string{"en", "ru"} {
+		reqenv := test.BuildRequestEnv()
+		reqenv.Lang = pool.GetContext(lang)
+
+		assert.Equal(t, "Help", answerMessage(t, handler.Handle(reqenv, buildGuestMessage(test.UID, mention+"help"))), lang)
+		assert.Equal(t, "Справка", answerMessage(t, handler.Handle(reqenv, buildGuestMessage(test.UID, mention+"помощь"))), lang)
+	}
 }
