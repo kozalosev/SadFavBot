@@ -65,6 +65,9 @@ func TestStripBotMention(t *testing.T) {
 	assert.Equal(t, "my alias", stripBotMention("my alias @sadfavbot", newBotMentionRegexp("SadFavBot")))
 	assert.Equal(t, "my alias", stripBotMention("  @SadFavBot  my alias ", newBotMentionRegexp("SadFavBot")))
 	assert.Equal(t, "@SadFavBotNot x", stripBotMention("@SadFavBotNot x", newBotMentionRegexp("SadFavBot")))
+	assert.Equal(t, "my alias", stripBotMention("my alias, @SadFavBot", newBotMentionRegexp("SadFavBot")))
+	assert.Equal(t, "my alias", stripBotMention("@SadFavBot, my alias", newBotMentionRegexp("SadFavBot")))
+	assert.Equal(t, "a, b", stripBotMention("a, b,@SadFavBot", newBotMentionRegexp("SadFavBot")))
 	assert.Empty(t, stripBotMention("@SadFavBot", newBotMentionRegexp("SadFavBot")))
 }
 

@@ -162,7 +162,7 @@ func (handler *GuestCommandsHandler) execute(cmd guestCommand, lc *loc.Context, 
 	case guestCmdRmLink:
 		return handler.rmLink(lc, uid, args)
 	case guestCmdHelp:
-		return guestAnswer(lc.Tr(GuestHelpTr))
+		return guestMarkdownAnswer(lc.Tr(GuestHelpTr))
 	default:
 		return nil
 	}
@@ -170,7 +170,7 @@ func (handler *GuestCommandsHandler) execute(cmd guestCommand, lc *loc.Context, 
 
 func (handler *GuestCommandsHandler) delete(lc *loc.Context, uid int64, replyTo *tgbotapi.Message, alias string) tgbotapi.InlineQueryResult {
 	if problem := checkReplyArgs(lc, alias, replyTo, GuestDeleteHintAliasTr, GuestHintReplyTr); problem != "" {
-		return guestAnswer(problem)
+		return guestMarkdownAnswer(problem)
 	}
 	if problem := checkName(lc, alias, DeleteFieldsTrPrefix+FieldAlias+FieldMaxLengthErrorTrSuffix, ""); problem != "" {
 		return guestAnswer(problem)
@@ -245,7 +245,7 @@ func (handler *GuestCommandsHandler) list(lc *loc.Context, uid int64, grep strin
 func (handler *GuestCommandsHandler) link(lc *loc.Context, uid int64, args string) tgbotapi.InlineQueryResult {
 	name, refAlias, found := splitLinkArgs(args)
 	if !found || len(name) == 0 || len(refAlias) == 0 {
-		return guestAnswer(lc.Tr(GuestLinkHintTr))
+		return guestMarkdownAnswer(lc.Tr(GuestLinkHintTr))
 	}
 	if problem := checkName(lc, name, LinkFieldTrPrefix+FieldName+FieldMaxLengthErrorTrSuffix, LinkStatusErrorForbiddenSymbolsInName); problem != "" {
 		return guestAnswer(problem)
@@ -256,7 +256,7 @@ func (handler *GuestCommandsHandler) link(lc *loc.Context, uid int64, args strin
 
 func (handler *GuestCommandsHandler) rmLink(lc *loc.Context, uid int64, name string) tgbotapi.InlineQueryResult {
 	if len(name) == 0 {
-		return guestAnswer(lc.Tr(GuestRmLinkHintTr))
+		return guestMarkdownAnswer(lc.Tr(GuestRmLinkHintTr))
 	}
 	err := handler.linkService.Delete(uid, name)
 	return guestAnswer(lc.Tr(rmLinkStatus(err)))
@@ -312,6 +312,14 @@ func (*GuestCommandsHandler) failure(err error, service, method, text string) tg
 func guestAnswer(text string) tgbotapi.InlineQueryResult {
 	title, _, _ := strings.Cut(text, "\n")
 	return tgbotapi.NewInlineQueryResultArticle(guestAnswerResultID, title, text)
+}
+
+// guestMarkdownAnswer is like guestAnswer, but the text is sent as Markdown. Use it only for the static texts:
+// the values entered by users must be escaped first.
+func guestMarkdownAnswer(text string) tgbotapi.InlineQueryResult {
+	article := guestAnswer(text).(tgbotapi.InlineQueryResultArticle)
+	article.InputMessageContent = tgbotapi.InputTextMessageContent{Text: text, ParseMode: tgbotapi.ModeMarkdown}
+	return article
 }
 
 // parseGuestCommand splits the text into the command by its keyword (the longest one wins) and the rest of the text,

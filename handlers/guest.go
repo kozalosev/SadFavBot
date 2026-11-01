@@ -74,9 +74,10 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 	return generateMapper(reqenv.Lang)(favs[0])
 }
 
-// newBotMentionRegexp builds the regexp matching the mentions of the bot.
+// newBotMentionRegexp builds the regexp matching the mentions of the bot
+// along with the commas of the direct address ("alias, @bot" or "@bot, alias").
 func newBotMentionRegexp(botName string) *regexp.Regexp {
-	return regexp.MustCompile(`(?i)@` + regexp.QuoteMeta(botName) + `\b`)
+	return regexp.MustCompile(`(?i),?\s*@` + regexp.QuoteMeta(botName) + `\b,?`)
 }
 
 // stripBotMention removes all mentions of the bot from the text and returns the remaining part, which is an alias.

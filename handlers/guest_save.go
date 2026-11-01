@@ -23,7 +23,7 @@ const (
 // save saves the replied message under the alias: "@bot save alias".
 func (handler *GuestCommandsHandler) save(lc *loc.Context, uid int64, replyTo *tgbotapi.Message, alias string) tgbotapi.InlineQueryResult {
 	if problem := checkReplyArgs(lc, alias, replyTo, GuestSaveHintAliasTr, GuestSaveHintReplyTr); problem != "" {
-		return guestAnswer(problem)
+		return guestMarkdownAnswer(problem)
 	}
 	if problem := checkName(lc, alias, SaveFieldsTrPrefix+FieldAlias+FieldMaxLengthErrorTrSuffix, SaveStatusErrorForbiddenSymbolsInAlias); problem != "" {
 		return guestAnswer(problem)
