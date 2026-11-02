@@ -127,6 +127,8 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 		DB:       0,
 	}
 	stateStorage = wizard.ConnectToRedis(ctx, commandStateTTL, redisOptions)
+	// a question of a wizard in a group mustn't disappear while the user can still answer it
+	wizard.SetUnansweredQuestionLifetimeInGroups(commandStateTTL)
 	showCache = handlers.NewRedisShowCache(ctx, redisOptions)
 	dbName := os.Getenv("POSTGRES_DB")
 	dbConfig := storage.NewDatabaseConfig(

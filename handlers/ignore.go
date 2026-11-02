@@ -18,12 +18,7 @@ func NewIgnoreUnknownInGroupsHandler(botName string) *IgnoreUnknownInGroupsHandl
 }
 
 func (handler *IgnoreUnknownInGroupsHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
-	return base.IsGroupChat(&msg.Chat) && !handler.isReplyToBot(msg)
-}
-
-func (handler *IgnoreUnknownInGroupsHandler) isReplyToBot(msg *tgbotapi.Message) bool {
-	replyTo := msg.ReplyToMessage
-	return replyTo != nil && replyTo.From != nil && strings.EqualFold(replyTo.From.UserName, handler.botName)
+	return base.IsGroupChat(&msg.Chat) && !base.IsReplyToBot(msg, handler.botName)
 }
 
 func (handler *IgnoreUnknownInGroupsHandler) Handle(_ *base.RequestEnv, _ *tgbotapi.Message) {}
