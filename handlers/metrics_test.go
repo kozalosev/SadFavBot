@@ -54,3 +54,12 @@ func TestCountSearch(t *testing.T) {
 	assertIncremented(t, searchCounter.WithLabelValues(metricModeShow, metricResultFound), func() { countSearch(metricModeShow, 2) })
 	assertIncremented(t, searchCounter.WithLabelValues(metricModeShow, metricResultEmpty), func() { countSearch(metricModeShow, 0) })
 }
+
+func TestCountersAreInitialized(t *testing.T) {
+	// 3 modes × 2 results, 2 modes × 3 outcomes, 4 outcomes, 2 modes, 3 + 2 results of the cache
+	assert.GreaterOrEqual(t, testutil.CollectAndCount(searchCounter), 6)
+	assert.GreaterOrEqual(t, testutil.CollectAndCount(saveOutcomeCounter), 6)
+	assert.GreaterOrEqual(t, testutil.CollectAndCount(installOutcomeCounter), 4)
+	assert.GreaterOrEqual(t, testutil.CollectAndCount(carouselCounter), 2)
+	assert.GreaterOrEqual(t, testutil.CollectAndCount(showCacheCounter), 5)
+}
