@@ -46,7 +46,7 @@ func (service *PackageService) Install(uid int64, pkgInfo *PackageInfo) ([]strin
 		return nil, NoRowsWereAffected
 	}
 
-	aliasIDs = removeDuplicates(aliasIDs)
+	aliasIDs = lo.Uniq(aliasIDs)
 	aliasIDsAsStr := lo.Reduce(aliasIDs[1:], func(acc string, elem int, _ int) string {
 		return acc + "," + strconv.Itoa(elem)
 	}, strconv.Itoa(aliasIDs[0]))
@@ -122,16 +122,4 @@ func (service *PackageService) installLinks(tx pgx.Tx, uid int64, pkgInfo *Packa
 		return aliasIDs, res.Err()
 	}
 	return nil, err
-}
-
-func removeDuplicates[T comparable](arr []T) []T {
-	set := make(map[T]struct{}, len(arr))
-	for _, val := range arr {
-		set[val] = struct{}{}
-	}
-	arr = make([]T, 0, len(set))
-	for val := range set {
-		arr = append(arr, val)
-	}
-	return arr
 }

@@ -132,56 +132,20 @@ func (handler *ShowCallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbot
 	logger := logconst.NewLoggerForHandler("ShowCallbackHandler")
 
 	msg := query.Message
-	data := strings.Split(strings.TrimPrefix(query.Data, showCallbackPrefix), ":")
-	if msg == nil || len(data) != 3 {
-		logger.Use().Error("Unexpected callback query",
-			logconst.FieldObject, "CallbackQuery",
-			logconst.FieldQuery, query.Data)
+	if msg == nil {
+		logger.Use().Error("Message is nil",
+			logconst.FieldObject, "query.Message")
 		answerWith.err(ShowStatusFailure)
 		return
 	}
-	token := data[0]
-	newIdx, errNew := strconv.Atoi(data[1])
-	curIdx, errCur := strconv.Atoi(data[2])
-	if errNew != nil || errCur != nil {
-		logger.Use().Error("Unexpected format of the callback data",
-			logconst.FieldObject, "CallbackQuery.Data",
-			logconst.FieldQuery, query.Data)
-		answerWith.err(ShowStatusFailure)
+	sw, ok := resolveShowSwitch(handler.appenv, handler.cache, showCallbackPrefix, query, answerWith, logger)
+	if !ok {
 		return
 	}
 
-	entry, err := handler.cache.Get(handler.appenv.Ctx, token)
-	if errors.Is(err, ErrShowCacheMiss) {
-		answerWith.err(ShowStatusOutdated)
-		return
-	} else if err != nil {
-		log.Error("Failed to call ShowCache.Get",
-			logconst.FieldHandler, "ShowCallbackHandler",
-			logconst.FieldMethod, "Handle",
-			logconst.FieldCalledObject, "ShowCache",
-			logconst.FieldCalledMethod, "Get",
-			logconst.FieldError, err)
-		answerWith.err(ShowStatusFailure)
-		return
-	}
-	if query.From.ID != entry.OwnerUID {
-		answerWith.err(ShowStatusNotOwner)
-		return
-	}
-
-	total := len(entry.Favs)
-	if curIdx < 0 || curIdx >= total {
-		curIdx = 0
-	}
-	newIdx = (newIdx%total + total) % total // wrap around; the double remainder also normalizes negative and too big values
-	if newIdx == curIdx {
-		answerWith.ok()
-		return
-	}
-
-	keyboard := buildShowKeyboard(token, newIdx, total)
-	current, next := entry.Favs[curIdx], entry.Favs[newIdx]
+	keyboard := buildCarouselKeyboard(showCallbackPrefix, sw.token, sw.newIdx, len(sw.entry.Favs))
+	current, next := sw.entry.Favs[sw.curIdx], sw.entry.Favs[sw.newIdx]
+	var err error
 	if canEditInPlace(current, next) {
 		err = handler.appenv.Bot.Request(buildShowEditRequest(msg.Chat.ID, msg.MessageID, next, keyboard))
 	} else {
@@ -200,6 +164,65 @@ func (handler *ShowCallbackHandler) Handle(reqenv *base.RequestEnv, query *tgbot
 		return
 	}
 	answerWith.ok()
+}
+
+// showSwitch is a request to switch the message from the object at curIdx to the one at newIdx.
+type showSwitch struct {
+	token          string
+	entry          *ShowEntry
+	curIdx, newIdx int
+}
+
+// resolveShowSwitch parses the "<prefix><token>:<new index>:<current index>" callback data and fetches the favs
+// from the cache. If false is returned, the query has already been answered and there is nothing to do.
+func resolveShowSwitch(appenv *base.ApplicationEnv, cache ShowCache, prefix string, query *tgbotapi.CallbackQuery, answerWith *answerer, logger logconst.LoggerBuilder) (*showSwitch, bool) {
+	data := strings.Split(strings.TrimPrefix(query.Data, prefix), ":")
+	if len(data) != 3 {
+		logger.Use().Error("Unexpected callback query",
+			logconst.FieldObject, "CallbackQuery",
+			logconst.FieldQuery, query.Data)
+		answerWith.err(ShowStatusFailure)
+		return nil, false
+	}
+	token := data[0]
+	newIdx, errNew := strconv.Atoi(data[1])
+	curIdx, errCur := strconv.Atoi(data[2])
+	if errNew != nil || errCur != nil {
+		logger.Use().Error("Unexpected format of the callback data",
+			logconst.FieldObject, "CallbackQuery.Data",
+			logconst.FieldQuery, query.Data)
+		answerWith.err(ShowStatusFailure)
+		return nil, false
+	}
+
+	entry, err := cache.Get(appenv.Ctx, token)
+	if errors.Is(err, ErrShowCacheMiss) {
+		answerWith.err(ShowStatusOutdated)
+		return nil, false
+	} else if err != nil {
+		log.Error("Failed to call ShowCache.Get",
+			logconst.FieldFunc, "resolveShowSwitch",
+			logconst.FieldCalledObject, "ShowCache",
+			logconst.FieldCalledMethod, "Get",
+			logconst.FieldError, err)
+		answerWith.err(ShowStatusFailure)
+		return nil, false
+	}
+	if query.From.ID != entry.OwnerUID {
+		answerWith.err(ShowStatusNotOwner)
+		return nil, false
+	}
+
+	total := len(entry.Favs)
+	if curIdx < 0 || curIdx >= total {
+		curIdx = 0
+	}
+	newIdx = (newIdx%total + total) % total // wrap around; the double remainder also normalizes negative and too big values
+	if newIdx == curIdx {
+		answerWith.ok()
+		return nil, false
+	}
+	return &showSwitch{token: token, entry: entry, curIdx: curIdx, newIdx: newIdx}, true
 }
 
 // sortFavsByType groups the favs by their types in the order of showTypeOrder, preserving the original order inside a group.
@@ -242,9 +265,14 @@ func newShowToken() (string, error) {
 // and "▶" on the last object leads to the first one. In Go, the remainder of a negative number is negative too
 // ((-1) % 3 == -1), so total is added before taking the remainder for the previous index.
 func buildShowKeyboard(token string, current, total int) tgbotapi.InlineKeyboardMarkup {
+	return buildCarouselKeyboard(showCallbackPrefix, token, current, total)
+}
+
+// buildCarouselKeyboard is [buildShowKeyboard] for the callback handler with the given prefix.
+func buildCarouselKeyboard(prefix, token string, current, total int) tgbotapi.InlineKeyboardMarkup {
 	// the callback data consists of the index to switch to and the current one, which is used to choose between editing and resending
 	data := func(idx int) string {
-		return fmt.Sprintf("%s%s:%d:%d", showCallbackPrefix, token, idx, current)
+		return fmt.Sprintf("%s%s:%d:%d", prefix, token, idx, current)
 	}
 	return tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
 		tgbotapi.NewInlineKeyboardButtonData("◀", data((current-1+total)%total)),
@@ -320,10 +348,16 @@ func buildShowSendRequest(chatID int64, replyTo int, fav *dto.Fav, keyboard *tgb
 
 // buildShowEditRequest edits the message, replacing the object with another one of the same editable type.
 func buildShowEditRequest(chatID int64, messageID int, fav *dto.Fav, keyboard tgbotapi.InlineKeyboardMarkup) tgbotapi.Chattable {
+	return buildFavEditRequest(tgbotapi.BaseEdit{
+		BaseChatMessage: tgbotapi.BaseChatMessage{ChatConfig: tgbotapi.ChatConfig{ChatID: chatID}, MessageID: messageID},
+		ReplyMarkup:     &keyboard,
+	}, fav)
+}
+
+// buildFavEditRequest edits the message specified by edit, which may be an inline one, to show the object of an editable type.
+func buildFavEditRequest(edit tgbotapi.BaseEdit, fav *dto.Fav) tgbotapi.Chattable {
 	if fav.Type == wizard.Text {
-		cfg := tgbotapi.NewEditMessageTextAndMarkup(chatID, messageID, fav.Text.Value, keyboard)
-		cfg.Entities = fav.Text.Entities
-		return cfg
+		return tgbotapi.EditMessageTextConfig{BaseEdit: edit, Text: fav.Text.Value, Entities: fav.Text.Entities}
 	}
 
 	file := tgbotapi.FileID(fav.File.ID)
@@ -350,7 +384,5 @@ func buildShowEditRequest(chatID int64, messageID int, fav *dto.Fav, keyboard tg
 		m.Caption, m.CaptionEntities = fav.File.Caption, fav.File.Entities
 		media = &m
 	}
-	cfg := tgbotapi.NewEditMessageMedia(chatID, messageID, media)
-	cfg.ReplyMarkup = &keyboard
-	return cfg
+	return tgbotapi.EditMessageMediaConfig{BaseEdit: edit, Media: media}
 }

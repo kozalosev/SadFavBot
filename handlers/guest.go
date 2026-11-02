@@ -22,17 +22,20 @@ const (
 )
 
 // GuestFavoritesHandler answers a guest query with the first fav found by the text of the message.
-// A guest query can be answered only once, so there is no pagination and no choice, unlike in the inline mode.
+// A guest query can be answered only once, so there is no choice, unlike in the inline mode. Instead, the other favs
+// the message can be edited to show are available via the "◀ n/N ▶" buttons handled by [GuestShowCallbackHandler].
 type GuestFavoritesHandler struct {
 	appenv     *base.ApplicationEnv
 	favService *repo.FavService
+	cache      ShowCache
 	mention    *regexp.Regexp
 }
 
-func NewGuestFavoritesHandler(appenv *base.ApplicationEnv) *GuestFavoritesHandler {
+func NewGuestFavoritesHandler(appenv *base.ApplicationEnv, cache ShowCache) *GuestFavoritesHandler {
 	return &GuestFavoritesHandler{
 		appenv:     appenv,
 		favService: repo.NewFavsService(appenv),
+		cache:      cache,
 		mention:    newBotMentionRegexp(appenv.Bot.GetName()),
 	}
 }
@@ -71,7 +74,27 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 		text := fmt.Sprintf(reqenv.Lang.Tr(GuestEmptyResultTr), query)
 		return tgbotapi.NewInlineQueryResultArticle(guestEmptyResultID, text, text)
 	}
-	return generateMapper(reqenv.Lang)(favs[0])
+
+	result := generateMapper(reqenv.Lang)(favs[0])
+	carousel := filterGuestCarousel(favs)
+	if len(carousel) < 2 {
+		return result
+	}
+	token, err := newShowToken()
+	if err == nil {
+		err = handler.cache.Put(handler.appenv.Ctx, token, &ShowEntry{OwnerUID: user.ID, Favs: carousel})
+	}
+	if err != nil {
+		// the fav can still be sent, just without the buttons
+		log.Error("Failed to put the favs into the ShowCache",
+			logconst.FieldHandler, "GuestFavoritesHandler",
+			logconst.FieldMethod, "Handle",
+			logconst.FieldCalledObject, "ShowCache",
+			logconst.FieldCalledMethod, "Put",
+			logconst.FieldError, err)
+		return result
+	}
+	return withReplyMarkup(result, buildCarouselKeyboard(guestShowCallbackPrefix, token, 0, len(carousel)))
 }
 
 // newBotMentionRegexp builds the regexp matching the mentions of the bot

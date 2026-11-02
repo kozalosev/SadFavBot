@@ -14,6 +14,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/loctools/go-l10n/loc"
+	"github.com/samber/lo"
 )
 
 const (
@@ -74,10 +75,8 @@ func (handler *SaveHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 			template := lc.Tr(SaveFieldsTrPrefix + FieldObject + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, MaxTextLen))
 		}
-		for _, entity := range msg.Entities {
-			if len(entity.CustomEmojiID) > 0 {
-				return errors.New(lc.Tr(SaveObjectValidationErrorCustomEmoji))
-			}
+		if lo.ContainsBy(msg.Entities, func(entity tgbotapi.MessageEntity) bool { return len(entity.CustomEmojiID) > 0 }) {
+			return errors.New(lc.Tr(SaveObjectValidationErrorCustomEmoji))
 		}
 		return nil
 	}

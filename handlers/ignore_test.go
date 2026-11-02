@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strings"
 	"testing"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -26,14 +27,8 @@ func TestIgnoreForeignCommandsHandler_CanHandle(t *testing.T) {
 			msg := buildMessage(1)
 			msg.Text = tt.text
 			if tt.text[0] == '/' {
-				cmdLen := len(tt.text)
-				for i, c := range tt.text {
-					if c == ' ' {
-						cmdLen = i
-						break
-					}
-				}
-				msg.Entities = []tgbotapi.MessageEntity{{Type: "bot_command", Offset: 0, Length: cmdLen}}
+				cmd, _, _ := strings.Cut(tt.text, " ")
+				msg.Entities = []tgbotapi.MessageEntity{{Type: "bot_command", Offset: 0, Length: len(cmd)}}
 			}
 			assert.Equal(t, tt.expected, handler.CanHandle(nil, msg))
 		})

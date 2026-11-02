@@ -11,7 +11,7 @@ import (
 const mention = "@TestMockBotAPI "
 
 func TestGuestFavoritesHandler_CanHandle(t *testing.T) {
-	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db))
+	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db), newFakeShowCache())
 	reqenv := test.BuildRequestEnv()
 
 	assert.True(t, handler.CanHandle(reqenv, buildGuestMessage(test.UID, mention+test.Alias)))
@@ -21,7 +21,7 @@ func TestGuestFavoritesHandler_CanHandle(t *testing.T) {
 func TestGuestFavoritesHandler_Handle(t *testing.T) {
 	test.InsertTestData(db)
 
-	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db))
+	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db), newFakeShowCache())
 	reqenv := test.BuildRequestEnv()
 
 	result := handler.Handle(reqenv, buildGuestMessage(test.UID, mention+test.Alias))
@@ -32,7 +32,7 @@ func TestGuestFavoritesHandler_Handle(t *testing.T) {
 func TestGuestFavoritesHandler_Handle_CallerFallback(t *testing.T) {
 	test.InsertTestData(db)
 
-	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db))
+	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db), newFakeShowCache())
 	msg := buildGuestMessage(test.UID, mention+test.Alias)
 	msg.GuestBotCallerUser, msg.From = msg.From, nil
 
@@ -43,7 +43,7 @@ func TestGuestFavoritesHandler_Handle_CallerFallback(t *testing.T) {
 func TestGuestFavoritesHandler_Handle_NothingToAnswer(t *testing.T) {
 	test.InsertTestData(db)
 
-	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db))
+	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db), newFakeShowCache())
 	reqenv := test.BuildRequestEnv()
 
 	// unknown alias
