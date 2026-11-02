@@ -41,6 +41,13 @@ func (service *PackageService) ResolveName(uuid string) (string, error) {
 	return fmt.Sprintf("%d@%s", uid, name), err
 }
 
+// GetUniqueID fetches the unique_id of a package by its owner and name; pgx.ErrNoRows is returned if there is no such package.
+func (service *PackageService) GetUniqueID(uid int64, name string) (uuid string, err error) {
+	q := "SELECT unique_id FROM packages WHERE owner_uid = $1 AND name = $2"
+	err = service.db.QueryRow(service.ctx, q, uid, name).Scan(&uuid)
+	return
+}
+
 // ListWithCounts prints the list of saved packages of some user in the format:
 //
 //	package (1)

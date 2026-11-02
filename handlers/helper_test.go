@@ -1,10 +1,24 @@
 package handlers
 
-import tgbotapi "github.com/OvyFlash/telegram-bot-api"
+import (
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/loctools/go-l10n/loc"
+)
 
 func buildMessage(uid int64) *tgbotapi.Message {
 	return &tgbotapi.Message{
 		From: &tgbotapi.User{ID: uid},
 		Chat: tgbotapi.Chat{Type: "private"},
 	}
+}
+
+// buildRequestEnvWithStrings returns an environment with the given English strings, since the real ones live in package main.
+func buildRequestEnvWithStrings(strs map[string]string) *base.RequestEnv {
+	pool := loc.NewPool("en")
+	pool.Resources["en"] = strs
+	reqenv := test.BuildRequestEnv()
+	reqenv.Lang = pool.GetContext("en")
+	return reqenv
 }

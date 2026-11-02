@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	log "log/slog"
+	"slices"
 	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"github.com/jackc/pgx/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
@@ -35,6 +37,7 @@ const (
 	Create   = "Create"
 	Recreate = "Recreate"
 	Delete   = "Delete"
+	Link     = "Link"
 
 	MaxPackageNameLen = 256
 )
@@ -71,11 +74,11 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		if nameField, ok := packageName.(wizard.Txt); ok {
 			pkgInfo := &repo.PackageInfo{
 				UID:  msg.From.ID,
-				Name: nameField.Value,
+				Name: normalizePackageName(msg.From.ID, nameField.Value),
 			}
 			if exists, err := handler.packageService.Exists(pkgInfo); err == nil {
 				if exists {
-					return []string{Recreate, Delete}
+					return []string{Link, Recreate, Delete}
 				}
 				log.Warn("Unexpected case when a package doesn't exist but createOrDelete was requested",
 					logconst.FieldHandler, "PackageHandler",
@@ -89,24 +92,34 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 					logconst.FieldError, err)
 			}
 		}
-		return []string{Create, Recreate, Delete}
+		return []string{Create, Recreate, Delete, Link}
 	}
 
 	nameDesc := desc.AddField(FieldName, PackageFieldsTrPrefix+FieldName)
 	nameDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
-		if len([]rune(msg.Text)) > MaxPackageNameLen {
+		name := normalizePackageName(msg.From.ID, msg.Text)
+		if len([]rune(name)) > MaxPackageNameLen {
 			template := lc.Tr(PackageFieldsTrPrefix + FieldName + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, MaxPackageNameLen))
 		}
-		return verifyNoReservedSymbols(msg.Text, lc, PackageStatusErrorForbiddenSymbolsInName)
+		return verifyNoReservedSymbols(name, lc, PackageStatusErrorForbiddenSymbolsInName)
 	}
 
 	aliasesDesc := desc.AddField(FieldAliases, PackageFieldsTrPrefix+FieldAliases)
-	aliasesDesc.SkipIf = &wizard.SkipOnFieldValue{
-		Name:  FieldCreateOrDelete,
-		Value: Delete,
+	aliasesDesc.SkipIf = skipIfAny{
+		wizard.SkipOnFieldValue{Name: FieldCreateOrDelete, Value: Delete},
+		wizard.SkipOnFieldValue{Name: FieldCreateOrDelete, Value: Link},
 	}
 	return desc
+}
+
+// skipIfAny is a [wizard.SkipCondition] that skips the field if at least one of the conditions is met.
+type skipIfAny []wizard.SkipCondition
+
+func (conditions skipIfAny) ShouldBeSkipped(form *wizard.Form) bool {
+	return slices.ContainsFunc(conditions, func(c wizard.SkipCondition) bool {
+		return c.ShouldBeSkipped(form)
+	})
 }
 
 func (*PackageHandler) GetCommands() []string {
@@ -122,7 +135,7 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 		return
 	}
 
-	name := msg.CommandArguments()
+	name := normalizePackageName(msg.From.ID, msg.CommandArguments())
 
 	w := wizard.NewWizard(handler, 3)
 	if len(name) > 0 {
@@ -155,10 +168,17 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 	w.ProcessNextField(reqenv, msg)
 }
 
+// normalizePackageName brings the name entered by the user to the form it's stored in the database: spaces are replaced
+// with dashes and the own prefix "<uid>@" is dropped, so the short name and the full one of a package are equivalent.
+func normalizePackageName(uid int64, name string) string {
+	name = strings.ReplaceAll(name, " ", "-")
+	return strings.TrimPrefix(name, repo.FormatPackageName(uid, ""))
+}
+
 func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	intent := common.TextValue(fields, FieldCreateOrDelete)
-	name := strings.ReplaceAll(common.TextValue(fields, FieldName), " ", "-")
+	name := normalizePackageName(uid, common.TextValue(fields, FieldName))
 
 	var (
 		packID string
@@ -166,6 +186,8 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	)
 	if intent == Delete {
 		err = handler.packageService.Delete(uid, name)
+	} else if intent == Link {
+		packID, err = handler.packageService.GetUniqueID(uid, name)
 	} else {
 		aliasesStr := common.TextValue(fields, FieldAliases)
 		aliases := strings.Split(aliasesStr, "\n")
@@ -183,7 +205,7 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	reply := base.NewReplier(handler.appenv, reqenv, msg)
 	if storage.DuplicateConstraintViolation(err) {
 		reply(PackageStatusDuplicate)
-	} else if errors.Is(err, repo.NoRowsWereAffected) {
+	} else if errors.Is(err, repo.NoRowsWereAffected) || errors.Is(err, pgx.ErrNoRows) {
 		reply(PackageStatusNoRows)
 	} else if err != nil {
 		log.Error("Failed to call PackageService",
@@ -197,6 +219,10 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else {
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := repo.FormatPackageName(uid, name)
-		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template, packName, packName, handler.appenv.Bot.GetName(), packID))
+		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template,
+			common.MarkdownEscaper.Replace(packName),
+			packName,
+			handler.appenv.Bot.GetName(),
+			packID))
 	}
 }

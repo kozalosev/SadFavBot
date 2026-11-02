@@ -16,5 +16,6 @@ var (
 	packageCommands    = []string{"package", "pack"}
 	refCommands        = []string{"ref", "references"}
 	saveCommands       = []string{"save"}
+	showCommands       = []string{"show"}
 	visibilityCommands = []string{"visibility", "vis"}
 )

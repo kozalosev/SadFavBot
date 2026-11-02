@@ -1,9 +1,11 @@
 package repo
 
 import (
+	"testing"
+
+	"github.com/jackc/pgx/v5"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestPackageService_ListWithCounts(t *testing.T) {
@@ -84,4 +86,17 @@ func TestPackageService_FindByAliases(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, packages, 1)
 	assert.Contains(t, packages, test.Package)
+}
+
+func TestPackageService_GetUniqueID(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
+
+	packageService := NewPackageService(test.BuildApplicationEnv(db))
+	uuid, err := packageService.GetUniqueID(test.UID, test.Package)
+	assert.NoError(t, err)
+	assert.Equal(t, test.PackageUUID, uuid)
+
+	_, err = packageService.GetUniqueID(test.UID, "no-such-package")
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
 }
