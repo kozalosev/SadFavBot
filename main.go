@@ -174,10 +174,11 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage,
 		help.NewCallbackHandler(appenv),
 		handlers.NewListPaginationCallbackHandler(appenv),
 		handlers.NewShowCallbackHandler(appenv, showCache),
+		handlers.NewGuestShowCallbackHandler(appenv, showCache),
 	}
 	guestHandlers = []base.GuestHandler{
 		handlers.NewGuestCommandsHandler(appenv), // must go before the search handler
-		handlers.NewGuestFavoritesHandler(appenv),
+		handlers.NewGuestFavoritesHandler(appenv, showCache),
 	}
 	help.InitMessages(handlers.MaxAliasLen, handlers.MaxPackageNameLen, handlers.ReservedSymbolsForMessage, messageHandlers)
 	metrics.RegisterMessageHandlerCounters(messageHandlers...)

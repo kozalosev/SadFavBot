@@ -9,9 +9,11 @@ import (
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/wizard"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,10 +52,7 @@ func (cache *fakeShowCache) Get(_ context.Context, token string) (*ShowEntry, er
 
 func (cache *fakeShowCache) onlyToken(t *testing.T) string {
 	require.Len(t, cache.entries, 1)
-	for token := range cache.entries {
-		return token
-	}
-	return ""
+	return lo.Keys(cache.entries)[0]
 }
 
 func buildShowCommand(uid int64, args string) *tgbotapi.Message {
@@ -99,11 +98,32 @@ func TestSortFavsByType(t *testing.T) {
 
 	sortFavsByType(favs)
 
-	var ids []string
-	for _, fav := range favs {
-		ids = append(ids, fav.ID)
-	}
-	assert.Equal(t, []string{"text", "image1", "image2", "sticker1", "sticker2", "location"}, ids)
+	assert.Equal(t, []string{"text", "image1", "image2", "sticker1", "sticker2", "location"}, favIDs(favs))
+}
+
+// requireOutput checks the number of requests sent by the bot and returns them.
+func requireOutput(t *testing.T, bot *base.FakeBotAPI, n int) []tgbotapi.Chattable {
+	output := requireAs[[]tgbotapi.Chattable](t, bot.GetOutput())
+	require.Len(t, output, n)
+	return output
+}
+
+// requireAs checks the type of the value and returns it converted.
+func requireAs[T any](t *testing.T, v any) T {
+	res, ok := v.(T)
+	require.True(t, ok, "%T", v)
+	return res
+}
+
+// requireAlert checks that the only request is the answer to the callback query with the alert.
+func requireAlert(t *testing.T, bot *base.FakeBotAPI, expected string) {
+	answer := requireAs[tgbotapi.CallbackConfig](t, requireOutput(t, bot, 1)[0])
+	assert.True(t, answer.ShowAlert)
+	assert.Equal(t, expected, answer.Text)
+}
+
+func favIDs(favs []*dto.Fav) []string {
+	return fp.Map(favs, func(fav *dto.Fav) string { return fav.ID })
 }
 
 func TestCanEditInPlace(t *testing.T) {
@@ -138,18 +158,13 @@ func TestShowHandler_SeveralObjects(t *testing.T) {
 
 	NewShowHandler(appenv, cache).Handle(buildShowRequestEnv(), buildShowCommand(test.UID, test.Alias))
 
-	output := appenv.Bot.(*base.FakeBotAPI).GetOutput().([]tgbotapi.Chattable)
-	require.Len(t, output, 1)
-	sticker, ok := output[0].(tgbotapi.StickerConfig)
-	require.True(t, ok, "%T", output[0])
+	sticker := requireAs[tgbotapi.StickerConfig](t, requireOutput(t, appenv.Bot.(*base.FakeBotAPI), 1)[0])
 	assert.Equal(t, 10, sticker.ReplyParameters.MessageID)
 
 	token := cache.onlyToken(t)
 	assert.Len(t, cache.entries[token].Favs, 2)
 	assert.EqualValues(t, test.UID, cache.entries[token].OwnerUID)
-	keyboard, ok := sticker.ReplyMarkup.(tgbotapi.InlineKeyboardMarkup)
-	require.True(t, ok, "%T", sticker.ReplyMarkup)
-	row := keyboard.InlineKeyboard[0]
+	row := requireAs[tgbotapi.InlineKeyboardMarkup](t, sticker.ReplyMarkup).InlineKeyboard[0]
 	assert.Equal(t, "1/2", row[1].Text)
 	assert.Equal(t, "show:"+token+":1:0", *row[2].CallbackData)
 	assert.Equal(t, "show:"+token+":1:0", *row[0].CallbackData) // wraps around
@@ -162,10 +177,7 @@ func TestShowHandler_SingleObjectHasNoKeyboard(t *testing.T) {
 
 	NewShowHandler(appenv, cache).Handle(buildShowRequestEnv(), buildShowCommand(test.UIDPhoto, test.AliasPhoto))
 
-	output := appenv.Bot.(*base.FakeBotAPI).GetOutput().([]tgbotapi.Chattable)
-	require.Len(t, output, 1)
-	photo, ok := output[0].(tgbotapi.PhotoConfig)
-	require.True(t, ok, "%T", output[0])
+	photo := requireAs[tgbotapi.PhotoConfig](t, requireOutput(t, appenv.Bot.(*base.FakeBotAPI), 1)[0])
 	assert.Nil(t, photo.ReplyMarkup)
 	assert.Equal(t, test.CaptionPhoto, photo.Caption)
 	assert.Empty(t, cache.entries)
@@ -204,20 +216,24 @@ func TestShowHandler_NoUsageHintInGroups(t *testing.T) {
 
 // buildShowCallback prepares a callback handler which has no access to the database.
 func buildShowCallback(uid int64, data string) (*ShowCallbackHandler, *base.FakeBotAPI, *tgbotapi.CallbackQuery, *fakeShowCache) {
-	bot := &base.FakeBotAPI{}
-	appenv := &base.ApplicationEnv{Bot: bot, Ctx: context.Background()}
-	cache := newFakeShowCache()
-	query := &tgbotapi.CallbackQuery{
-		ID:   "query",
-		From: &tgbotapi.User{ID: uid},
-		Data: data,
-		Message: &tgbotapi.Message{
-			MessageID:      20,
-			Chat:           tgbotapi.Chat{ID: 5, Type: "private"},
-			ReplyToMessage: &tgbotapi.Message{MessageID: 10},
-		},
+	appenv, bot, cache := buildShowCallbackEnv()
+	query := buildCallbackQuery(uid, data)
+	query.Message = &tgbotapi.Message{
+		MessageID:      20,
+		Chat:           tgbotapi.Chat{ID: 5, Type: "private"},
+		ReplyToMessage: &tgbotapi.Message{MessageID: 10},
 	}
 	return NewShowCallbackHandler(appenv, cache), bot, query, cache
+}
+
+// buildShowCallbackEnv prepares the environment of a callback handler which has no access to the database.
+func buildShowCallbackEnv() (*base.ApplicationEnv, *base.FakeBotAPI, *fakeShowCache) {
+	bot := &base.FakeBotAPI{}
+	return &base.ApplicationEnv{Bot: bot, Ctx: context.Background()}, bot, newFakeShowCache()
+}
+
+func buildCallbackQuery(uid int64, data string) *tgbotapi.CallbackQuery {
+	return &tgbotapi.CallbackQuery{ID: "query", From: &tgbotapi.User{ID: uid}, Data: data}
 }
 
 func putShowEntry(cache *fakeShowCache, favs ...*dto.Fav) {
@@ -230,10 +246,8 @@ func TestShowCallbackHandler_EditsMessageOfTheSameType(t *testing.T) {
 
 	handler.Handle(buildShowRequestEnv(), query)
 
-	output := bot.GetOutput().([]tgbotapi.Chattable)
-	require.Len(t, output, 2)
-	edit, ok := output[0].(tgbotapi.EditMessageMediaConfig)
-	require.True(t, ok, "%T", output[0])
+	output := requireOutput(t, bot, 2)
+	edit := requireAs[tgbotapi.EditMessageMediaConfig](t, output[0])
 	assert.Equal(t, 20, edit.MessageID)
 	assert.Equal(t, "show:token:0:1", *edit.ReplyMarkup.InlineKeyboard[0][2].CallbackData)
 	assert.IsType(t, tgbotapi.CallbackConfig{}, output[1])
@@ -245,13 +259,9 @@ func TestShowCallbackHandler_ResendsMessageOfAnotherType(t *testing.T) {
 
 	handler.Handle(buildShowRequestEnv(), query)
 
-	output := bot.GetOutput().([]tgbotapi.Chattable)
-	require.Len(t, output, 3)
-	deletion, ok := output[0].(tgbotapi.DeleteMessageConfig)
-	require.True(t, ok, "%T", output[0])
-	assert.Equal(t, 20, deletion.MessageID)
-	sticker, ok := output[1].(tgbotapi.StickerConfig)
-	require.True(t, ok, "%T", output[1])
+	output := requireOutput(t, bot, 3)
+	assert.Equal(t, 20, requireAs[tgbotapi.DeleteMessageConfig](t, output[0]).MessageID)
+	sticker := requireAs[tgbotapi.StickerConfig](t, output[1])
 	assert.Equal(t, 10, sticker.ReplyParameters.MessageID)
 	assert.NotNil(t, sticker.ReplyMarkup)
 }
@@ -262,8 +272,7 @@ func TestShowCallbackHandler_ResendsStickers(t *testing.T) {
 
 	handler.Handle(buildShowRequestEnv(), query)
 
-	output := bot.GetOutput().([]tgbotapi.Chattable)
-	require.Len(t, output, 3)
+	output := requireOutput(t, bot, 3)
 	assert.IsType(t, tgbotapi.DeleteMessageConfig{}, output[0])
 	assert.IsType(t, tgbotapi.StickerConfig{}, output[1])
 }
@@ -274,8 +283,7 @@ func TestShowCallbackHandler_WrapsAround(t *testing.T) {
 
 	handler.Handle(buildShowRequestEnv(), query)
 
-	edit, ok := bot.GetOutput().([]tgbotapi.Chattable)[0].(tgbotapi.EditMessageTextConfig)
-	require.True(t, ok)
+	edit := requireAs[tgbotapi.EditMessageTextConfig](t, requireOutput(t, bot, 2)[0])
 	assert.Equal(t, "text3", edit.Text)
 	assert.Equal(t, "3/3", edit.ReplyMarkup.InlineKeyboard[0][1].Text)
 }
@@ -297,12 +305,7 @@ func TestShowCallbackHandler_Alerts(t *testing.T) {
 
 			handler.Handle(buildShowRequestEnv(), query)
 
-			output := bot.GetOutput().([]tgbotapi.Chattable)
-			require.Len(t, output, 1)
-			answer, ok := output[0].(tgbotapi.CallbackConfig)
-			require.True(t, ok, "%T", output[0])
-			assert.True(t, answer.ShowAlert)
-			assert.Equal(t, tt.expected, answer.Text)
+			requireAlert(t, bot, tt.expected)
 		})
 	}
 }
@@ -313,10 +316,7 @@ func TestShowCallbackHandler_IgnoresPressOnTheCounter(t *testing.T) {
 
 	handler.Handle(buildShowRequestEnv(), query)
 
-	output := bot.GetOutput().([]tgbotapi.Chattable)
-	require.Len(t, output, 1)
-	answer, ok := output[0].(tgbotapi.CallbackConfig)
-	require.True(t, ok, "%T", output[0])
+	answer := requireAs[tgbotapi.CallbackConfig](t, requireOutput(t, bot, 1)[0])
 	assert.False(t, answer.ShowAlert)
 }
 
