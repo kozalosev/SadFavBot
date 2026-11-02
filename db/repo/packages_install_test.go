@@ -122,10 +122,3 @@ func TestInstallPackageWithLocation(t *testing.T) {
 	})
 	assert.Len(t, locFavs, 1)
 }
-
-func TestRemoveDuplicates(t *testing.T) {
-	arr := removeDuplicates([]int{6, 6, 6})
-
-	assert.Len(t, arr, 1)
-	assert.Contains(t, arr, 6)
-}

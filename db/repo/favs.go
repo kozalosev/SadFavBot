@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	log "log/slog"
+	"slices"
 	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -15,7 +16,11 @@ import (
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
+	"github.com/samber/lo"
 )
+
+// autoParsedEntityTypes are the types of the entities Telegram detects in a text by itself.
+var autoParsedEntityTypes = []string{"url", "email", "phone_number", "mention", "hashtag", "cashtag", "bot_command"}
 
 var sqlEscaper = strings.NewReplacer(
 	"%", "\\%",
@@ -280,14 +285,11 @@ func (service *FavService) deleteByText(uid int64, alias string, text *wizard.Tx
 		// workaround for https://github.com/kozalosev/SadFavBot/issues/97
 		// Old texts, containing URLs (or other automatically parsed entities) and saved before v1.1,
 		// have "entities" column set to "null".
-		for _, entity := range text.Entities {
-			switch entity.Type {
-			case "url", "email", "phone_number", "mention", "hashtag", "cashtag", "bot_command":
-				log.Info("Couldn't find the text for deletion; trying the workaround...",
-					logconst.FieldService, "FavService",
-					logconst.FieldMethod, "deleteByText")
-				return service.db.Exec(service.ctx, sql, uid, alias, text.Value, []byte("null"))
-			}
+		if lo.ContainsBy(text.Entities, func(entity tgbotapi.MessageEntity) bool { return slices.Contains(autoParsedEntityTypes, entity.Type) }) {
+			log.Info("Couldn't find the text for deletion; trying the workaround...",
+				logconst.FieldService, "FavService",
+				logconst.FieldMethod, "deleteByText")
+			return service.db.Exec(service.ctx, sql, uid, alias, text.Value, []byte("null"))
 		}
 	}
 	return rowsAware, err
