@@ -16,6 +16,7 @@ type ReplyOption func(*replyOptions)
 
 type replyOptions struct {
 	toOriginal bool
+	delay      time.Duration
 }
 
 // ToOriginal makes the replier answer to the message the command was sent in reply to (see [ReplyToOriginal]).
@@ -35,7 +36,7 @@ func PossiblySelfDestroyingReplier(appenv *base.ApplicationEnv, reqenv *base.Req
 // ReplyPossiblySelfDestroying is the same as PossiblySelfDestroyingReplier, but for an arbitrary text. lang is used
 // for the warning.
 func ReplyPossiblySelfDestroying(appenv *base.ApplicationEnv, lang *loc.Context, msg *tgbotapi.Message, text string, customizer base.MessageCustomizer, opts ...ReplyOption) {
-	var options replyOptions
+	options := replyOptions{delay: selfDeletionDelay}
 	for _, opt := range opts {
 		opt(&options)
 	}
@@ -68,7 +69,7 @@ func ReplyPossiblySelfDestroying(appenv *base.ApplicationEnv, lang *loc.Context,
 		MessageID:      sent.MessageID,
 		WithMessageIDs: []int{msg.MessageID},
 		Warning:        deletionWarning(lang, sent.MessageID),
-	}, selfDeletionDelay)
+	}, options.delay)
 }
 
 // SelfDeletionDelay is how long a self-destroying message lives.

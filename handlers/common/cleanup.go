@@ -22,8 +22,12 @@ import (
 // SelfDestructionWarningTr is shown in place of the messages of the bot before they're deleted.
 const SelfDestructionWarningTr = "self.destruction.warning"
 
-// selfDeletionWarning is how long the warning is shown before the deletion; zero deletes without warning.
-var selfDeletionWarning = secondsFromEnv("SELF_DELETION_WARNING_SECS", 10)
+var (
+	// selfDeletionWarning is how long the warning is shown before the deletion; zero deletes without warning.
+	selfDeletionWarning = secondsFromEnv("SELF_DELETION_WARNING_SECS", 10)
+	// selfDeletionCancelDelay replaces the delay after /cancel: there is nothing to read there.
+	selfDeletionCancelDelay = secondsFromEnv("SELF_DELETION_CANCEL_DELAY_SECS", 5)
+)
 
 func secondsFromEnv(name string, defaultSecs int64) time.Duration {
 	secs := defaultSecs
@@ -40,9 +44,12 @@ func secondsFromEnv(name string, defaultSecs int64) time.Duration {
 	return time.Duration(secs) * time.Second
 }
 
+// QuickDeletion makes a self-destroying reply disappear after the reduced delay of the cancellation.
+func QuickDeletion(o *replyOptions) { o.delay = selfDeletionCancelDelay }
+
 // GroupCleanupPolicy deletes the whole dialogue of a wizard where the bot may delete messages of other users:
-// the delay of the self-destroying messages after it's completed or cancelled, or abandonedAfter the last question
-// nobody has answered (pass the lifetime of the state of a form).
+// the delay of the self-destroying messages after it's completed, the reduced delay after it's cancelled, or
+// abandonedAfter the last question nobody has answered (pass the lifetime of the state of a form).
 func GroupCleanupPolicy(abandonedAfter time.Duration) wizard.GroupCleanupPolicy {
 	cleanupIfAllowed := wizard.CleanupIfAllowed(selfDeletionDelay, abandonedAfter)
 	return func(d wizard.GroupDialogue) wizard.GroupCleanup {
@@ -50,6 +57,9 @@ func GroupCleanupPolicy(abandonedAfter time.Duration) wizard.GroupCleanupPolicy 
 		if len(cleanup.Delete) > 0 {
 			// the last question is the one the users see; Telegram edits one message per request
 			cleanup.Warning = deletionWarning(d.Lang, d.QuestionIDs[len(d.QuestionIDs)-1])
+		}
+		if d.Stage == wizard.StageCancelled {
+			cleanup.After = selfDeletionCancelDelay
 		}
 		return cleanup
 	}

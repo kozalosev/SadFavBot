@@ -31,4 +31,7 @@ func TestGroupCleanupPolicy(t *testing.T) {
 
 	dialogue.Stage = wizard.StageWaiting
 	assert.Equal(t, 5*time.Minute, policy(dialogue).After, "an abandoned dialogue lives as long as the form")
+
+	dialogue.Stage = wizard.StageCancelled
+	assert.Equal(t, selfDeletionCancelDelay, policy(dialogue).After, "a cancelled dialogue disappears soon")
 }
