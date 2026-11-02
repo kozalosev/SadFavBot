@@ -8,29 +8,52 @@ import (
 	"github.com/kozalosev/goSadTgBot/selfdestruct"
 )
 
-// PossiblySelfDestroyingReplier replies as is in private chats and to ephemeral messages, which disappear by themselves,
-// and sends a self-destroying message to a group.
-func PossiblySelfDestroyingReplier(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message) func(string) {
-	if msg.Chat.IsPrivate() || msg.EphemeralMessageID != 0 {
-		return base.NewReplier(appenv, reqenv, msg)
-	}
+// ReplyOption changes how the self-destroying repliers behave.
+type ReplyOption func(*replyOptions)
 
+type replyOptions struct {
+	toOriginal bool
+}
+
+// ToOriginal makes the replier answer to the message the command was sent in reply to (see [ReplyToOriginal]).
+// The command itself is still the message deleted together with the reply.
+func ToOriginal(o *replyOptions) { o.toOriginal = true }
+
+// PossiblySelfDestroyingReplier replies as is in private chats and to ephemeral messages, which disappear by themselves,
+// and sends a self-destroying message to a group where the bot may delete messages of other users, deleting
+// the command together with the reply. Where it may not, nothing is deleted, so that the command isn't left alone.
+func PossiblySelfDestroyingReplier(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message, opts ...ReplyOption) func(string) {
 	return func(statusKey string) {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, reqenv.Lang.Tr(statusKey))
-		replyDestroyingImpl(appenv.Bot, msg, reply)
+		ReplyPossiblySelfDestroying(appenv, msg, reqenv.Lang.Tr(statusKey), base.NoOpCustomizer, opts...)
 	}
 }
 
 // ReplyPossiblySelfDestroying is the same as PossiblySelfDestroyingReplier, but for an arbitrary text.
-func ReplyPossiblySelfDestroying(appenv *base.ApplicationEnv, msg *tgbotapi.Message, text string, customizer base.MessageCustomizer) {
-	if msg.Chat.IsPrivate() || msg.EphemeralMessageID != 0 {
-		appenv.Bot.ReplyWithMessageCustomizer(msg, text, customizer)
+func ReplyPossiblySelfDestroying(appenv *base.ApplicationEnv, msg *tgbotapi.Message, text string, customizer base.MessageCustomizer, opts ...ReplyOption) {
+	var options replyOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+	replyTo := msg
+	if options.toOriginal {
+		replyTo = ReplyToOriginal(msg)
+	}
+
+	// without the rights, the command would be left alone
+	if msg.Chat.IsPrivate() || msg.EphemeralMessageID != 0 || !canDeleteMessagesOfOthers(appenv.Bot, msg.Chat.ID) {
+		appenv.Bot.ReplyWithMessageCustomizer(replyTo, text, customizer)
 		return
 	}
 
 	reply := tgbotapi.NewMessage(msg.Chat.ID, text)
 	customizer(&reply)
-	replyDestroyingImpl(appenv.Bot, msg, reply)
+	replyDestroyingImpl(appenv.Bot, replyTo, reply)
+	selfdestruct.DeleteAfter(appenv.Bot, msg.Chat.ID, msg.MessageID, selfDeletionDelay)
+}
+
+func canDeleteMessagesOfOthers(bot base.ExtendedBotAPI, chatID int64) bool {
+	checker, ok := bot.(base.DeletionRightsChecker)
+	return ok && checker.CanDeleteMessages(chatID)
 }
 
 // SelfDeletionDelay is how long a self-destroying message lives.

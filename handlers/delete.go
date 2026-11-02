@@ -133,7 +133,7 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 
 func (handler *DeleteHandler) deleteFormAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
-	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, common.ReplyToOriginal(msg))
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg, common.ToOriginal)
 
 	var (
 		deleteAll      bool

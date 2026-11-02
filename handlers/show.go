@@ -64,7 +64,7 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 
 	alias := strings.TrimSpace(msg.CommandArguments())
 	if len(alias) == 0 {
-		reply(ShowStatusUsage)
+		common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)(ShowStatusUsage)
 		return
 	}
 

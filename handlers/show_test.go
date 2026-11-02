@@ -216,9 +216,8 @@ func TestShowHandler_UsageHintInGroups(t *testing.T) {
 
 	NewShowHandler(appenv, newFakeShowCache()).Handle(buildShowRequestEnv(), msg)
 
-	// a self-destroying message is sent by Send rather than Reply
-	hint := requireAs[tgbotapi.MessageConfig](t, requireOutput(t, appenv.Bot.(*base.FakeBotAPI), 1)[0])
-	assert.Equal(t, showUsage, hint.Text)
+	// the bot can't delete the command here, so the hint is a plain reply that isn't deleted either
+	assert.Equal(t, []string{showUsage}, appenv.Bot.(*base.FakeBotAPI).GetOutput())
 }
 
 // buildShowCallback prepares a callback handler which has no access to the database.

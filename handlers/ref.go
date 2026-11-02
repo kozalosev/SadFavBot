@@ -109,8 +109,7 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 var errInvalidObjectType = errors.New("invalid type of the object field value")
 
 func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	msg = common.ReplyToOriginal(msg)
-	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg, common.ToOriginal)
 	objectField := fields.FindField(FieldObject)
 	if objectField == nil {
 		log.Error("Object field not found",
@@ -152,7 +151,7 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	}
 
 	text := buildRefText(reqenv.Lang, aliases, packages)
-	common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
+	common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer, common.ToOriginal)
 }
 
 // findAliasesByObject returns all aliases of the user the object is saved under.
