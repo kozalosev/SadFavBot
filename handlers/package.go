@@ -74,7 +74,7 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 		if nameField, ok := packageName.(wizard.Txt); ok {
 			pkgInfo := &repo.PackageInfo{
 				UID:  msg.From.ID,
-				Name: nameField.Value,
+				Name: normalizePackageName(msg.From.ID, nameField.Value),
 			}
 			if exists, err := handler.packageService.Exists(pkgInfo); err == nil {
 				if exists {
@@ -92,16 +92,17 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 					logconst.FieldError, err)
 			}
 		}
-		return []string{Create, Recreate, Delete}
+		return []string{Create, Recreate, Delete, Link}
 	}
 
 	nameDesc := desc.AddField(FieldName, PackageFieldsTrPrefix+FieldName)
 	nameDesc.Validator = func(msg *tgbotapi.Message, lc *loc.Context) error {
-		if len([]rune(msg.Text)) > MaxPackageNameLen {
+		name := normalizePackageName(msg.From.ID, msg.Text)
+		if len([]rune(name)) > MaxPackageNameLen {
 			template := lc.Tr(PackageFieldsTrPrefix + FieldName + FieldMaxLengthErrorTrSuffix)
 			return errors.New(fmt.Sprintf(template, MaxPackageNameLen))
 		}
-		return verifyNoReservedSymbols(msg.Text, lc, PackageStatusErrorForbiddenSymbolsInName)
+		return verifyNoReservedSymbols(name, lc, PackageStatusErrorForbiddenSymbolsInName)
 	}
 
 	aliasesDesc := desc.AddField(FieldAliases, PackageFieldsTrPrefix+FieldAliases)
@@ -134,7 +135,7 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 		return
 	}
 
-	name := msg.CommandArguments()
+	name := normalizePackageName(msg.From.ID, msg.CommandArguments())
 
 	w := wizard.NewWizard(handler, 3)
 	if len(name) > 0 {
@@ -167,10 +168,17 @@ func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mes
 	w.ProcessNextField(reqenv, msg)
 }
 
+// normalizePackageName brings the name entered by the user to the form it's stored in the database: spaces are replaced
+// with dashes and the own prefix "<uid>@" is dropped, so the short name and the full one of a package are equivalent.
+func normalizePackageName(uid int64, name string) string {
+	name = strings.ReplaceAll(name, " ", "-")
+	return strings.TrimPrefix(name, repo.FormatPackageName(uid, ""))
+}
+
 func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
 	uid := msg.From.ID
 	intent := common.TextValue(fields, FieldCreateOrDelete)
-	name := strings.ReplaceAll(common.TextValue(fields, FieldName), " ", "-")
+	name := normalizePackageName(uid, common.TextValue(fields, FieldName))
 
 	var (
 		packID string

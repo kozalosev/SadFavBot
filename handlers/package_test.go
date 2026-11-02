@@ -9,6 +9,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageAction(t *testing.T) {
@@ -102,4 +103,33 @@ func TestPackageAction_Link(t *testing.T) {
 	packages, err := repo.NewPackageService(appenv).ListWithCounts(test.UID, "")
 	assert.NoError(t, err)
 	assert.Contains(t, packages.Items, fmt.Sprintf("%d@%s (1)", test.UID, test.Package))
+}
+
+func TestNormalizePackageName(t *testing.T) {
+	assert.Equal(t, "my-pack", normalizePackageName(test.UID, "my pack"))
+	assert.Equal(t, "my-pack", normalizePackageName(test.UID, "my-pack"))
+	assert.Equal(t, "my-pack", normalizePackageName(test.UID, fmt.Sprintf("%d@my pack", test.UID)))
+	assert.Equal(t, "my-pack", normalizePackageName(test.UID, fmt.Sprintf("%d@my-pack", test.UID)))
+	assert.Equal(t, fmt.Sprintf("%d@my-pack", test.UID2), normalizePackageName(test.UID, fmt.Sprintf("%d@my-pack", test.UID2)), "a foreign prefix must stay")
+	assert.Empty(t, normalizePackageName(test.UID, fmt.Sprintf("%d@", test.UID)))
+}
+
+func TestPackageAction_FullNameIsEquivalentToShort(t *testing.T) {
+	test.InsertTestData(db)
+	test.InsertTestPackages(db)
+
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := buildRequestEnvWithStrings(map[string]string{
+		PackageStatusCreationSuccess: "Package: *%s*\n`/install %s`\n%s %s",
+	})
+	fields := wizard.Fields{
+		test.NewTextField(FieldName, test.PackageFullName),
+		test.NewTextField(FieldCreateOrDelete, Link),
+	}
+
+	NewPackageHandler(appenv, nil).packageAction(reqenv, buildMessage(test.UID), fields)
+
+	output := appenv.Bot.(*base.FakeBotAPI).GetOutput().([]string)
+	require.Len(t, output, 1)
+	assert.Contains(t, output[0], test.PackageUUID)
 }
