@@ -60,14 +60,11 @@ func (*ShowHandler) GetCommands() []string {
 }
 
 func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	reply := base.NewReplier(handler.appenv, reqenv, msg)
+	reply := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
 
 	alias := strings.TrimSpace(msg.CommandArguments())
 	if len(alias) == 0 {
-		// only the short form of the command is supported in group chats
-		if !common.IsGroup(&msg.Chat) {
-			reply(ShowStatusUsage)
-		}
+		reply(ShowStatusUsage)
 		return
 	}
 

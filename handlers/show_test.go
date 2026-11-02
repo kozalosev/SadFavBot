@@ -209,14 +209,16 @@ func TestShowHandler_Replies(t *testing.T) {
 	}
 }
 
-func TestShowHandler_NoUsageHintInGroups(t *testing.T) {
+func TestShowHandler_UsageHintInGroups(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 	msg := buildShowCommand(test.UID, "")
 	msg.Chat.Type = "supergroup"
 
 	NewShowHandler(appenv, newFakeShowCache()).Handle(buildShowRequestEnv(), msg)
 
-	assert.Empty(t, appenv.Bot.(*base.FakeBotAPI).GetOutput())
+	// a self-destroying message is sent by Send rather than Reply
+	hint := requireAs[tgbotapi.MessageConfig](t, requireOutput(t, appenv.Bot.(*base.FakeBotAPI), 1)[0])
+	assert.Equal(t, showUsage, hint.Text)
 }
 
 // buildShowCallback prepares a callback handler which has no access to the database.

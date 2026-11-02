@@ -17,6 +17,7 @@ import (
 
 const (
 	ListStatusTrPrefix                 = "commands.list.status."
+	ListGroupHintTr                    = "commands.list.group.hint"
 	ListStatusSuccessFavs              = ListStatusTrPrefix + StatusSuccess + ".favs"
 	ListStatusSuccessPackages          = ListStatusTrPrefix + StatusSuccess + ".packages"
 	ListStatusFailure                  = ListStatusTrPrefix + StatusFailure
@@ -97,7 +98,9 @@ func (handler *ListHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	}
 	w.AddPrefilledText(FieldGrep, query)
 
-	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+	// the command is ephemeral in groups, and the user can't answer an ephemeral question, so only the short form works
+	if base.IsGroupChat(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+		common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)(ListGroupHintTr)
 		return
 	}
 

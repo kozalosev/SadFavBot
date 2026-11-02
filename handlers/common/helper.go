@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -108,8 +107,4 @@ func logInvalidFieldType[Expected wizard.Value](field *wizard.Field) {
 		"expectedType", fmt.Sprintf("%T", *new(Expected)),
 		"type", fmt.Sprintf("%T", data),
 		logconst.FieldValue, data)
-}
-
-func IsGroup(chat *tgbotapi.Chat) bool {
-	return chat.IsGroup() || chat.IsSuperGroup()
 }

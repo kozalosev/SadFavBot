@@ -22,11 +22,7 @@ func TestStart(t *testing.T) {
 		Language:       NewLanguageHandler(appenv, stateStorage),
 		InstallPackage: NewInstallPackageHandler(appenv, stateStorage),
 	})
-	wizard.PopulateWizardDescriptors([]base.MessageHandler{
-		handler,
-		handler.embeddedHandlers.Language,
-		handler.embeddedHandlers.InstallPackage,
-	})
+	registerWizards()
 
 	var uid int64 = test.UID - 1
 	msg := buildMessage(uid)

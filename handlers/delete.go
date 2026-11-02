@@ -17,6 +17,7 @@ import (
 const (
 	DeleteFieldsTrPrefix = "commands.delete.fields."
 	DeleteStatusTrPrefix = "commands.delete.status."
+	DeleteGroupHintTr    = "commands.delete.group.hint"
 	DeleteStatusSuccess  = DeleteStatusTrPrefix + StatusSuccess
 	DeleteStatusFailure  = DeleteStatusTrPrefix + StatusFailure
 	DeleteStatusNoRows   = DeleteStatusTrPrefix + StatusNoRows
@@ -121,8 +122,9 @@ func (handler *DeleteHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 		w.AddEmptyField(FieldObject, wizard.Auto)
 	}
 
-	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+	// the command is ephemeral in groups, and the user can't answer an ephemeral question, so only the short form works
+	if base.IsGroupChat(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+		common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)(DeleteGroupHintTr)
 		return
 	}
 

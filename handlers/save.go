@@ -108,11 +108,6 @@ func (handler *SaveHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		wizardForm.AddEmptyField(FieldObject, wizard.Auto)
 	}
 
-	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(&msg.Chat) && !wizardForm.AllRequiredFieldsFilled() {
-		return
-	}
-
 	wizardForm.ProcessNextField(reqenv, msg)
 }
 

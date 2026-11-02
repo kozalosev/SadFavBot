@@ -16,6 +16,7 @@ import (
 
 const (
 	RefStatusTrPrefix                 = "commands.ref.status."
+	RefGroupHintTr                    = "commands.ref.group.hint"
 	RefStatusSuccess                  = RefStatusTrPrefix + StatusSuccess
 	RefStatusSuccessWithPackages      = RefStatusTrPrefix + StatusSuccess + ".with.packages"
 	RefStatusSuccessPackagesByAlias   = RefStatusTrPrefix + StatusSuccess + ".packages.by.alias"
@@ -96,8 +97,9 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 		w.AddEmptyField(FieldObject, wizard.Auto)
 	}
 
-	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+	// the command is ephemeral in groups, and the user can't answer an ephemeral question, so only the short form works
+	if base.IsGroupChat(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+		common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)(RefGroupHintTr)
 		return
 	}
 

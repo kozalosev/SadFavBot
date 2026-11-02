@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/handlers"
+	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/SadFavBot/handlers/help"
 	"github.com/kozalosev/SadFavBot/handlers/privacy"
 	"github.com/kozalosev/goSadTgBot/app"
@@ -74,6 +75,7 @@ func main() {
 		DB:               db,
 	}
 
+	wizard.SetSelfDestructionDelayInGroups(common.SelfDeletionDelay())
 	if wasPopulated := wizard.PopulateWizardDescriptors(messageHandlers); !wasPopulated {
 		log.Warn("Wizard actions map already has been populated; skipping...",
 			logconst.FieldFunc, "main")
@@ -167,7 +169,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage,
 		handlers.NewSearchModeHandler(appenv, stateStorage),
 		handlers.NewAliasVisibilityHandler(appenv, stateStorage),
 		handlers.NewRemoveLinkHandler(appenv, stateStorage),
-		handlers.NewIgnoreUnknownInGroupsHandler(),
+		handlers.NewIgnoreUnknownInGroupsHandler(appenv.Bot.GetName()), // lets replies to the bot through to the wizards
 	}
 	inlineHandlers = []base.InlineHandler{
 		handlers.NewGetFavoritesInlineHandler(appenv),
