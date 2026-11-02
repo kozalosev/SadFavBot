@@ -10,6 +10,7 @@ services:
       - DEBUG
       - COMMAND_STATE_TTL
       - INLINE_CACHE_TIME
+      - SHOW_CACHE_TTL_SECS
       - RESULTS_PER_PAGE
       - APP_PORT
       - APP_PATH

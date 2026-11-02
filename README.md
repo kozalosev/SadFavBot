@@ -27,6 +27,7 @@ Commands
 * `/ref` — prints the list of all aliases associated with an object
 * `/delete` — starts a wizard that helps you delete some memes you no longer needed
 * `/visibility` — exclude an alias from all listings, or reveal it back
+* `/show` — send the favs saved under an alias right into the chat, with buttons to switch between them
 * `/package` — starts a wizard that helps you create, delete or get a link of your own package of aliases, which may be installed by other users
 * `/install` — command to install a package of aliases created by someone else
 * `/language` — switch the bot's language

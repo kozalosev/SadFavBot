@@ -40,7 +40,7 @@ func main() {
 	metrics.AddHttpHandlerForMetrics()
 	srv := server.Start(os.Getenv("APP_PORT"))
 
-	stateStorage, db := establishConnections(ctx)
+	stateStorage, db, showCache := establishConnections(ctx)
 
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("API_TOKEN"))
 	if err != nil {
@@ -56,7 +56,7 @@ func main() {
 		Ctx:      ctx,
 	}
 
-	messageHandlers, inlineHandlers, callbackHandlers, guestHandlers := initHandlers(appenv, stateStorage)
+	messageHandlers, inlineHandlers, callbackHandlers, guestHandlers := initHandlers(appenv, stateStorage, showCache)
 	api.SetCommands(locpool, supportedLanguages, base.ConvertHandlersToCommands(messageHandlers))
 
 	appParams := &app.Params{
@@ -109,19 +109,21 @@ func main() {
 	}
 
 	wg.Wait() // wait until all executing goroutines finish
-	shutdown(stateStorage, db)
+	shutdown(stateStorage, db, showCache)
 }
 
-func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *pgxpool.Pool) {
+func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *pgxpool.Pool, showCache handlers.RedisShowCache) {
 	commandStateTTL, err := time.ParseDuration(os.Getenv("COMMAND_STATE_TTL"))
 	if err != nil {
 		panic(err)
 	}
-	stateStorage = wizard.ConnectToRedis(ctx, commandStateTTL, &redis.Options{
+	redisOptions := &redis.Options{
 		Addr:     os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
-	})
+	}
+	stateStorage = wizard.ConnectToRedis(ctx, commandStateTTL, redisOptions)
+	showCache = handlers.NewRedisShowCache(ctx, redisOptions)
 	dbName := os.Getenv("POSTGRES_DB")
 	dbConfig := storage.NewDatabaseConfig(
 		os.Getenv("POSTGRES_HOST"),
@@ -135,7 +137,7 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 	return
 }
 
-func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler, guestHandlers []base.GuestHandler) {
+func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage, showCache handlers.ShowCache) (messageHandlers []base.MessageHandler, inlineHandlers []base.InlineHandler, callbackHandlers []base.CallbackHandler, guestHandlers []base.GuestHandler) {
 	languageHandler := handlers.NewLanguageHandler(appenv, stateStorage)
 	installPackageHandler := handlers.NewInstallPackageHandler(appenv, stateStorage)
 	saveHandler := handlers.NewSaveHandler(appenv, stateStorage)
@@ -150,6 +152,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 		saveHandler,
 		handlers.NewListHandler(appenv, stateStorage),
 		handlers.NewRefHandler(appenv, stateStorage),
+		handlers.NewShowHandler(appenv, showCache),
 		handlers.NewDeleteHandler(appenv, stateStorage),
 		installPackageHandler,
 		handlers.NewStartHandler(appenv, stateStorage, startEmbeddedHandlers),
@@ -170,6 +173,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 	callbackHandlers = []base.CallbackHandler{
 		help.NewCallbackHandler(appenv),
 		handlers.NewListPaginationCallbackHandler(appenv),
+		handlers.NewShowCallbackHandler(appenv, showCache),
 	}
 	guestHandlers = []base.GuestHandler{
 		handlers.NewGuestCommandsHandler(appenv), // must go before the search handler
@@ -182,8 +186,15 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage)
 	return
 }
 
-func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool) {
+func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool, showCache handlers.RedisShowCache) {
 	dbPool.Close()
+	if err := showCache.Close(); err != nil {
+		log.Error("Failed to call RedisShowCache.Close",
+			logconst.FieldFunc, "shutdown",
+			logconst.FieldCalledObject, "RedisShowCache",
+			logconst.FieldCalledMethod, "Close",
+			logconst.FieldError, err)
+	}
 	if err := stateStorage.Close(); err != nil {
 		log.Error("Failed to call StateStorage.Close",
 			logconst.FieldFunc, "shutdown",
