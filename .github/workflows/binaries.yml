@@ -1,7 +1,6 @@
 name: Attach binaries to release
 on:
-  release:
-    types: [created]
+  workflow_call:
 jobs:
   Publish-binaries:
     runs-on: ubuntu-latest
@@ -23,7 +22,7 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{github.repository }}."
 
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
 
       - uses: wangyoucao577/go-release-action@v1
@@ -31,7 +30,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          goversion: "1.20"
+          goversion: "1.26"
+          release_tag: ${{ github.ref_name }}
           ldflags: "-w -s"
           binary_name: "sadFavBot"
           extra_files: LICENSE README.md
