@@ -85,7 +85,7 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 			replyWith(RefStatusNoPacks)
 		} else {
 			text := reqenv.Lang.Tr(RefStatusSuccessPackagesByAlias) + "\n\n" + buildPackagesList(packages)
-			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
+			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, text, base.NoOpCustomizer)
 		}
 		return
 	}
@@ -151,7 +151,7 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	}
 
 	text := buildRefText(reqenv.Lang, aliases, packages)
-	common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer, common.ToOriginal)
+	common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, text, base.NoOpCustomizer, common.ToOriginal)
 }
 
 // findAliasesByObject returns all aliases of the user the object is saved under.

@@ -8,9 +8,12 @@ import (
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/selfdestruct"
+	"github.com/loctools/go-l10n/loc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var testLang = loc.NewPool("en").GetContext("en")
 
 func TestReplyPossiblySelfDestroying_Ephemeral(t *testing.T) {
 	bot := &base.FakeBotAPI{}
@@ -22,7 +25,7 @@ func TestReplyPossiblySelfDestroying_Ephemeral(t *testing.T) {
 	}
 
 	// the reply goes through the usual way, which knows how to answer to ephemeral messages, without the deletion timer
-	ReplyPossiblySelfDestroying(appenv, msg, "text", base.NoOpCustomizer)
+	ReplyPossiblySelfDestroying(appenv, testLang, msg, "text", base.NoOpCustomizer)
 	assert.Equal(t, []string{"text"}, bot.GetOutput())
 }
 
@@ -46,9 +49,9 @@ func startGroupReplyTest(t *testing.T, deletionAllowed bool) (*base.ApplicationE
 	t.Cleanup(cancel)
 	selfdestruct.Start(ctx, bot, selfdestruct.NewMemoryQueue(), time.Millisecond)
 
-	delay := selfDeletionDelay
-	selfDeletionDelay = time.Millisecond
-	t.Cleanup(func() { selfDeletionDelay = delay })
+	delay, warning := selfDeletionDelay, selfDeletionWarning
+	selfDeletionDelay, selfDeletionWarning = time.Millisecond, time.Millisecond
+	t.Cleanup(func() { selfDeletionDelay, selfDeletionWarning = delay, warning })
 
 	deleted := func() []int {
 		requests, _ := bot.GetOutput().([]tgbotapi.Chattable)
@@ -78,7 +81,7 @@ func newGroupCommand() *tgbotapi.Message {
 
 func TestReplyPossiblySelfDestroying_DeletesCommandIfAllowed(t *testing.T) {
 	appenv, bot, deleted := startGroupReplyTest(t, true)
-	ReplyPossiblySelfDestroying(appenv, newGroupCommand(), "text", base.NoOpCustomizer, ToOriginal)
+	ReplyPossiblySelfDestroying(appenv, testLang, newGroupCommand(), "text", base.NoOpCustomizer, ToOriginal)
 
 	assert.Eventually(t, func() bool { return len(deleted()) == 2 }, time.Second, time.Millisecond)
 	assert.ElementsMatch(t, []int{0, 10}, deleted(), "the reply and the command, not the original message")
@@ -86,11 +89,15 @@ func TestReplyPossiblySelfDestroying_DeletesCommandIfAllowed(t *testing.T) {
 	reply, ok := requests[0].(tgbotapi.MessageConfig)
 	require.True(t, ok, "%T", requests[0])
 	assert.Equal(t, 3, reply.ReplyParameters.MessageID, "the reply goes to the original message")
+	warning, ok := requests[1].(tgbotapi.EditMessageTextConfig)
+	require.True(t, ok, "the reply is replaced with the warning before the deletion: %T", requests[1])
+	assert.Equal(t, 0, warning.MessageID)
+	assert.Equal(t, tgbotapi.ModeHTML, warning.ParseMode)
 }
 
 func TestReplyPossiblySelfDestroying_KeepsAllWithoutRights(t *testing.T) {
 	appenv, _, deleted := startGroupReplyTest(t, false)
-	ReplyPossiblySelfDestroying(appenv, newGroupCommand(), "text", base.NoOpCustomizer)
+	ReplyPossiblySelfDestroying(appenv, testLang, newGroupCommand(), "text", base.NoOpCustomizer)
 
 	assert.Never(t, func() bool { return len(deleted()) > 0 }, 30*time.Millisecond, time.Millisecond)
 }

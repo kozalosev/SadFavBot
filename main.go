@@ -78,7 +78,6 @@ func main() {
 		DB:               db,
 	}
 
-	wizard.SetSelfDestructionDelayInGroups(common.SelfDeletionDelay())
 	if wasPopulated := wizard.PopulateWizardDescriptors(messageHandlers); !wasPopulated {
 		log.Warn("Wizard actions map already has been populated; skipping...",
 			logconst.FieldFunc, "main")
@@ -131,7 +130,7 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 	}
 	stateStorage = wizard.ConnectToRedis(ctx, commandStateTTL, redisOptions)
 	// a question of a wizard in a group mustn't disappear while the user can still answer it
-	wizard.SetUnansweredQuestionLifetimeInGroups(commandStateTTL)
+	wizard.SetGroupCleanupPolicy(common.GroupCleanupPolicy(commandStateTTL))
 	showCache = handlers.NewRedisShowCache(ctx, redisOptions)
 	deletionQueue = selfdestruct.ConnectToRedis(ctx, redisOptions)
 	dbName := os.Getenv("POSTGRES_DB")

@@ -1,11 +1,14 @@
 package common
 
 import (
+	log "log/slog"
 	"time"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/goSadTgBot/base"
+	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/selfdestruct"
+	"github.com/loctools/go-l10n/loc"
 )
 
 // ReplyOption changes how the self-destroying repliers behave.
@@ -20,16 +23,18 @@ type replyOptions struct {
 func ToOriginal(o *replyOptions) { o.toOriginal = true }
 
 // PossiblySelfDestroyingReplier replies as is in private chats and to ephemeral messages, which disappear by themselves,
-// and sends a self-destroying message to a group where the bot may delete messages of other users, deleting
-// the command together with the reply. Where it may not, nothing is deleted, so that the command isn't left alone.
+// and sends a self-destroying message to a group where the bot may delete messages of other users: after the delay,
+// the reply is replaced with the warning, and then it's deleted together with the command. Where the bot may not,
+// nothing is deleted, so that the command isn't left alone.
 func PossiblySelfDestroyingReplier(appenv *base.ApplicationEnv, reqenv *base.RequestEnv, msg *tgbotapi.Message, opts ...ReplyOption) func(string) {
 	return func(statusKey string) {
-		ReplyPossiblySelfDestroying(appenv, msg, reqenv.Lang.Tr(statusKey), base.NoOpCustomizer, opts...)
+		ReplyPossiblySelfDestroying(appenv, reqenv.Lang, msg, reqenv.Lang.Tr(statusKey), base.NoOpCustomizer, opts...)
 	}
 }
 
-// ReplyPossiblySelfDestroying is the same as PossiblySelfDestroyingReplier, but for an arbitrary text.
-func ReplyPossiblySelfDestroying(appenv *base.ApplicationEnv, msg *tgbotapi.Message, text string, customizer base.MessageCustomizer, opts ...ReplyOption) {
+// ReplyPossiblySelfDestroying is the same as PossiblySelfDestroyingReplier, but for an arbitrary text. lang is used
+// for the warning.
+func ReplyPossiblySelfDestroying(appenv *base.ApplicationEnv, lang *loc.Context, msg *tgbotapi.Message, text string, customizer base.MessageCustomizer, opts ...ReplyOption) {
 	var options replyOptions
 	for _, opt := range opts {
 		opt(&options)
@@ -40,20 +45,30 @@ func ReplyPossiblySelfDestroying(appenv *base.ApplicationEnv, msg *tgbotapi.Mess
 	}
 
 	// without the rights, the command would be left alone
-	if msg.Chat.IsPrivate() || msg.EphemeralMessageID != 0 || !canDeleteMessagesOfOthers(appenv.Bot, msg.Chat.ID) {
+	if msg.Chat.IsPrivate() || msg.EphemeralMessageID != 0 || !base.CanDeleteMessagesOfOthers(appenv.Bot, msg.Chat.ID) {
 		appenv.Bot.ReplyWithMessageCustomizer(replyTo, text, customizer)
 		return
 	}
 
 	reply := tgbotapi.NewMessage(msg.Chat.ID, text)
 	customizer(&reply)
-	replyDestroyingImpl(appenv.Bot, replyTo, reply)
-	selfdestruct.DeleteAfter(appenv.Bot, msg.Chat.ID, msg.MessageID, selfDeletionDelay)
-}
-
-func canDeleteMessagesOfOthers(bot base.ExtendedBotAPI, chatID int64) bool {
-	checker, ok := bot.(base.DeletionRightsChecker)
-	return ok && checker.CanDeleteMessages(chatID)
+	reply.ReplyParameters.MessageID = replyTo.MessageID
+	sent, err := appenv.Bot.Send(reply)
+	if err != nil {
+		log.Error("Failed to send a self-destroying reply",
+			logconst.FieldFunc, "ReplyPossiblySelfDestroying",
+			logconst.FieldCalledObject, "Bot",
+			logconst.FieldCalledMethod, "Send",
+			logconst.FieldError, err)
+		return
+	}
+	selfdestruct.Schedule(appenv.Bot, selfdestruct.Task{
+		Kind:           selfdestruct.KindDelete,
+		ChatID:         msg.Chat.ID,
+		MessageID:      sent.MessageID,
+		WithMessageIDs: []int{msg.MessageID},
+		Warning:        deletionWarning(lang, sent.MessageID),
+	}, selfDeletionDelay)
 }
 
 // SelfDeletionDelay is how long a self-destroying message lives.
@@ -82,9 +97,4 @@ func SingleRowInlineKeyboardCustomizer(buttons []tgbotapi.InlineKeyboardButton) 
 		}
 	}
 	return base.NoOpCustomizer
-}
-
-func replyDestroyingImpl(bot base.ExtendedBotAPI, srcMsg *tgbotapi.Message, msgToSend tgbotapi.MessageConfig) {
-	msgToSend.ReplyParameters.MessageID = srcMsg.MessageID
-	selfdestruct.SendAndDelete(bot, msgToSend, selfDeletionDelay)
 }

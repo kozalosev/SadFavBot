@@ -19,6 +19,7 @@ func init() {
 	locpool.Resources["en"] = map[string]string{
 		"error":                                              "Error",
 		"success":                                            "👍👌",
+		"self.destruction.warning":                           "🧹 <i>To keep the chat clean, this message will be deleted in <b>%d</b> seconds…</i>",
 		"commands.default.message":                           "No command was selected. Send /help to know about my skills",
 		"commands.default.message.on.command":                "Unknown command. Send /help to know about my skills",
 		"commands.start.status.failure":                      "Something went wrong... Please, try again later or contact @kozalo",
@@ -155,6 +156,7 @@ func init() {
 	locpool.Resources["ru"] = map[string]string{
 		"error":                                              "Ошибка",
 		"success":                                            "👍👌",
+		"self.destruction.warning":                           "🧹 <i>Чтобы не засорять чат, это сообщение будет удалено через <b>%d</b> сек…</i>",
 		"commands.default.message":                           "Ни одна команда не была выбрана. Отправьте /help, чтобы узнать о моих возможностях",
 		"commands.default.message.on.command":                "Неизвестная команда. Отправьте /help, чтобы узнать о моих возможностях",
 		"commands.start.status.failure":                      "Что-то пошло не так... Пожалуйста, повторите позднее или напишите @kozalo",

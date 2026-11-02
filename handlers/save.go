@@ -139,7 +139,7 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 	} else {
 		if res.RowsAffected() > 0 {
 			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), common.MarkdownEscaper.Replace(alias))
-			common.ReplyPossiblySelfDestroying(handler.appenv, msg, answer, base.MarkdownCustomizer)
+			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, answer, base.MarkdownCustomizer)
 		} else {
 			log.Warn("No rows were affected!",
 				logconst.FieldHandler, "SaveHandler",

@@ -144,9 +144,9 @@ func (handler *ListHandler) listAction(reqenv *base.RequestEnv, msg *tgbotapi.Me
 		text := buildText(title, page)
 		if page.HasNextPage {
 			buttons := buildPaginationButtons(page, favsOrPacks, grep)
-			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, common.SingleRowInlineKeyboardCustomizer(buttons))
+			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, text, common.SingleRowInlineKeyboardCustomizer(buttons))
 		} else {
-			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
+			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, text, base.NoOpCustomizer)
 		}
 	}
 }

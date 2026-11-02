@@ -40,7 +40,7 @@ func (c *CancelHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
 	}
 	// reply keyboards are not shown in groups, so there is nothing to remove there
 	if base.IsGroupChat(&msg.Chat) {
-		common.ReplyPossiblySelfDestroying(c.appEnv, msg, answer, base.NoOpCustomizer)
+		common.ReplyPossiblySelfDestroying(c.appEnv, reqenv.Lang, msg, answer, base.NoOpCustomizer)
 		return
 	}
 	c.appEnv.Bot.ReplyWithMessageCustomizer(msg, answer, func(m *tgbotapi.MessageConfig) {
