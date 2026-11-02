@@ -27,7 +27,7 @@ Commands
 * `/ref` — prints the list of all aliases associated with an object
 * `/delete` — starts a wizard that helps you delete some memes you no longer needed
 * `/visibility` — exclude an alias from all listings, or reveal it back
-* `/package` — starts a wizard that helps you create or delete your own package of aliases, which may be installed by other users
+* `/package` — starts a wizard that helps you create, delete or get a link of your own package of aliases, which may be installed by other users
 * `/install` — command to install a package of aliases created by someone else
 * `/language` — switch the bot's language
 * `/mode` — enable or disable substring search

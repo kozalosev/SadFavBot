@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	log "log/slog"
+	"slices"
 	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
+	"github.com/jackc/pgx/v5"
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
@@ -35,6 +37,7 @@ const (
 	Create   = "Create"
 	Recreate = "Recreate"
 	Delete   = "Delete"
+	Link     = "Link"
 
 	MaxPackageNameLen = 256
 )
@@ -75,7 +78,7 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 			}
 			if exists, err := handler.packageService.Exists(pkgInfo); err == nil {
 				if exists {
-					return []string{Recreate, Delete}
+					return []string{Link, Recreate, Delete}
 				}
 				log.Warn("Unexpected case when a package doesn't exist but createOrDelete was requested",
 					logconst.FieldHandler, "PackageHandler",
@@ -102,11 +105,20 @@ func (handler *PackageHandler) GetWizardDescriptor() *wizard.FormDescriptor {
 	}
 
 	aliasesDesc := desc.AddField(FieldAliases, PackageFieldsTrPrefix+FieldAliases)
-	aliasesDesc.SkipIf = &wizard.SkipOnFieldValue{
-		Name:  FieldCreateOrDelete,
-		Value: Delete,
+	aliasesDesc.SkipIf = skipIfAny{
+		wizard.SkipOnFieldValue{Name: FieldCreateOrDelete, Value: Delete},
+		wizard.SkipOnFieldValue{Name: FieldCreateOrDelete, Value: Link},
 	}
 	return desc
+}
+
+// skipIfAny is a [wizard.SkipCondition] that skips the field if at least one of the conditions is met.
+type skipIfAny []wizard.SkipCondition
+
+func (conditions skipIfAny) ShouldBeSkipped(form *wizard.Form) bool {
+	return slices.ContainsFunc(conditions, func(c wizard.SkipCondition) bool {
+		return c.ShouldBeSkipped(form)
+	})
 }
 
 func (*PackageHandler) GetCommands() []string {
@@ -166,6 +178,8 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	)
 	if intent == Delete {
 		err = handler.packageService.Delete(uid, name)
+	} else if intent == Link {
+		packID, err = handler.packageService.GetUniqueID(uid, name)
 	} else {
 		aliasesStr := common.TextValue(fields, FieldAliases)
 		aliases := strings.Split(aliasesStr, "\n")
@@ -183,7 +197,7 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	reply := base.NewReplier(handler.appenv, reqenv, msg)
 	if storage.DuplicateConstraintViolation(err) {
 		reply(PackageStatusDuplicate)
-	} else if errors.Is(err, repo.NoRowsWereAffected) {
+	} else if errors.Is(err, repo.NoRowsWereAffected) || errors.Is(err, pgx.ErrNoRows) {
 		reply(PackageStatusNoRows)
 	} else if err != nil {
 		log.Error("Failed to call PackageService",
