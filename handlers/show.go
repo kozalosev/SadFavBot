@@ -17,6 +17,8 @@ import (
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -29,6 +31,12 @@ const (
 	showCallbackPrefix   = "show:"
 	showTokenBytesLength = 8
 )
+
+// showCarouselCounter counts the messages successfully sent by the /show command with the buttons to switch between favs.
+var showCarouselCounter = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "show_carousel_was_shown",
+	Help: "Usage counter",
+})
 
 // showTypeOrder defines the order of the favs sent by the /show command: objects of the same type go together.
 var showTypeOrder = []wizard.FieldType{
@@ -111,6 +119,8 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 
 	if _, err = handler.appenv.Bot.Send(buildShowSendRequest(msg.Chat.ID, msg.MessageID, favs[0], keyboard)); err != nil {
 		logconst.NewLoggerForHandler("ShowHandler").LogFailedTelegramApiRequest(err)
+	} else if keyboard != nil {
+		showCarouselCounter.Inc()
 	}
 }
 
