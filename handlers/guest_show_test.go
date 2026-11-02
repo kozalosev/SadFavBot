@@ -26,9 +26,9 @@ func TestGuestFavoritesHandler_Handle_Carousel(t *testing.T) {
 	cache := newFakeShowCache()
 	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db), cache)
 
-	shown := testutil.ToFloat64(guestCarouselCounter)
+	shown := testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeGuest))
 	result := handler.Handle(test.BuildRequestEnv(), buildGuestMessage(test.UIDPhoto, mention+test.AliasPhoto))
-	assert.Equal(t, shown+1, testutil.ToFloat64(guestCarouselCounter))
+	assert.Equal(t, shown+1, testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeGuest)))
 	photo := requireAs[tgbotapi.InlineQueryResultCachedPhoto](t, result)
 	require.NotNil(t, photo.ReplyMarkup)
 
@@ -46,11 +46,11 @@ func TestGuestFavoritesHandler_Handle_NoCarouselForStickers(t *testing.T) {
 	handler := NewGuestFavoritesHandler(test.BuildApplicationEnv(db), cache)
 
 	// there are two stickers, but they can't replace each other in an inline message
-	shown := testutil.ToFloat64(guestCarouselCounter)
+	shown := testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeGuest))
 	result := handler.Handle(test.BuildRequestEnv(), buildGuestMessage(test.UID, mention+test.Alias))
 	assert.IsType(t, tgbotapi.InlineQueryResultCachedSticker{}, result)
 	assert.Empty(t, cache.entries)
-	assert.Equal(t, shown, testutil.ToFloat64(guestCarouselCounter))
+	assert.Equal(t, shown, testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeGuest)))
 }
 
 func TestFilterGuestCarousel(t *testing.T) {

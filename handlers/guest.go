@@ -11,8 +11,6 @@ import (
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -22,12 +20,6 @@ const (
 	guestErrorResultID = "error"
 	guestEmptyResultID = "empty"
 )
-
-// guestCarouselCounter counts the answers to guest queries sent with the buttons to switch between favs.
-var guestCarouselCounter = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "guest_carousel_was_shown",
-	Help: "Usage counter",
-})
 
 // GuestFavoritesHandler answers a guest query with the first fav found by the text of the message.
 // A guest query can be answered only once, so there is no choice, unlike in the inline mode. Instead, the other favs
@@ -78,6 +70,7 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 			logconst.FieldError, err)
 		return tgbotapi.NewInlineQueryResultArticle(guestErrorResultID, reqenv.Lang.Tr(ErrorTitleTr), reqenv.Lang.Tr(ErrorTitleTr))
 	}
+	countSearch(metricModeGuest, len(favs))
 	if len(favs) == 0 {
 		text := fmt.Sprintf(reqenv.Lang.Tr(GuestEmptyResultTr), query)
 		return tgbotapi.NewInlineQueryResultArticle(guestEmptyResultID, text, text)
@@ -91,6 +84,7 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 	token, err := newShowToken()
 	if err == nil {
 		err = handler.cache.Put(handler.appenv.Ctx, token, &ShowEntry{OwnerUID: user.ID, Favs: carousel})
+		countShowCachePut(err)
 	}
 	if err != nil {
 		// the fav can still be sent, just without the buttons
@@ -102,7 +96,7 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 			logconst.FieldError, err)
 		return result
 	}
-	guestCarouselCounter.Inc()
+	carouselCounter.WithLabelValues(metricModeGuest).Inc()
 	return withReplyMarkup(result, buildCarouselKeyboard(guestShowCallbackPrefix, token, 0, len(carousel)))
 }
 

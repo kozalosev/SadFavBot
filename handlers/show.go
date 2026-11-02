@@ -17,8 +17,6 @@ import (
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -31,12 +29,6 @@ const (
 	showCallbackPrefix   = "show:"
 	showTokenBytesLength = 8
 )
-
-// showCarouselCounter counts the messages successfully sent by the /show command with the buttons to switch between favs.
-var showCarouselCounter = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "show_carousel_was_shown",
-	Help: "Usage counter",
-})
 
 // showTypeOrder defines the order of the favs sent by the /show command: objects of the same type go together.
 var showTypeOrder = []wizard.FieldType{
@@ -91,6 +83,7 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		reply(ShowStatusFailure)
 		return
 	}
+	countSearch(metricModeShow, len(favs))
 	if len(favs) == 0 {
 		reply(ShowStatusEmpty)
 		return
@@ -102,6 +95,7 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		token, err := newShowToken()
 		if err == nil {
 			err = handler.cache.Put(handler.appenv.Ctx, token, &ShowEntry{OwnerUID: msg.From.ID, Favs: favs})
+			countShowCachePut(err)
 		}
 		if err != nil {
 			log.Error("Failed to put the favs into the ShowCache",
@@ -120,7 +114,7 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 	if _, err = handler.appenv.Bot.Send(buildShowSendRequest(msg.Chat.ID, msg.MessageID, favs[0], keyboard)); err != nil {
 		logconst.NewLoggerForHandler("ShowHandler").LogFailedTelegramApiRequest(err)
 	} else if keyboard != nil {
-		showCarouselCounter.Inc()
+		carouselCounter.WithLabelValues(metricModeShow).Inc()
 	}
 }
 
@@ -206,6 +200,7 @@ func resolveShowSwitch(appenv *base.ApplicationEnv, cache ShowCache, prefix stri
 	}
 
 	entry, err := cache.Get(appenv.Ctx, token)
+	countShowCacheGet(err)
 	if errors.Is(err, ErrShowCacheMiss) {
 		answerWith.err(ShowStatusOutdated)
 		return nil, false

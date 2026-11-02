@@ -38,6 +38,7 @@ func (handler *GuestCommandsHandler) save(lc *loc.Context, uid int64, replyTo *t
 		return handler.failure(err, "UserService", "Create", lc.Tr(SaveStatusFailure))
 	}
 	res, err := handler.favService.Save(uid, alias, fav)
+	countSaveOutcome(metricModeGuest, res, err)
 	if err != nil {
 		if storage.DuplicateConstraintViolation(err) {
 			return guestAnswer(lc.Tr(SaveStatusDuplicate))

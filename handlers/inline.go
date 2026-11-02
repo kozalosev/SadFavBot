@@ -71,6 +71,9 @@ func (handler *GetFavoritesInlineHandler) Handle(reqenv *base.RequestEnv, query 
 		offset := calculateOffset(query)
 		opts := reqenv.Options.(*dto.UserOptions)
 		if objects, err := handler.favService.Find(query.From.ID, query.Query, opts.SubstrSearchEnabled, offset); err == nil {
+			if offset == 0 {
+				countSearch(metricModeInline, len(objects))
+			}
 			if len(objects) > 0 {
 				answer.Results = fp.Map(objects, generateMapper(reqenv.Lang))
 				answer.NextOffset = strconv.Itoa(offset + len(objects))

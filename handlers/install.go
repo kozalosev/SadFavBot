@@ -143,10 +143,13 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 	}
 
 	if installedAliases, err := handler.packageService.Install(uid, pkgInfo); errors.Is(err, repo.NoRowsWereAffected) {
+		installOutcomeCounter.WithLabelValues(metricOutcomeNoRows).Inc()
 		reply(InstallStatusNoRows)
 	} else if isAttemptToInsertLinkForExistingFav(err) {
+		installOutcomeCounter.WithLabelValues(metricOutcomeLinkToFav).Inc()
 		reply(InstallStatusLinkToExisingFav)
 	} else if err != nil {
+		installOutcomeCounter.WithLabelValues(metricOutcomeFailure).Inc()
 		log.Error("Failed to call PackageService.Install",
 			logconst.FieldHandler, "InstallPackageHandler",
 			logconst.FieldMethod, "installPackageWithMessageHandling",
@@ -155,6 +158,7 @@ func (handler *InstallPackageHandler) installPackageWithMessageHandling(reqenv *
 			logconst.FieldError, err)
 		reply(InstallStatusFailure)
 	} else {
+		installOutcomeCounter.WithLabelValues(metricOutcomeSuccess).Inc()
 		if len(installedAliases) > 0 {
 			handler.appenv.Bot.Reply(msg, reqenv.Lang.Tr(InstallStatusSuccess)+"\n\n"+LinePrefix+strings.Join(installedAliases, "\n"+LinePrefix))
 		} else {
