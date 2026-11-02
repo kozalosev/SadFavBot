@@ -70,6 +70,7 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 			logconst.FieldError, err)
 		return tgbotapi.NewInlineQueryResultArticle(guestErrorResultID, reqenv.Lang.Tr(ErrorTitleTr), reqenv.Lang.Tr(ErrorTitleTr))
 	}
+	countSearch(metricModeGuest, len(favs))
 	if len(favs) == 0 {
 		text := fmt.Sprintf(reqenv.Lang.Tr(GuestEmptyResultTr), query)
 		return tgbotapi.NewInlineQueryResultArticle(guestEmptyResultID, text, text)
@@ -83,6 +84,7 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 	token, err := newShowToken()
 	if err == nil {
 		err = handler.cache.Put(handler.appenv.Ctx, token, &ShowEntry{OwnerUID: user.ID, Favs: carousel})
+		countShowCachePut(err)
 	}
 	if err != nil {
 		// the fav can still be sent, just without the buttons
@@ -94,6 +96,7 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 			logconst.FieldError, err)
 		return result
 	}
+	carouselCounter.WithLabelValues(metricModeGuest).Inc()
 	return withReplyMarkup(result, buildCarouselKeyboard(guestShowCallbackPrefix, token, 0, len(carousel)))
 }
 

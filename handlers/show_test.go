@@ -13,6 +13,7 @@ import (
 	"github.com/kozalosev/SadFavBot/test"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/wizard"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -156,7 +157,9 @@ func TestShowHandler_SeveralObjects(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 	cache := newFakeShowCache()
 
+	shown := testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeShow))
 	NewShowHandler(appenv, cache).Handle(buildShowRequestEnv(), buildShowCommand(test.UID, test.Alias))
+	assert.Equal(t, shown+1, testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeShow)))
 
 	sticker := requireAs[tgbotapi.StickerConfig](t, requireOutput(t, appenv.Bot.(*base.FakeBotAPI), 1)[0])
 	assert.Equal(t, 10, sticker.ReplyParameters.MessageID)
@@ -175,7 +178,9 @@ func TestShowHandler_SingleObjectHasNoKeyboard(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 	cache := newFakeShowCache()
 
+	shown := testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeShow))
 	NewShowHandler(appenv, cache).Handle(buildShowRequestEnv(), buildShowCommand(test.UIDPhoto, test.AliasPhoto))
+	assert.Equal(t, shown, testutil.ToFloat64(carouselCounter.WithLabelValues(metricModeShow)))
 
 	photo := requireAs[tgbotapi.PhotoConfig](t, requireOutput(t, appenv.Bot.(*base.FakeBotAPI), 1)[0])
 	assert.Nil(t, photo.ReplyMarkup)

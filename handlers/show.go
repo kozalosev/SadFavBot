@@ -83,6 +83,7 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		reply(ShowStatusFailure)
 		return
 	}
+	countSearch(metricModeShow, len(favs))
 	if len(favs) == 0 {
 		reply(ShowStatusEmpty)
 		return
@@ -94,6 +95,7 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 		token, err := newShowToken()
 		if err == nil {
 			err = handler.cache.Put(handler.appenv.Ctx, token, &ShowEntry{OwnerUID: msg.From.ID, Favs: favs})
+			countShowCachePut(err)
 		}
 		if err != nil {
 			log.Error("Failed to put the favs into the ShowCache",
@@ -111,6 +113,8 @@ func (handler *ShowHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Messag
 
 	if _, err = handler.appenv.Bot.Send(buildShowSendRequest(msg.Chat.ID, msg.MessageID, favs[0], keyboard)); err != nil {
 		logconst.NewLoggerForHandler("ShowHandler").LogFailedTelegramApiRequest(err)
+	} else if keyboard != nil {
+		carouselCounter.WithLabelValues(metricModeShow).Inc()
 	}
 }
 
@@ -196,6 +200,7 @@ func resolveShowSwitch(appenv *base.ApplicationEnv, cache ShowCache, prefix stri
 	}
 
 	entry, err := cache.Get(appenv.Ctx, token)
+	countShowCacheGet(err)
 	if errors.Is(err, ErrShowCacheMiss) {
 		answerWith.err(ShowStatusOutdated)
 		return nil, false

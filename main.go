@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	log "log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -42,7 +43,8 @@ func main() {
 
 	stateStorage, db, showCache := establishConnections(ctx)
 
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("API_TOKEN"))
+	bot, err := tgbotapi.NewBotAPIWithOptions(os.Getenv("API_TOKEN"),
+		tgbotapi.WithHTTPClient(metrics.NewTelegramHTTPClient(&http.Client{})))
 	if err != nil {
 		panic(err)
 	}
@@ -184,6 +186,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage,
 	metrics.RegisterMessageHandlerCounters(messageHandlers...)
 	metrics.RegisterInlineHandlerCounters(inlineHandlers...)
 	metrics.RegisterGuestHandlerCounters(guestHandlers...)
+	metrics.RegisterCallbackHandlerCounters(callbackHandlers...)
 	return
 }
 

@@ -127,6 +127,7 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 	}
 
 	res, err := handler.favService.Save(uid, alias, fav)
+	countSaveOutcome(metricModeCommand, res, err)
 
 	if err != nil {
 		if storage.DuplicateConstraintViolation(err) {
