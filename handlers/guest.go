@@ -11,6 +11,8 @@ import (
 	"github.com/kozalosev/SadFavBot/db/repo"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -20,6 +22,12 @@ const (
 	guestErrorResultID = "error"
 	guestEmptyResultID = "empty"
 )
+
+// guestCarouselCounter counts the answers to guest queries sent with the buttons to switch between favs.
+var guestCarouselCounter = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "guest_carousel_was_shown",
+	Help: "Usage counter",
+})
 
 // GuestFavoritesHandler answers a guest query with the first fav found by the text of the message.
 // A guest query can be answered only once, so there is no choice, unlike in the inline mode. Instead, the other favs
@@ -94,6 +102,7 @@ func (handler *GuestFavoritesHandler) Handle(reqenv *base.RequestEnv, msg *tgbot
 			logconst.FieldError, err)
 		return result
 	}
+	guestCarouselCounter.Inc()
 	return withReplyMarkup(result, buildCarouselKeyboard(guestShowCallbackPrefix, token, 0, len(carousel)))
 }
 

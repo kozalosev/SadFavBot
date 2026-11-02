@@ -184,6 +184,7 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage,
 	metrics.RegisterMessageHandlerCounters(messageHandlers...)
 	metrics.RegisterInlineHandlerCounters(inlineHandlers...)
 	metrics.RegisterGuestHandlerCounters(guestHandlers...)
+	metrics.RegisterCallbackHandlerCounters(callbackHandlers...)
 	return
 }
 
