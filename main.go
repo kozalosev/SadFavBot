@@ -23,6 +23,7 @@ import (
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/metrics"
+	"github.com/kozalosev/goSadTgBot/selfdestruct"
 	"github.com/kozalosev/goSadTgBot/server"
 	"github.com/kozalosev/goSadTgBot/storage"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -42,7 +43,7 @@ func main() {
 	metrics.AddHttpHandlerForMetrics()
 	srv := server.Start(os.Getenv("APP_PORT"))
 
-	stateStorage, db, showCache := establishConnections(ctx)
+	stateStorage, db, showCache, deletionQueue := establishConnections(ctx)
 
 	bot, err := tgbotapi.NewBotAPIWithOptions(os.Getenv("API_TOKEN"),
 		tgbotapi.WithHTTPClient(metrics.NewTelegramHTTPClient(&http.Client{})))
@@ -50,6 +51,8 @@ func main() {
 		panic(err)
 	}
 	api := base.NewBotAPI(bot)
+	// the messages scheduled for deletion before a restart are deleted after it
+	selfdestruct.Start(ctx, api, deletionQueue, selfdestruct.DefaultPollInterval)
 	debugMode := os.Getenv("DEBUG")
 	bot.Debug = strings.ToLower(debugMode) == "true" || debugMode == "1"
 
@@ -113,10 +116,10 @@ func main() {
 	}
 
 	wg.Wait() // wait until all executing goroutines finish
-	shutdown(stateStorage, db, showCache)
+	shutdown(stateStorage, db, showCache, deletionQueue)
 }
 
-func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *pgxpool.Pool, showCache handlers.RedisShowCache) {
+func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage, db *pgxpool.Pool, showCache handlers.RedisShowCache, deletionQueue selfdestruct.RedisQueue) {
 	commandStateTTL, err := time.ParseDuration(os.Getenv("COMMAND_STATE_TTL"))
 	if err != nil {
 		panic(err)
@@ -130,6 +133,7 @@ func establishConnections(ctx context.Context) (stateStorage wizard.StateStorage
 	// a question of a wizard in a group mustn't disappear while the user can still answer it
 	wizard.SetUnansweredQuestionLifetimeInGroups(commandStateTTL)
 	showCache = handlers.NewRedisShowCache(ctx, redisOptions)
+	deletionQueue = selfdestruct.ConnectToRedis(ctx, redisOptions)
 	dbName := os.Getenv("POSTGRES_DB")
 	dbConfig := storage.NewDatabaseConfig(
 		os.Getenv("POSTGRES_HOST"),
@@ -194,8 +198,15 @@ func initHandlers(appenv *base.ApplicationEnv, stateStorage wizard.StateStorage,
 	return
 }
 
-func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool, showCache handlers.RedisShowCache) {
+func shutdown(stateStorage wizard.StateStorage, dbPool *pgxpool.Pool, showCache handlers.RedisShowCache, deletionQueue selfdestruct.RedisQueue) {
 	dbPool.Close()
+	if err := deletionQueue.Close(); err != nil {
+		log.Error("Failed to call RedisQueue.Close",
+			logconst.FieldFunc, "shutdown",
+			logconst.FieldCalledObject, "RedisQueue",
+			logconst.FieldCalledMethod, "Close",
+			logconst.FieldError, err)
+	}
 	if err := showCache.Close(); err != nil {
 		log.Error("Failed to call RedisShowCache.Close",
 			logconst.FieldFunc, "shutdown",
