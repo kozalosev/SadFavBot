@@ -56,6 +56,33 @@ var (
 	}, []string{"operation", "result"})
 )
 
+// init creates the series for all known label values with zeros. A series of a vector is created lazily by its
+// first increment otherwise, so the dashboard shows "No data" instead of 0 until somebody uses the feature.
+func init() {
+	for _, mode := range []string{metricModeInline, metricModeGuest, metricModeShow} {
+		for _, result := range []string{metricResultFound, metricResultEmpty} {
+			searchCounter.WithLabelValues(mode, result)
+		}
+	}
+	for _, mode := range []string{metricModeCommand, metricModeGuest} {
+		for _, outcome := range []string{metricOutcomeSuccess, metricOutcomeDuplicate, metricOutcomeFailure} {
+			saveOutcomeCounter.WithLabelValues(mode, outcome)
+		}
+	}
+	for _, outcome := range []string{metricOutcomeSuccess, metricOutcomeNoRows, metricOutcomeLinkToFav, metricOutcomeFailure} {
+		installOutcomeCounter.WithLabelValues(outcome)
+	}
+	for _, mode := range []string{metricModeShow, metricModeGuest} {
+		carouselCounter.WithLabelValues(mode)
+	}
+	for _, result := range []string{metricCacheHit, metricCacheMiss, metricCacheError} {
+		showCacheCounter.WithLabelValues(metricCacheGet, result)
+	}
+	for _, result := range []string{metricCacheOK, metricCacheError} {
+		showCacheCounter.WithLabelValues(metricCachePut, result)
+	}
+}
+
 func countSearch(mode string, found int) {
 	result := metricResultEmpty
 	if found > 0 {
