@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"html"
 	log "log/slog"
 	"strings"
 
@@ -144,8 +145,8 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 			if base.IsGroupChat(&msg.Chat) {
 				successTr = SaveStatusSuccessInGroup
 			}
-			answer := fmt.Sprintf(reqenv.Lang.Tr(successTr), handler.appenv.Bot.GetName(), common.MarkdownEscaper.Replace(alias))
-			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, answer, base.MarkdownCustomizer)
+			answer := fmt.Sprintf(reqenv.Lang.Tr(successTr), handler.appenv.Bot.GetName(), html.EscapeString(alias))
+			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, answer, common.HTMLCustomizer)
 		} else {
 			log.Warn("No rows were affected!",
 				logconst.FieldHandler, "SaveHandler",

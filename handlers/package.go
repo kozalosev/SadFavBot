@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"html"
 	log "log/slog"
 	"slices"
 	"strings"
@@ -218,11 +219,11 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 		reply(PackageStatusDeletionSuccess)
 	} else {
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
-		packName := repo.FormatPackageName(uid, name)
-		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template,
-			common.MarkdownEscaper.Replace(packName),
+		packName := html.EscapeString(repo.FormatPackageName(uid, name))
+		handler.appenv.Bot.ReplyWithMessageCustomizer(msg, fmt.Sprintf(template,
+			packName,
 			packName,
 			handler.appenv.Bot.GetName(),
-			packID))
+			packID), common.HTMLCustomizer)
 	}
 }

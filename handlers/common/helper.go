@@ -5,9 +5,9 @@ import (
 	log "log/slog"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -22,10 +22,11 @@ const (
 var CommandScopePrivateChats = []base.CommandScope{base.CommandScopeAllPrivateChats}
 var CommandScopePrivateAndGroupChats = []base.CommandScope{base.CommandScopeAllPrivateChats, base.CommandScopeAllGroupChats, base.CommandScopeAllChatAdmins}
 
-var MarkdownEscaper = strings.NewReplacer(
-	"*", "\\*",
-	"_", "\\_",
-	"`", "\\`")
+// HTMLCustomizer sends the message as HTML. Unlike legacy Markdown, it allows to escape the values entered by users
+// inside the entities (see html.EscapeString).
+var HTMLCustomizer base.MessageCustomizer = func(msgConfig *tgbotapi.MessageConfig) {
+	msgConfig.ParseMode = tgbotapi.ModeHTML
+}
 
 var selfDeletionDelay time.Duration
 

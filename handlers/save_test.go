@@ -110,3 +110,19 @@ func TestSaveFormAction_SuccessTextInGroups(t *testing.T) {
 		})
 	}
 }
+
+func TestSaveFormAction_SuccessTextEscapesAlias(t *testing.T) {
+	test.InsertTestData(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := buildRequestEnvWithStrings(map[string]string{SaveStatusSuccess: "<code>@%s %s</code>"})
+	fields := wizard.Fields{
+		test.NewTextField(FieldAlias, "my_alias <b>`"),
+		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: wizard.Txt{Value: test.Text}},
+	}
+
+	NewSaveHandler(appenv, nil).saveFormAction(reqenv, buildMessage(test.UID3), fields)
+
+	// HTML, unlike legacy Markdown, is escaped inside the code entities, so the underscore stays as it is
+	output := appenv.Bot.(*base.FakeBotAPI).GetOutput()
+	assert.Equal(t, []string{"<code>@" + appenv.Bot.GetName() + " my_alias &lt;b&gt;`</code>"}, output)
+}

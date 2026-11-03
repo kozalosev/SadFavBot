@@ -48,13 +48,13 @@ func TestInstallPackageAction(t *testing.T) {
 	assert.Contains(t, aliasesPage.Items, test.Alias2+" (1)")
 }
 
-func TestSendCountOfAliasesInPackage_MarkdownEscapedName(t *testing.T) {
+func TestSendCountOfAliasesInPackage_EscapedName(t *testing.T) {
 	test.InsertTestData(db)
 
 	appenv := test.BuildApplicationEnv(db)
 	reqenv := buildRequestEnvWithStrings(map[string]string{
 		PackageStatusCreationSuccess: "created",
-		PackageItems:                 "The package _%s_ consists of:\n\n%s",
+		PackageItems:                 "The package <i>%s</i> consists of:\n\n%s",
 	})
 	msg := buildMessage(test.UID3)
 	fields := wizard.Fields{
@@ -70,5 +70,6 @@ func TestSendCountOfAliasesInPackage_MarkdownEscapedName(t *testing.T) {
 
 	output := appenv.Bot.(*base.FakeBotAPI).GetOutput().([]string)
 	assert.Len(t, output, 2)
-	assert.Contains(t, output[1], fmt.Sprintf("_%d@kdr\\_flood_", test.UID3))
+	// the underscore can't be escaped inside an entity of legacy Markdown (#103), and needn't be in HTML
+	assert.Contains(t, output[1], fmt.Sprintf("<i>%d@kdr_flood</i>", test.UID3))
 }

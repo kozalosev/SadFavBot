@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"html"
 	log "log/slog"
 	"strconv"
 	"strings"
@@ -100,11 +101,11 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 
 	if items, err := handler.packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
-			escapedItems := fp.Map(items, common.MarkdownEscaper.Replace)
+			escapedItems := fp.Map(items, html.EscapeString)
 			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems),
-				common.MarkdownEscaper.Replace(name),
+				html.EscapeString(name),
 				LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
-			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
+			handler.appenv.Bot.ReplyWithMessageCustomizer(msg, itemsMsg, common.HTMLCustomizer)
 		} else {
 			log.Warn("Empty package: "+name,
 				logconst.FieldHandler, "InstallPackageHandler",

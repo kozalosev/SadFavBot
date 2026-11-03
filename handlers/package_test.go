@@ -53,12 +53,12 @@ func TestPackageAction(t *testing.T) {
 	assert.Len(t, packages.Items, 0)
 }
 
-func TestPackageAction_MarkdownEscapedInCreationMessage(t *testing.T) {
+func TestPackageAction_EscapedNameInCreationMessage(t *testing.T) {
 	test.InsertTestData(db)
 
 	appenv := test.BuildApplicationEnv(db)
 	reqenv := buildRequestEnvWithStrings(map[string]string{
-		PackageStatusCreationSuccess: "Package: *%s*\n`/install %s`\n%s %s",
+		PackageStatusCreationSuccess: "Package: <b>%s</b>\n<code>/install %s</code>\n%s %s",
 	})
 	fields := wizard.Fields{
 		test.NewTextField(FieldName, "kdr_flood"),
@@ -70,8 +70,8 @@ func TestPackageAction_MarkdownEscapedInCreationMessage(t *testing.T) {
 
 	output := appenv.Bot.(*base.FakeBotAPI).GetOutput().([]string)
 	assert.Len(t, output, 1)
-	assert.Contains(t, output[0], fmt.Sprintf("*%d@kdr\\_flood*", test.UID3))
-	assert.Contains(t, output[0], fmt.Sprintf("`/install %d@kdr_flood`", test.UID3))
+	assert.Contains(t, output[0], fmt.Sprintf("<b>%d@kdr_flood</b>", test.UID3))
+	assert.Contains(t, output[0], fmt.Sprintf("<code>/install %d@kdr_flood</code>", test.UID3))
 }
 
 func TestPackageAction_Link(t *testing.T) {
@@ -80,7 +80,7 @@ func TestPackageAction_Link(t *testing.T) {
 
 	appenv := test.BuildApplicationEnv(db)
 	reqenv := buildRequestEnvWithStrings(map[string]string{
-		PackageStatusCreationSuccess: "Package: *%s*\n`/install %s`\n%s %s",
+		PackageStatusCreationSuccess: "Package: <b>%s</b>\n<code>/install %s</code>\n%s %s",
 		PackageStatusNoRows:          "no rows",
 	})
 	msg := buildMessage(test.UID)
@@ -97,7 +97,7 @@ func TestPackageAction_Link(t *testing.T) {
 	output := appenv.Bot.(*base.FakeBotAPI).GetOutput().([]string)
 	assert.Len(t, output, 2)
 	assert.Contains(t, output[0], test.PackageUUID)
-	assert.Contains(t, output[0], fmt.Sprintf("`/install %d@%s`", test.UID, test.Package))
+	assert.Contains(t, output[0], fmt.Sprintf("<code>/install %d@%s</code>", test.UID, test.Package))
 	assert.Equal(t, "no rows", output[1])
 
 	packages, err := repo.NewPackageService(appenv).ListWithCounts(test.UID, "")
@@ -120,7 +120,7 @@ func TestPackageAction_FullNameIsEquivalentToShort(t *testing.T) {
 
 	appenv := test.BuildApplicationEnv(db)
 	reqenv := buildRequestEnvWithStrings(map[string]string{
-		PackageStatusCreationSuccess: "Package: *%s*\n`/install %s`\n%s %s",
+		PackageStatusCreationSuccess: "Package: <b>%s</b>\n<code>/install %s</code>\n%s %s",
 	})
 	fields := wizard.Fields{
 		test.NewTextField(FieldName, test.PackageFullName),
