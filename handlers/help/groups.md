@@ -6,7 +6,7 @@ The bot may be added and used in group chats with some restrictions.
 
 The other commands work only in their short forms, i.e. one-liners like `/delete@SadFavBot alias` as a reply to some message. Called without the necessary data, they show a hint visible only to you. Note, if you call several commands in a row, at least the first one must contain the bot's name (unless the bot is promoted to an admin).
 
-You cannot use a chain of objects to be saved with the same alias: one command saves one object.
+To save more objects under the same alias after `/save`, send them as replies to a message of the bot, e.g. to its question for the object, until the command expires.
 
 Only a subset of commands is supported:
 {{commands}}

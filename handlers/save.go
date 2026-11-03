@@ -23,6 +23,8 @@ const (
 	SaveStatusSuccess   = SaveStatusTrPrefix + StatusSuccess
 	SaveStatusFailure   = SaveStatusTrPrefix + StatusFailure
 	SaveStatusDuplicate = SaveStatusTrPrefix + StatusDuplicate
+	// SaveStatusSuccessInGroup asks to reply to the bot with more objects: in groups, only the replies continue the form.
+	SaveStatusSuccessInGroup = SaveStatusSuccess + ".group"
 
 	SaveStatusErrorForbiddenSymbolsInAlias = SaveFieldsTrPrefix + FieldAlias + FieldValidationErrorTrInfix + "forbidden.symbols"
 	SaveObjectValidationErrorCustomEmoji   = SaveFieldsTrPrefix + FieldObject + FieldValidationErrorTrInfix + "custom.emoji"
@@ -138,7 +140,11 @@ func (handler *SaveHandler) saveFormAction(reqenv *base.RequestEnv, msg *tgbotap
 		}
 	} else {
 		if res.RowsAffected() > 0 {
-			answer := fmt.Sprintf(reqenv.Lang.Tr(SaveStatusSuccess), handler.appenv.Bot.GetName(), common.MarkdownEscaper.Replace(alias))
+			successTr := SaveStatusSuccess
+			if base.IsGroupChat(&msg.Chat) {
+				successTr = SaveStatusSuccessInGroup
+			}
+			answer := fmt.Sprintf(reqenv.Lang.Tr(successTr), handler.appenv.Bot.GetName(), common.MarkdownEscaper.Replace(alias))
 			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, answer, base.MarkdownCustomizer)
 		} else {
 			log.Warn("No rows were affected!",
