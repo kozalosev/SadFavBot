@@ -74,3 +74,8 @@ func TestExtractItemValues_MismatchError(t *testing.T) {
 	assert.Empty(t, alias)
 	assert.Nil(t, fav)
 }
+
+func TestFormatHTML(t *testing.T) {
+	assert.Equal(t, "<code>a &lt;b&gt; &amp; my_alias`</code> 1",
+		FormatHTML("<code>%s %s</code> %s", "a <b>", "& my_alias`", "1"))
+}

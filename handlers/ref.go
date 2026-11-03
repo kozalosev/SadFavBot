@@ -16,6 +16,7 @@ import (
 
 const (
 	RefStatusTrPrefix                 = "commands.ref.status."
+	RefGroupHintTr                    = "commands.ref.group.hint"
 	RefStatusSuccess                  = RefStatusTrPrefix + StatusSuccess
 	RefStatusSuccessWithPackages      = RefStatusTrPrefix + StatusSuccess + ".with.packages"
 	RefStatusSuccessPackagesByAlias   = RefStatusTrPrefix + StatusSuccess + ".packages.by.alias"
@@ -84,7 +85,7 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 			replyWith(RefStatusNoPacks)
 		} else {
 			text := reqenv.Lang.Tr(RefStatusSuccessPackagesByAlias) + "\n\n" + buildPackagesList(packages)
-			common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
+			common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, text, base.NoOpCustomizer)
 		}
 		return
 	}
@@ -96,8 +97,9 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 		w.AddEmptyField(FieldObject, wizard.Auto)
 	}
 
-	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+	// the command is ephemeral in groups, and the user can't answer an ephemeral question, so only the short form works
+	if base.IsGroupChat(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+		common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)(RefGroupHintTr)
 		return
 	}
 
@@ -107,8 +109,7 @@ func (handler *RefHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message
 var errInvalidObjectType = errors.New("invalid type of the object field value")
 
 func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Message, fields wizard.Fields) {
-	msg = common.ReplyToOriginal(msg)
-	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)
+	replyWith := common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg, common.ToOriginal)
 	objectField := fields.FindField(FieldObject)
 	if objectField == nil {
 		log.Error("Object field not found",
@@ -150,7 +151,7 @@ func (handler *RefHandler) refAction(reqenv *base.RequestEnv, msg *tgbotapi.Mess
 	}
 
 	text := buildRefText(reqenv.Lang, aliases, packages)
-	common.ReplyPossiblySelfDestroying(handler.appenv, msg, text, base.NoOpCustomizer)
+	common.ReplyPossiblySelfDestroying(handler.appenv, reqenv.Lang, msg, text, base.NoOpCustomizer, common.ToOriginal)
 }
 
 // findAliasesByObject returns all aliases of the user the object is saved under.

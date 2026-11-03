@@ -2,14 +2,15 @@ package common
 
 import (
 	"fmt"
+	"html"
 	log "log/slog"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/dto"
+	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
 	"github.com/kozalosev/goSadTgBot/wizard"
@@ -23,10 +24,18 @@ const (
 var CommandScopePrivateChats = []base.CommandScope{base.CommandScopeAllPrivateChats}
 var CommandScopePrivateAndGroupChats = []base.CommandScope{base.CommandScopeAllPrivateChats, base.CommandScopeAllGroupChats, base.CommandScopeAllChatAdmins}
 
-var MarkdownEscaper = strings.NewReplacer(
-	"*", "\\*",
-	"_", "\\_",
-	"`", "\\`")
+// HTMLCustomizer sends the message as HTML. Unlike legacy Markdown, it allows to escape the values entered by users
+// inside the entities (see FormatHTML).
+var HTMLCustomizer base.MessageCustomizer = func(msgConfig *tgbotapi.MessageConfig) {
+	msgConfig.ParseMode = tgbotapi.ModeHTML
+}
+
+// FormatHTML fills the HTML template with the values, escaping them. The markup belongs to the template only, so it
+// can't be escaped in the formatted text.
+func FormatHTML(template string, values ...string) string {
+	escaped := fp.Map(values, func(value string) any { return html.EscapeString(value) })
+	return fmt.Sprintf(template, escaped...)
+}
 
 var selfDeletionDelay time.Duration
 
@@ -108,8 +117,4 @@ func logInvalidFieldType[Expected wizard.Value](field *wizard.Field) {
 		"expectedType", fmt.Sprintf("%T", *new(Expected)),
 		"type", fmt.Sprintf("%T", data),
 		logconst.FieldValue, data)
-}
-
-func IsGroup(chat *tgbotapi.Chat) bool {
-	return chat.IsGroup() || chat.IsSuperGroup()
 }

@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	log "log/slog"
 	"strconv"
 	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
-	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -71,7 +69,7 @@ func (*InstallPackageHandler) GetScopes() []base.CommandScope {
 }
 
 func (handler *InstallPackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	if common.IsGroup(&msg.Chat) {
+	if base.IsGroupChat(&msg.Chat) {
 		return
 	}
 
@@ -100,11 +98,10 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 
 	if items, err := handler.packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
-			escapedItems := fp.Map(items, common.MarkdownEscaper.Replace)
-			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems),
-				common.MarkdownEscaper.Replace(name),
-				LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
-			handler.appenv.Bot.ReplyWithMarkdown(msg, itemsMsg)
+			itemsMsg := common.FormatHTML(reqenv.Lang.Tr(PackageItems),
+				name,
+				LinePrefix+strings.Join(items, "\n"+LinePrefix))
+			handler.appenv.Bot.ReplyWithMessageCustomizer(msg, itemsMsg, common.HTMLCustomizer)
 		} else {
 			log.Warn("Empty package: "+name,
 				logconst.FieldHandler, "InstallPackageHandler",

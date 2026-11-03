@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "log/slog"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -45,7 +46,9 @@ var guestKeywords = map[string]guestCommand{
 	"save":      guestCmdSave,
 	"create":    guestCmdSave,
 	"сохранить": guestCmdSave,
+	"сохрани":   guestCmdSave,
 	"создать":   guestCmdSave,
+	"создай":    guestCmdSave,
 
 	"delete":  guestCmdDelete,
 	"remove":  guestCmdDelete,
@@ -153,11 +156,11 @@ func (handler *GuestCommandsHandler) Handle(reqenv *base.RequestEnv, msg *tgbota
 func (handler *GuestCommandsHandler) execute(cmd guestCommand, lc *loc.Context, uid int64, replyTo *tgbotapi.Message, args string) tgbotapi.InlineQueryResult {
 	switch cmd {
 	case guestCmdSave:
-		return handler.save(lc, uid, replyTo, args)
+		return handler.save(lc, uid, replyTo, unquote(args))
 	case guestCmdDelete:
-		return handler.delete(lc, uid, replyTo, args)
+		return handler.delete(lc, uid, replyTo, unquote(args))
 	case guestCmdRef:
-		return handler.ref(lc, uid, replyTo, args)
+		return handler.ref(lc, uid, replyTo, unquote(args))
 	case guestCmdList:
 		return handler.list(lc, uid, args)
 	case guestCmdLink:
@@ -325,6 +328,14 @@ func guestMarkdownAnswer(text string) tgbotapi.InlineQueryResult {
 	return article
 }
 
+// guestHTMLAnswer is like guestAnswer, but the text is sent as HTML: unlike legacy Markdown, it allows to escape the
+// values entered by users inside the code entities (see common.FormatHTML).
+func guestHTMLAnswer(text string) tgbotapi.InlineQueryResult {
+	article := guestAnswer(text).(tgbotapi.InlineQueryResultArticle)
+	article.InputMessageContent = tgbotapi.InputTextMessageContent{Text: text, ParseMode: tgbotapi.ModeHTML}
+	return article
+}
+
 // parseGuestCommand splits the text into the command by its keyword (the longest one wins) and the rest of the text,
 // which are the arguments. It also returns the language of the keyword. It returns zero if the text doesn't start
 // with a keyword.
@@ -337,6 +348,23 @@ func parseGuestCommand(text string) (cmd guestCommand, lang string, args string)
 		}
 	}
 	return 0, "", ""
+}
+
+// guestQuotes are the pairs of quotes the alias may be written in: save "alias".
+var guestQuotes = map[rune]rune{'"': '"', '\'': '\'', '«': '»', '„': '“', '“': '”'}
+
+// unquote removes the quotes around the text if they enclose the whole of it.
+func unquote(text string) string {
+	runes := []rune(text)
+	if len(runes) < 2 {
+		return text
+	}
+	closing, ok := guestQuotes[runes[0]]
+	inner := runes[1 : len(runes)-1]
+	if !ok || runes[len(runes)-1] != closing || slices.Contains(inner, closing) {
+		return text
+	}
+	return strings.TrimSpace(string(inner))
 }
 
 // guestKeywordLang detects the language of the keyword by its alphabet.

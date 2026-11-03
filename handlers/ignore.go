@@ -4,18 +4,21 @@ import (
 	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
-	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 )
 
-type IgnoreUnknownInGroupsHandler struct{}
-
-func NewIgnoreUnknownInGroupsHandler() *IgnoreUnknownInGroupsHandler {
-	return &IgnoreUnknownInGroupsHandler{}
+// IgnoreUnknownInGroupsHandler swallows the messages in groups no other handler has taken, except replies to the bot:
+// they may be answers to the questions of a wizard, which the framework looks for after all handlers.
+type IgnoreUnknownInGroupsHandler struct {
+	botName string
 }
 
-func (*IgnoreUnknownInGroupsHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
-	return common.IsGroup(&msg.Chat)
+func NewIgnoreUnknownInGroupsHandler(botName string) *IgnoreUnknownInGroupsHandler {
+	return &IgnoreUnknownInGroupsHandler{botName: botName}
+}
+
+func (handler *IgnoreUnknownInGroupsHandler) CanHandle(_ *base.RequestEnv, msg *tgbotapi.Message) bool {
+	return base.IsGroupChat(&msg.Chat) && !base.IsReplyToBot(msg, handler.botName)
 }
 
 func (handler *IgnoreUnknownInGroupsHandler) Handle(_ *base.RequestEnv, _ *tgbotapi.Message) {}

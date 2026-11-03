@@ -131,7 +131,7 @@ func (*PackageHandler) GetScopes() []base.CommandScope {
 }
 
 func (handler *PackageHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.Message) {
-	if common.IsGroup(&msg.Chat) {
+	if base.IsGroupChat(&msg.Chat) {
 		return
 	}
 
@@ -219,10 +219,10 @@ func (handler *PackageHandler) packageAction(reqenv *base.RequestEnv, msg *tgbot
 	} else {
 		template := reqenv.Lang.Tr(PackageStatusCreationSuccess)
 		packName := repo.FormatPackageName(uid, name)
-		handler.appenv.Bot.ReplyWithMarkdown(msg, fmt.Sprintf(template,
-			common.MarkdownEscaper.Replace(packName),
+		handler.appenv.Bot.ReplyWithMessageCustomizer(msg, common.FormatHTML(template,
+			packName,
 			packName,
 			handler.appenv.Bot.GetName(),
-			packID))
+			packID), common.HTMLCustomizer)
 	}
 }

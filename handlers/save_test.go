@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/kozalosev/SadFavBot/test"
+	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/wizard"
 	"github.com/stretchr/testify/assert"
 )
@@ -82,4 +83,46 @@ func fetchItem(t *testing.T, fieldType wizard.FieldType) *queryResult {
 	assert.Equal(t, test.Alias, item.Name)
 	assert.Equal(t, fieldType, item.Type)
 	return &item
+}
+
+func TestSaveFormAction_SuccessTextInGroups(t *testing.T) {
+	reqenv := buildRequestEnvWithStrings(map[string]string{
+		SaveStatusSuccess:        "private %s %s",
+		SaveStatusSuccessInGroup: "group %s %s",
+	})
+	fields := wizard.Fields{
+		test.NewTextField(FieldAlias, test.Alias),
+		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: wizard.Txt{Value: test.Text}},
+	}
+
+	for chatType, expected := range map[string]string{"private": "private", "supergroup": "group"} {
+		t.Run(chatType, func(t *testing.T) {
+			test.InsertTestData(db)
+			appenv := test.BuildApplicationEnv(db)
+			msg := buildMessage(test.UID3)
+			msg.Chat.Type = chatType
+
+			NewSaveHandler(appenv, nil).saveFormAction(reqenv, msg, fields)
+
+			// the bot may not delete messages in the group, so the answer is an ordinary reply
+			output := appenv.Bot.(*base.FakeBotAPI).GetOutput()
+			assert.Equal(t, []string{expected + " " + appenv.Bot.GetName() + " " + test.Alias}, output)
+		})
+	}
+}
+
+func TestSaveFormAction_SuccessTextEscapesAlias(t *testing.T) {
+	test.InsertTestData(db)
+	appenv := test.BuildApplicationEnv(db)
+	reqenv := buildRequestEnvWithStrings(map[string]string{SaveStatusSuccess: "<code>@%s %s</code>"})
+	fields := wizard.Fields{
+		test.NewTextField(FieldAlias, "my_alias <b>`"),
+		&wizard.Field{Name: FieldObject, Type: wizard.Text, Data: wizard.Txt{Value: test.Text}},
+	}
+
+	NewSaveHandler(appenv, nil).saveFormAction(reqenv, buildMessage(test.UID3), fields)
+
+	// HTML, unlike legacy Markdown, is escaped inside the code entities, so the underscore stays as it is
+	output := appenv.Bot.(*base.FakeBotAPI).GetOutput()
+	assert.Equal(t, []string{"<code>@" + appenv.Bot.GetName() + " my_alias &lt;b&gt;`</code>"}, output)
 }

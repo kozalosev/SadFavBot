@@ -209,14 +209,15 @@ func TestShowHandler_Replies(t *testing.T) {
 	}
 }
 
-func TestShowHandler_NoUsageHintInGroups(t *testing.T) {
+func TestShowHandler_UsageHintInGroups(t *testing.T) {
 	appenv := test.BuildApplicationEnv(db)
 	msg := buildShowCommand(test.UID, "")
 	msg.Chat.Type = "supergroup"
 
 	NewShowHandler(appenv, newFakeShowCache()).Handle(buildShowRequestEnv(), msg)
 
-	assert.Empty(t, appenv.Bot.(*base.FakeBotAPI).GetOutput())
+	// the bot can't delete the command here, so the hint is a plain reply that isn't deleted either
+	assert.Equal(t, []string{showUsage}, appenv.Bot.(*base.FakeBotAPI).GetOutput())
 }
 
 // buildShowCallback prepares a callback handler which has no access to the database.

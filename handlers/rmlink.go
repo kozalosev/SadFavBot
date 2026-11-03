@@ -17,6 +17,7 @@ import (
 const (
 	RmLinkFieldTrPrefix  = "commands.rmlink.fields."
 	RmLinkStatusTrPrefix = "commands.rmlink.status."
+	RmLinkGroupHintTr    = "commands.rmlink.group.hint"
 	RmLinkStatusSuccess  = RmLinkStatusTrPrefix + StatusSuccess
 	RmLinkStatusFailure  = RmLinkStatusTrPrefix + StatusFailure
 	RmLinkStatusNoRows   = RmLinkStatusTrPrefix + StatusNoRows
@@ -90,8 +91,9 @@ func (handler *RemoveLinkHandler) Handle(reqenv *base.RequestEnv, msg *tgbotapi.
 		w.AddEmptyField(FieldName, wizard.Text)
 	}
 
-	// only short-handed forms of commands, running in one command without the use of wizards, are supported in group chats
-	if common.IsGroup(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+	// the command is ephemeral in groups, and the user can't answer an ephemeral question, so only the short form works
+	if base.IsGroupChat(&msg.Chat) && !w.AllRequiredFieldsFilled() {
+		common.PossiblySelfDestroyingReplier(handler.appenv, reqenv, msg)(RmLinkGroupHintTr)
 		return
 	}
 

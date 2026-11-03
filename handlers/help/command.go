@@ -54,5 +54,5 @@ func SendHelpMessage(appenv *base.ApplicationEnv, lc *loc.Context, msg *tgbotapi
 		msgConfig.ParseMode = tgbotapi.ModeMarkdown
 		msgConfig.ReplyMarkup = buildInlineKeyboard(lc)
 	}
-	common.ReplyPossiblySelfDestroying(appenv, msg, substitutedHelpText, msgCustomizer)
+	common.ReplyPossiblySelfDestroying(appenv, lc, msg, substitutedHelpText, msgCustomizer)
 }
