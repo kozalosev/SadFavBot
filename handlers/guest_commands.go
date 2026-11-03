@@ -329,7 +329,7 @@ func guestMarkdownAnswer(text string) tgbotapi.InlineQueryResult {
 }
 
 // guestHTMLAnswer is like guestAnswer, but the text is sent as HTML: unlike legacy Markdown, it allows to escape the
-// values entered by users inside the code entities (see html.EscapeString).
+// values entered by users inside the code entities (see common.FormatHTML).
 func guestHTMLAnswer(text string) tgbotapi.InlineQueryResult {
 	article := guestAnswer(text).(tgbotapi.InlineQueryResultArticle)
 	article.InputMessageContent = tgbotapi.InputTextMessageContent{Text: text, ParseMode: tgbotapi.ModeHTML}

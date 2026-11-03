@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"fmt"
-	"html"
 	log "log/slog"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
@@ -52,7 +50,7 @@ func (handler *GuestCommandsHandler) save(lc *loc.Context, uid int64, replyTo *t
 			logconst.FieldMethod, "save")
 		return guestAnswer(lc.Tr(SaveStatusFailure))
 	}
-	return guestHTMLAnswer(fmt.Sprintf(lc.Tr(GuestSaveSuccessTr), handler.appenv.Bot.GetName(), html.EscapeString(alias)))
+	return guestHTMLAnswer(common.FormatHTML(lc.Tr(GuestSaveSuccessTr), handler.appenv.Bot.GetName(), alias))
 }
 
 // favFromMessage extracts the object to save from the message by the same rules as in the wizard of the /save command.

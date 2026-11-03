@@ -2,15 +2,12 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
-	"html"
 	log "log/slog"
 	"strconv"
 	"strings"
 
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/kozalosev/SadFavBot/db/repo"
-	"github.com/kozalosev/SadFavBot/fp"
 	"github.com/kozalosev/SadFavBot/handlers/common"
 	"github.com/kozalosev/goSadTgBot/base"
 	"github.com/kozalosev/goSadTgBot/logconst"
@@ -101,10 +98,9 @@ func sendCountOfAliasesInPackage(handler *InstallPackageHandler, reqenv *base.Re
 
 	if items, err := handler.packageService.ListAliases(pkgInfo); err == nil {
 		if len(items) > 0 {
-			escapedItems := fp.Map(items, html.EscapeString)
-			itemsMsg := fmt.Sprintf(reqenv.Lang.Tr(PackageItems),
-				html.EscapeString(name),
-				LinePrefix+strings.Join(escapedItems, "\n"+LinePrefix))
+			itemsMsg := common.FormatHTML(reqenv.Lang.Tr(PackageItems),
+				name,
+				LinePrefix+strings.Join(items, "\n"+LinePrefix))
 			handler.appenv.Bot.ReplyWithMessageCustomizer(msg, itemsMsg, common.HTMLCustomizer)
 		} else {
 			log.Warn("Empty package: "+name,
