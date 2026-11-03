@@ -52,10 +52,22 @@ func TestGuestCommandsHandler_Save_Handle(t *testing.T) {
 	assert.Contains(t, answerText(t, result), test.Alias+" two")
 	test.CheckRowsCount(t, db, 1, test.UID3, nil)
 
+	// the command to use the fav is monospace, with the alias escaped
+	result = handler.Handle(reqenv, buildGuestSaveMessage(mention+"save <b>`", replyTo))
+	content := unwrapGuestResult(result).(tgbotapi.InlineQueryResultArticle).InputMessageContent.(tgbotapi.InputTextMessageContent)
+	assert.Equal(t, tgbotapi.ModeHTML, content.ParseMode)
+	assert.Contains(t, content.Text, "&lt;b&gt;`")
+	test.CheckRowsCount(t, db, 2, test.UID3, nil)
+
+	// the quotes around the alias are dropped, the mention may be at the end
+	handler.Handle(reqenv, buildGuestSaveMessage(`сохрани «`+test.Alias+` three», `+mention, replyTo))
+	unquoted := test.Alias + " three"
+	test.CheckRowsCount(t, db, 1, test.UID3, &unquoted)
+
 	// duplicate
 	result = handler.Handle(reqenv, buildGuestSaveMessage(mention+"save "+test.Alias+" two", replyTo))
 	assert.Equal(t, reqenv.Lang.Tr(SaveStatusDuplicate), answerText(t, result))
-	test.CheckRowsCount(t, db, 1, test.UID3, nil)
+	test.CheckRowsCount(t, db, 3, test.UID3, nil)
 }
 
 func TestGuestCommandsHandler_Save_Handle_NewUser(t *testing.T) {
@@ -83,6 +95,18 @@ func TestFavFromMessage(t *testing.T) {
 
 	assert.Equal(t, 1.5, favFromMessage(&tgbotapi.Message{Location: &tgbotapi.Location{Latitude: 1.5}}).Location.Latitude)
 	assert.Nil(t, favFromMessage(&tgbotapi.Message{}))
+}
+
+func TestUnquote(t *testing.T) {
+	assert.Equal(t, "alias", unquote(`"alias"`))
+	assert.Equal(t, "alias two", unquote("«alias two»"))
+	assert.Equal(t, "alias", unquote("„alias“"))
+	assert.Equal(t, "alias", unquote("“alias”"))
+	assert.Equal(t, "alias", unquote("'alias'"))
+	assert.Equal(t, `"a" and "b"`, unquote(`"a" and "b"`), "the quotes don't enclose the whole text")
+	assert.Equal(t, `"alias`, unquote(`"alias`))
+	assert.Equal(t, `"`, unquote(`"`))
+	assert.Equal(t, "alias", unquote("alias"))
 }
 
 func buildGuestSaveMessage(text string, replyTo *tgbotapi.Message) *tgbotapi.Message {
