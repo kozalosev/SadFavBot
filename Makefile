@@ -4,6 +4,9 @@ start:
 	$(DOCKER_COMPOSE) up --build -d
 stop:
 	$(DOCKER_COMPOSE) down
+# Example: make migrate ARGS="down 1"
+migrate:
+	$(DOCKER_COMPOSE) run --rm migrate $(ARGS)
 test:
 	go test -v ./...
 dev-env:

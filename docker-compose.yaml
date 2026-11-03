@@ -45,6 +45,20 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
     logging:
       driver: local
+  # Not started by `up`; use `make migrate ARGS="..."` (`docker-compose run --rm migrate ...`) to manage the schema manually
+  migrate:
+    image: migrate/migrate:v4.20.1
+    profiles:
+      - tools
+    entrypoint: [ "migrate", "-path", "/migrations", "-database", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" ]
+    command: [ "version" ]
+    volumes:
+      - ./db/migrations:/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - postgres-network
   postgres:
     image: postgres:14.5-alpine
     container_name: sadfavbot-postgresql

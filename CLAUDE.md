@@ -16,7 +16,10 @@ go test -v ./...                         # needs Docker: tests spin up Postgres 
 go test ./db/repo -run TestName -v       # single test / package
 make start | stop                        # docker-compose (+ override) up --build -d / down
 make dev-env                             # patch .env for local run: *_HOST=localhost, DEBUG=true
+make migrate ARGS="down 1"               # golang-migrate CLI in a container (`migrate/migrate` image, `tools` profile)
 ```
+
+The bot applies migrations itself at startup; the `migrate` service is for manual work with the local schema without the CLI installed (rollback, `force` after a dirty migration). It mounts `db/migrations` and connects to the `postgres` service.
 
 CI (`.github/workflows/ci-build.yml`) runs `go build` + `go test` with `TESTCONTAINERS_RYUK_DISABLED=true`, plus a Docker image build.
 
